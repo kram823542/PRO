@@ -1,4 +1,3 @@
-
 // server.js
 const express = require('express');
 const mongoose = require('mongoose');
@@ -7,9 +6,16 @@ require('dotenv').config();
 
 const app = express();
 
-// ✅ FIXED CORS - Allow all frontend requests
+// ✅ UPDATED CORS - All frontend domains added
 app.use(cors({
-  origin: ['https://pro-fpupr8smc-kundan-rams-projects.vercel.app', 'http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:5173' , ],
+  origin: [
+    'https://pro-eosin-five.vercel.app',
+    'https://pro-git-main-kundan-rams-projects.vercel.app', 
+    'https://pro-p5h4kkshl-kundan-rams-projects.vercel.app',
+    'http://localhost:3000', 
+    'http://127.0.0.1:3000', 
+    'http://localhost:5173'
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -17,11 +23,10 @@ app.use(cors({
 
 app.use(express.json());
 
-// ✅ ADD THIS - Routes
+// ✅ Routes
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/posts', require('./routes/posts'));
-app.use('/api/admin', require('./routes/admin')); // 🆕 ADMIN ROUTE ADD KARO
-// Add this to your server.js
+app.use('/api/admin', require('./routes/admin'));
 app.use('/api/upload', require('./routes/upload'));
 
 // Home route
@@ -32,7 +37,7 @@ app.get('/', (req, res) => {
     endpoints: {
       auth: '/api/auth',
       posts: '/api/posts',
-      admin: '/api/admin' // 🆕 ADMIN ENDPOINT ADD KARO
+      admin: '/api/admin'
     }
   });
 });
@@ -51,7 +56,10 @@ mongoose.connect(process.env.MONGODB_URI)
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🌐 Frontend: http://localhost:3000`);
+  console.log(`🌐 Production Frontend URLs:`);
+  console.log(`   • https://pro-eosin-five.vercel.app`);
+  console.log(`   • https://pro-git-main-kundan-rams-projects.vercel.app`);
+  console.log(`   • https://pro-p5h4kkshl-kundan-rams-projects.vercel.app`);
   console.log(`🔗 Backend: http://localhost:5000`);
   console.log('');
   console.log('📝 Available API Endpoints:');
@@ -65,7 +73,7 @@ app.listen(PORT, () => {
   console.log('   DELETE /api/posts/:id       - Delete post');
   console.log('   POST   /api/auth/register   - User registration');
   console.log('   POST   /api/auth/login      - User login');
-  console.log('   POST   /api/admin/login     - Admin login'); // 🆕 ADMIN ENDPOINTS
+  console.log('   POST   /api/admin/login     - Admin login');
   console.log('   GET    /api/admin/stats     - Get admin statistics');
   console.log('   GET    /api/admin/users     - Get all users');
   console.log('   GET    /api/admin/posts     - Get all posts for admin');
