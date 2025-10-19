@@ -129,85 +129,89 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-white">
       {/* Vlog Style Hero Section */}
-      <section className="relative text-white py-20 md:py-32 overflow-hidden bg-gradient-to-br from-purple-600 via-pink-500 to-purple-700">
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0">
-          <div className="absolute top-10 left-10 w-72 h-72 bg-white/5 rounded-full blur-3xl"></div>
-          <div className="absolute bottom-10 right-10 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl"></div>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-purple-400/10 rounded-full blur-3xl"></div>
-        </div>
-        
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="max-w-6xl mx-auto text-center">
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 mb-8">
-              <span className="text-sm font-medium">✨ Live Your Dreams, Share Your Journey</span>
-            </div>
-            
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-              <span className="bg-gradient-to-r from-white to-purple-100 bg-clip-text text-transparent">
-                Adventure
-              </span>
-              <br />
-              <span className="bg-gradient-to-r from-yellow-200 to-pink-300 bg-clip-text text-transparent">
-                Awaits You
-              </span>
-            </h1>
-            
-            <p className="text-xl md:text-2xl mb-10 leading-relaxed max-w-3xl mx-auto font-light text-purple-100">
-              Join me on an extraordinary journey through fantasy realms, thrilling challenges, 
-              and unforgettable adventures that push the boundaries of imagination
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-5 justify-center items-center">
-              <Link 
-                to="/posts" 
-                className="group bg-white text-purple-600 px-10 py-4 rounded-xl font-bold hover:bg-gray-50 transition-all duration-300 shadow-2xl hover:shadow-3xl transform hover:-translate-y-1 text-lg hover:scale-105 flex items-center"
-              >
-                <svg className="w-5 h-5 mr-3 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9m0 0v12m0-12a2 2 0 012-2h2a2 2 0 012 2m-6 9v2" />
-                </svg>
-                Explore Stories
-              </Link>
-              <Link 
-                to="/about" 
-                className="group bg-transparent border-2 border-white text-white px-10 py-4 rounded-xl font-bold hover:bg-white hover:text-purple-600 transition-all duration-300 text-lg transform hover:-translate-y-1 flex items-center"
-              >
-                <svg className="w-5 h-5 mr-3 group-hover:scale-110 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                My Journey
-              </Link>
-            </div>
 
-            {/* Stats Section - Updated for Vlog */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16 max-w-2xl mx-auto">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-white mb-2">50+</div>
-                <div className="text-purple-200 text-sm">Adventures</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-white mb-2">25+</div>
-                <div className="text-purple-200 text-sm">Fantasy Tales</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-white mb-2">15+</div>
-                <div className="text-purple-200 text-sm">Challenges</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-white mb-2">100K+</div>
-                <div className="text-purple-200 text-sm">Dreamers</div>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        {/* Scroll Indicator */}
-        <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
-          <div className="w-6 h-10 border-2 border-white rounded-full flex justify-center">
-            <div className="w-1 h-3 bg-white rounded-full mt-2"></div>
-          </div>
+     <section className="relative text-white py-20 md:py-32 overflow-hidden bg-gradient-to-br from-purple-600 via-pink-500 to-purple-700">
+  {/* Animated Background Elements */}
+  <div className="absolute inset-0">
+    <div className="absolute top-10 left-10 w-72 h-72 bg-white/5 rounded-full blur-3xl"></div>
+    <div className="absolute bottom-10 right-10 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl"></div>
+    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-purple-400/10 rounded-full blur-3xl"></div>
+  </div>
+  
+  <div className="container mx-auto px-4 relative z-10">
+    <div className="max-w-6xl mx-auto text-center">
+      <div className="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 mb-8">
+        <span className="text-sm font-medium">✨ Live Your Dreams, Share Your Journey</span>
+      </div>
+      
+      <h1 className="text-6xl md:text-8xl font-black mb-6 leading-tight tracking-tight">
+        <span className="bg-gradient-to-r from-white via-yellow-200 to-pink-300 bg-clip-text text-transparent animate-pulse">
+          MOMENTS
+        </span>
+        <br />
+        <span className="bg-gradient-to-r from-yellow-300 via-pink-400 to-purple-400 bg-clip-text text-transparent animate-pulse" style={{animationDelay: '0.5s'}}>
+          & ME
+        </span>
+      </h1>
+      
+      {/* Animated Rotating Text */}
+      <div className="h-24 mb-16 flex items-center justify-center">
+        <div className="text-2xl md:text-3xl font-bold">
+          <span className="inline-block animate-rotate-text bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
+            Share Your Adventure Stories
+          </span>
         </div>
-      </section>
+      </div>
+      
+      {/* CTA Buttons - More spacing after removing tags */}
+      <div className="flex flex-col sm:flex-row gap-5 justify-center items-center mb-16">
+        <Link 
+          to="/posts" 
+          className="group bg-white text-purple-600 px-10 py-4 rounded-xl font-black hover:bg-gray-50 transition-all duration-300 shadow-2xl hover:shadow-3xl transform hover:-translate-y-2 text-lg hover:scale-110 flex items-center border-2 border-transparent hover:border-purple-200"
+        >
+          <svg className="w-6 h-6 mr-3 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9m0 0v12m0-12a2 2 0 012-2h2a2 2 0 012 2m-6 9v2" />
+          </svg>
+          EXPLORE STORIES
+        </Link>
+        <Link 
+          to="/about" 
+          className="group bg-transparent border-2 border-white text-white px-10 py-4 rounded-xl font-black hover:bg-white hover:text-purple-600 transition-all duration-300 text-lg transform hover:-translate-y-2 hover:scale-110 flex items-center backdrop-blur-sm"
+        >
+          <svg className="w-6 h-6 mr-3 group-hover:scale-125 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          MY JOURNEY
+        </Link>
+      </div>
+
+      {/* Enhanced Stats Section */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-20 max-w-2xl mx-auto">
+        {[
+          { number: '50+', label: 'Adventures', color: 'from-yellow-300 to-yellow-500' },
+          { number: '25+', label: 'Fantasy Tales', color: 'from-pink-400 to-pink-600' },
+          { number: '15+', label: 'Challenges', color: 'from-purple-400 to-purple-600' },
+          { number: '100K+', label: 'Dreamers', color: 'from-blue-400 to-blue-600' }
+        ].map((stat, index) => (
+          <div key={stat.label} className="text-center animate-bounce" style={{animationDelay: `${index * 0.3}s`}}>
+            <div className={`text-4xl font-black mb-2 bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
+              {stat.number}
+            </div>
+            <div className="text-purple-200 text-sm font-semibold">{stat.label}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+
+  {/* Enhanced Scroll Indicator */}
+  <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+    <div className="w-8 h-12 border-3 border-white/80 rounded-full flex justify-center backdrop-blur-sm">
+      <div className="w-1 h-4 bg-gradient-to-b from-yellow-300 to-pink-400 rounded-full mt-3 animate-pulse"></div>
+    </div>
+  </div>
+</section>
 
       {/* Latest Stories Section */}
       <section className="py-20 bg-gray-50 relative">

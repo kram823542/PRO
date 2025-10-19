@@ -9,3 +9,25 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Custom Animations */
+@keyframes rotate-text {
+  0%, 25% { content: "Share Your Adventure Stories"; }
+  26%, 50% { content: "Capture Life's Special Moments"; }
+  51%, 75% { content: "Create Unforgettable Memories"; }
+  76%, 100% { content: "Document Your Unique Journey"; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(5deg); }
+}
+
+.animate-rotate-text::before {
+  content: "Share Your Adventure Stories";
+  animation: rotate-text 8s infinite;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
