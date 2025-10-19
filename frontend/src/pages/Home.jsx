@@ -11,7 +11,8 @@ const Home = () => {
   const navigate = useNavigate();
 
   // const API_BASE_URL = '${process.env.REACT_APP_API_URL}/api';
-  const API_BASE_URL = `${process.env.REACT_APP_API_URL}/api`;
+  // const API_BASE_URL = `${process.env.REACT_APP_API_URL}/api`;
+  const API_BASE_URL = 'https://pro-muko.onrender.com/api';
 
   // State for popular tags - Updated for vlog style
   const [popularTags] = useState(['Adventure', 'Fantasy', 'Challenge', 'Travel', 'Exploration', 'Dreams', 'Journey', 'Discovery']);

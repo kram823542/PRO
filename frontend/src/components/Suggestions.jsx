@@ -8,7 +8,9 @@ const Suggestions = () => {
   const [error, setError] = useState(null);
   
   // const API_BASE_URL = '${process.env.REACT_APP_API_URL}/api';
-  const API_BASE_URL = `${process.env.REACT_APP_API_URL}/api`;
+  // const API_BASE_URL = `${process.env.REACT_APP_API_URL}/api`;
+  const API_BASE_URL = 'https://pro-muko.onrender.com/api';
+
 
   // Fetch suggested posts from MongoDB
   const fetchSuggestedPosts = async () => {

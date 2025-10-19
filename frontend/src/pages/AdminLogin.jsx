@@ -28,7 +28,8 @@ const AdminLogin = () => {
     setError('');
 
     try {
-      const response = await fetch(`${process.env.REACT_APP_API_URL}/api/admin/login`, {
+      // ✅ API CALL FIXED - Hardcoded URL
+      const response = await fetch('https://pro-muko.onrender.com/api/admin/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

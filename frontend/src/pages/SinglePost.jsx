@@ -11,7 +11,8 @@ const SinglePost = ({ currentUser, onLoginRequest }) => {
   const [error, setError] = useState(null);
 
   // const API_BASE_URL = '${process.env.REACT_APP_API_URL}/api';
-  const API_BASE_URL = `${process.env.REACT_APP_API_URL}/api`;
+  // const API_BASE_URL = `${process.env.REACT_APP_API_URL}/api`;
+  const API_BASE_URL = 'https://pro-muko.onrender.com/api';
 
   // Fetch post function
   const fetchPost = async () => {
