@@ -10,7 +10,8 @@ const Home = () => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  const API_BASE_URL = 'http://localhost:5000/api';
+  // const API_BASE_URL = '${process.env.REACT_APP_API_URL}/api';
+  const API_BASE_URL = `${process.env.REACT_APP_API_URL}/api`;
 
   // State for popular tags - Updated for vlog style
   const [popularTags] = useState(['Adventure', 'Fantasy', 'Challenge', 'Travel', 'Exploration', 'Dreams', 'Journey', 'Discovery']);

@@ -11,7 +11,8 @@ const Posts = () => {
   const [error, setError] = useState(null);
 
   // API Base URL
-  const API_BASE_URL = 'http://localhost:5000/api';
+  // const API_BASE_URL = '${process.env.REACT_APP_API_URL}/api';
+  const API_BASE_URL = `${process.env.REACT_APP_API_URL}/api`;
 
   // Fetch posts from MongoDB
   const fetchPosts = async () => {

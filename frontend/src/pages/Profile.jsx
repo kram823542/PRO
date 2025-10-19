@@ -13,7 +13,8 @@ const Profile = ({ user, onLogout }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   // API Base URL
-  const API_BASE_URL = 'http://localhost:5000/api';
+  // const API_BASE_URL = '${process.env.REACT_APP_API_URL}/api';
+  const API_BASE_URL = `${process.env.REACT_APP_API_URL}/api`;
 
   // Fetch user statistics
   useEffect(() => {

@@ -33,7 +33,8 @@ const PostForm = ({ setShowPostForm, updateProgress, progress, onPostCreated }) 
     cardDark: '#1e293b'      // Dark Card
   };
 
-  const API_BASE_URL = 'http://localhost:5000/api';
+  // const API_BASE_URL = '${process.env.REACT_APP_API_URL}/api';
+  const API_BASE_URL = `${process.env.REACT_APP_API_URL}/api`;
 
   // Upload image to Cloudinary with progress tracking
   const uploadImageToCloudinary = async (imageFile) => {

@@ -10,7 +10,8 @@ const SinglePost = ({ currentUser, onLoginRequest }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const API_BASE_URL = 'http://localhost:5000/api';
+  // const API_BASE_URL = '${process.env.REACT_APP_API_URL}/api';
+  const API_BASE_URL = `${process.env.REACT_APP_API_URL}/api`;
 
   // Fetch post function
   const fetchPost = async () => {
