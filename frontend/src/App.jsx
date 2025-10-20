@@ -142,7 +142,6 @@
 
 // export default App;
 
-
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Navigation';
@@ -156,7 +155,7 @@ import AdminPanel from './pages/AdminPanel';
 import AdminLogin from './pages/AdminLogin';
 import LoginForm from './components/LoginForm';
 
-// ✅ YAHAN ADD KARO - API BASE URL
+// ✅ API BASE URL
 const API_BASE_URL = 'https://pro-muko.onrender.com';
 
 function App() {
@@ -184,9 +183,8 @@ function App() {
     }
   }, []);
 
-  // ✅ YAHAN BHI ADD KARO - Global API URL access ke liye
+  // ✅ Global API URL access
   useEffect(() => {
-    // Global variable set karo taaki sab components use kar sakein
     window.API_BASE_URL = API_BASE_URL;
   }, []);
 
@@ -204,6 +202,7 @@ function App() {
     setCurrentUser(null);
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('adminToken'); // ✅ Admin token bhi remove karo
     console.log('User logged out');
   };
 
@@ -213,6 +212,12 @@ function App() {
 
   const handleCloseAuthModal = () => {
     setShowAuthModal(false);
+  };
+
+  // ✅ Admin route protection
+  const AdminRoute = ({ children }) => {
+    const adminToken = localStorage.getItem('adminToken');
+    return adminToken ? children : <Navigate to="/admin/login" />;
   };
 
   return (
@@ -227,37 +232,82 @@ function App() {
       />
       
       <Routes>
+        {/* Public Routes */}
         <Route path="/" element={
           <Layout 
             currentUser={currentUser}
             onLogout={handleLogout}
             onOpenAuthModal={handleOpenAuthModal}
           >
-            {/* ✅ API_BASE_URL pass karo Home component ko */}
             <Home API_BASE_URL={API_BASE_URL} />
           </Layout>
         } />
+        
         <Route path="/posts" element={
           <Layout 
             currentUser={currentUser}
             onLogout={handleLogout}
             onOpenAuthModal={handleOpenAuthModal}
           >
-            {/* ✅ API_BASE_URL pass karo Posts component ko */}
             <Posts API_BASE_URL={API_BASE_URL} />
           </Layout>
         } />
+        
         <Route path="/post/:id" element={
           <Layout 
             currentUser={currentUser}
             onLogout={handleLogout}
             onOpenAuthModal={handleOpenAuthModal}
           >
-            {/* ✅ API_BASE_URL pass karo SinglePost component ko */}
             <SinglePost currentUser={currentUser} API_BASE_URL={API_BASE_URL} />
           </Layout>
         } />
-        {/* ... rest of routes */}
+        
+        <Route path="/about" element={
+          <Layout 
+            currentUser={currentUser}
+            onLogout={handleLogout}
+            onOpenAuthModal={handleOpenAuthModal}
+          >
+            <About />
+          </Layout>
+        } />
+        
+        <Route path="/contact" element={
+          <Layout 
+            currentUser={currentUser}
+            onLogout={handleLogout}
+            onOpenAuthModal={handleOpenAuthModal}
+          >
+            <Contact />
+          </Layout>
+        } />
+        
+        <Route path="/profile" element={
+          currentUser ? (
+            <Layout 
+              currentUser={currentUser}
+              onLogout={handleLogout}
+              onOpenAuthModal={handleOpenAuthModal}
+            >
+              <Profile user={currentUser} onLogout={handleLogout} />
+            </Layout>
+          ) : (
+            <Navigate to="/" replace />
+          )
+        } />
+        
+        {/* ✅ ADMIN ROUTES ADD KARO */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+        
+        <Route path="/admin" element={
+          <AdminRoute>
+            <AdminPanel />
+          </AdminRoute>
+        } />
+        
+        {/* Catch all route */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>
   );
