@@ -68,7 +68,7 @@ app.listen(PORT, () => {
   console.log('   POST   /api/posts/:id/like  - Like/unlike a post');
   console.log('   POST   /api/posts/:id/comments - Add comment to post');
   console.log('   GET    /api/posts/:id/comments - Get comments for a post');
-  onsole.log('   POST   /api/posts           - Create new post');
+  console.log('   POST   /api/posts           - Create new post');
   consolelog('   PUT    /api/posts/:id       - Update post');
   console.log('   DELETE /api/posts/:id       - Delete post');
   console.log('   POST   /api/auth/register   - User registration');
