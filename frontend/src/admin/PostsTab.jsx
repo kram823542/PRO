@@ -327,121 +327,93 @@ const PostsTab = ({ updateProgress, progress, showPostForm, setShowPostForm }) =
 
 
   // Delete post - ENHANCED WITH MULTIPLE ENDPOINT TRIES
-  // Delete post - ENHANCED WITH MULTIPLE ENDPOINT TRIES
-const handleDeletePost = async (postId) => {
-  if (!window.confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
-    return;
-  }
-
-  console.log('🗑️ Starting delete for post:', postId);
-  
-  try {
-    updateProgress('Deleting', 50, 'Deleting post...');
-    
-    const token = localStorage.getItem('adminToken');
-    console.log('🔑 Admin Token:', token ? 'Exists' : 'Missing');
-    
-    if (!token) {
-      alert('❌ Admin authentication required. Please login again.');
-      updateProgress('', 0, '');
+  const handleDeletePost = async (postId) => {
+    if (!window.confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
       return;
     }
 
-    // Try multiple possible endpoints in sequence
-    const endpoints = [
-      `${API_BASE_URL}/admin/posts/${postId}`,     // Admin endpoint (most likely)
-      `${API_BASE_URL}/posts/${postId}`,           // Standard endpoint
-      `${API_BASE_URL}/post/${postId}`,            // Alternative endpoint
-      `${API_BASE_URL}/posts/delete/${postId}`     // Delete specific endpoint
-    ];
+    console.log('🗑️ Starting delete for post:', postId);
+    
+    try {
+      updateProgress('Deleting', 50, 'Deleting post...');
+      
+      const token = localStorage.getItem('adminToken');
+      console.log('🔑 Admin Token:', token ? 'Exists' : 'Missing');
+      
+      if (!token) {
+        alert('❌ Admin authentication required. Please login again.');
+        updateProgress('', 0, '');
+        return;
+      }
 
-    let deleteSuccess = false;
-    let lastResponse = null;
-    let lastError = null;
+      // Try multiple possible endpoints in sequence
+      const endpoints = [
+        `${API_BASE_URL}/admin/posts/${postId}`,     // Admin endpoint (most likely)
+        `${API_BASE_URL}/posts/${postId}`,           // Standard endpoint
+        `${API_BASE_URL}/post/${postId}`,            // Alternative endpoint
+        `${API_BASE_URL}/posts/delete/${postId}`     // Delete specific endpoint
+      ];
 
-    for (let endpoint of endpoints) {
-      try {
-        console.log(`🔍 Trying DELETE endpoint: ${endpoint}`);
-        
-        const response = await fetch(endpoint, {
-          method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
-          // Add credentials to handle CORS properly
-          credentials: 'include'
-        });
+      let deleteSuccess = false;
+      let lastResponse = null;
+      let lastError = null;
 
-        console.log(`📡 Response Status: ${response.status}`);
-        
-        // Check if response is ok before trying to parse JSON
-        if (!response.ok) {
-          console.log(`❌ Response not OK: ${response.status}`);
-          continue;
-        }
+      for (let endpoint of endpoints) {
+        try {
+          console.log(`🔍 Trying DELETE endpoint: ${endpoint}`);
+          
+          const response = await fetch(endpoint, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
 
-        const data = await response.json();
-        console.log(`📦 Response Data from ${endpoint}:`, data);
+          console.log(`📡 Response Status: ${response.status}`);
+          
+          const data = await response.json();
+          console.log(`📦 Response Data from ${endpoint}:`, data);
 
-        if (data.success === true || response.ok || data.message?.includes('success') || data.message?.includes('deleted')) {
-          console.log('✅ Delete successful from:', endpoint);
-          deleteSuccess = true;
-          lastResponse = data;
-          break;
-        } else {
-          lastResponse = data;
-          console.log(`❌ ${endpoint} failed:`, data.message || 'Unknown error');
-        }
-      } catch (error) {
-        // Handle CORS and network errors specifically
-        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
-          console.log(`🌐 CORS/Network error for ${endpoint}:`, error.message);
-          lastError = new Error('Network error - check CORS configuration');
-        } else {
+          if (data.success === true || response.ok || data.message?.includes('success')) {
+            console.log('✅ Delete successful from:', endpoint);
+            deleteSuccess = true;
+            lastResponse = data;
+            break;
+          } else {
+            lastResponse = data;
+            console.log(`❌ ${endpoint} failed:`, data.message || 'Unknown error');
+          }
+        } catch (error) {
           lastError = error;
           console.log(`❌ ${endpoint} error:`, error.message);
+          continue;
         }
-        continue;
       }
-    }
 
-    if (deleteSuccess) {
-      // Remove the post from local state immediately for better UX
-      setPosts(prevPosts => prevPosts.filter(post => post._id !== postId));
-      
-      updateProgress('Complete', 100, 'Post deleted successfully!');
-      setTimeout(() => {
-        alert('✅ Post deleted successfully!');
-        updateProgress('', 0, '');
-      }, 1000);
-    } else {
-      // User-friendly error messages
-      let errorMsg = 'Failed to delete post. ';
-      
-      if (lastError?.message?.includes('CORS')) {
-        errorMsg += 'CORS configuration issue. Please contact administrator.';
-      } else if (lastResponse?.message) {
-        errorMsg += lastResponse.message;
-      } else if (lastError?.message) {
-        errorMsg += lastError.message;
+      if (deleteSuccess) {
+        // Remove the post from local state immediately for better UX
+        setPosts(prevPosts => prevPosts.filter(post => post._id !== postId));
+        
+        updateProgress('Complete', 100, 'Post deleted successfully!');
+        setTimeout(() => {
+          alert('✅ Post deleted successfully!');
+          updateProgress('', 0, '');
+        }, 1000);
       } else {
-        errorMsg += 'Please try again.';
+        const errorMsg = lastResponse?.message || lastError?.message || 'Failed to delete post from all endpoints';
+        console.error('💥 All delete attempts failed:', { lastResponse, lastError });
+        alert(`❌ ${errorMsg}`);
+        updateProgress('', 0, '');
       }
-      
-      console.error('💥 All delete attempts failed:', { lastResponse, lastError });
-      alert(`❌ ${errorMsg}`);
+    } catch (error) {
+      console.error('💥 Delete post error:', error);
+      alert('❌ Failed to delete post: ' + error.message);
       updateProgress('', 0, '');
     }
-  } catch (error) {
-    console.error('💥 Delete post error:', error);
-    alert('❌ Failed to delete post: ' + error.message);
-    updateProgress('', 0, '');
-  }
-};
+  };
 
-
-
+  
 
   // Edit post functions
   const handleEditPost = (post) => {
