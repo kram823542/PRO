@@ -43,6 +43,88 @@ const createTransporter = () => {
 };
 
 // OTP email sending function
+// const sendOTPEmail = async (email, otp, userName = 'User') => {
+//   let transporter;
+//   try {
+//     transporter = createTransporter();
+//     if (!transporter) {
+//       throw new Error('Email transporter not configured');
+//     }
+
+//     await transporter.verify();
+
+//     const mailOptions = {
+//       from: `"Vlog App" <${process.env.EMAIL_USER}>`,
+//       to: email,
+//       subject: 'Password Reset OTP - Vlog App',
+//       html: `
+//         <!DOCTYPE html>
+//         <html>
+//         <head>
+//             <meta charset="utf-8">
+//             <style>
+//                 body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
+//                 .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
+//                 .header { background: linear-gradient(135deg, #2563eb, #1e40af); padding: 30px; text-align: center; color: white; }
+//                 .content { padding: 30px; background: #f8fafc; }
+//                 .otp-container { text-align: center; margin: 30px 0; }
+//                 .otp-code { display: inline-block; background: white; padding: 25px 45px; border-radius: 15px; border: 3px dashed #2563eb; font-size: 36px; font-weight: bold; letter-spacing: 10px; color: #2563eb; box-shadow: 0 8px 15px rgba(37, 99, 235, 0.2); }
+//                 .footer { background: #1e293b; padding: 20px; text-align: center; color: #94a3b8; font-size: 12px; }
+//                 .info-text { color: #64748b; font-size: 16px; line-height: 1.6; margin-bottom: 20px; }
+//             </style>
+//         </head>
+//         <body>
+//             <div class="container">
+//                 <div class="header">
+//                     <h1 style="margin: 0; font-size: 28px; font-weight: bold;">🔐 Password Reset Request</h1>
+//                 </div>
+//                 <div class="content">
+//                     <h2 style="color: #1e293b; margin-bottom: 10px;">Hello ${userName},</h2>
+//                     <p class="info-text">
+//                         You requested to reset your password. Use the OTP below to verify your identity:
+//                     </p>
+//                     <div class="otp-container">
+//                         <div class="otp-code">${otp}</div>
+//                     </div>
+//                     <p style="color: #64748b; font-size: 14px; text-align: center; background: #e2e8f0; padding: 15px; border-radius: 8px;">
+//                         ⏰ This OTP will expire in <strong>10 minutes</strong>.<br>
+//                         🔒 If you didn't request this, please ignore this email.
+//                     </p>
+//                 </div>
+//                 <div class="footer">
+//                     <p>© ${new Date().getFullYear()} Vlog App. All rights reserved.</p>
+//                 </div>
+//             </div>
+//         </body>
+//         </html>
+//       `,
+//       text: `
+// Password Reset OTP - Vlog App
+
+// Hello ${userName},
+
+// You requested to reset your password. Use the OTP below to verify your identity:
+
+// OTP: ${otp}
+
+// This OTP will expire in 10 minutes.
+// If you didn't request this, please ignore this email.
+//       `
+//     };
+
+//     const info = await transporter.sendMail(mailOptions);
+//     return { success: true, messageId: info.messageId };
+//   } catch (error) {
+//     if (transporter) {
+//       transporter.close();
+//     }
+//     throw error;
+//   }
+// };
+
+
+
+// OTP email sending function - TAILWINDCSS REDESIGN
 const sendOTPEmail = async (email, otp, userName = 'User') => {
   let transporter;
   try {
@@ -54,61 +136,139 @@ const sendOTPEmail = async (email, otp, userName = 'User') => {
     await transporter.verify();
 
     const mailOptions = {
-      from: `"Vlog App" <${process.env.EMAIL_USER}>`,
+      from: `"MOMENTS & ME" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: 'Password Reset OTP - Vlog App',
+      subject: 'Password Reset OTP - MOMENTS & ME',
       html: `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="utf-8">
-            <style>
-                body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; }
-                .container { max-width: 600px; margin: 20px auto; background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); }
-                .header { background: linear-gradient(135deg, #2563eb, #1e40af); padding: 30px; text-align: center; color: white; }
-                .content { padding: 30px; background: #f8fafc; }
-                .otp-container { text-align: center; margin: 30px 0; }
-                .otp-code { display: inline-block; background: white; padding: 25px 45px; border-radius: 15px; border: 3px dashed #2563eb; font-size: 36px; font-weight: bold; letter-spacing: 10px; color: #2563eb; box-shadow: 0 8px 15px rgba(37, 99, 235, 0.2); }
-                .footer { background: #1e293b; padding: 20px; text-align: center; color: #94a3b8; font-size: 12px; }
-                .info-text { color: #64748b; font-size: 16px; line-height: 1.6; margin-bottom: 20px; }
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <div class="header">
-                    <h1 style="margin: 0; font-size: 28px; font-weight: bold;">🔐 Password Reset Request</h1>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Password Reset - MOMENTS & ME</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 font-sans">
+    <div class="max-w-2xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden my-8">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-12 text-center">
+            <h1 class="text-3xl font-bold text-white mb-3">MOMENTS & ME</h1>
+            <p class="text-blue-100 text-lg">Share Your Life's Precious Moments</p>
+        </div>
+
+        <!-- Content -->
+        <div class="px-8 py-12 bg-gray-50">
+            <!-- Greeting -->
+            <div class="text-center mb-8">
+                <h2 class="text-2xl font-bold text-gray-800 mb-2">Hello, ${userName}!</h2>
+                <p class="text-gray-600 text-lg">
+                    You requested to reset your password. Use the OTP below to continue.
+                </p>
+            </div>
+
+            <!-- OTP Section -->
+            <div class="bg-white rounded-2xl shadow-lg p-8 mb-8 text-center border border-gray-200">
+                <p class="text-gray-500 text-sm font-semibold uppercase tracking-wider mb-6">Your Verification Code</p>
+                <div class="text-5xl font-bold text-blue-600 tracking-widest font-mono mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                    ${otp}
                 </div>
-                <div class="content">
-                    <h2 style="color: #1e293b; margin-bottom: 10px;">Hello ${userName},</h2>
-                    <p class="info-text">
-                        You requested to reset your password. Use the OTP below to verify your identity:
-                    </p>
-                    <div class="otp-container">
-                        <div class="otp-code">${otp}</div>
-                    </div>
-                    <p style="color: #64748b; font-size: 14px; text-align: center; background: #e2e8f0; padding: 15px; border-radius: 8px;">
-                        ⏰ This OTP will expire in <strong>10 minutes</strong>.<br>
-                        🔒 If you didn't request this, please ignore this email.
-                    </p>
-                </div>
-                <div class="footer">
-                    <p>© ${new Date().getFullYear()} Vlog App. All rights reserved.</p>
+                <div class="inline-flex items-center bg-green-50 text-green-700 px-4 py-2 rounded-full text-sm font-medium">
+                    <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+                    </svg>
+                    Secure Code • Expires in 10 minutes
                 </div>
             </div>
-        </body>
-        </html>
+
+            <!-- Instructions -->
+            <div class="space-y-6 mb-8">
+                <div class="flex items-start space-x-4">
+                    <div class="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-bold">1</div>
+                    <div>
+                        <h3 class="font-semibold text-gray-800 mb-1">Enter the OTP</h3>
+                        <p class="text-gray-600 text-sm">Copy the 6-digit code above</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start space-x-4">
+                    <div class="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-bold">2</div>
+                    <div>
+                        <h3 class="font-semibold text-gray-800 mb-1">Verify Identity</h3>
+                        <p class="text-gray-600 text-sm">Paste it in the password reset form</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start space-x-4">
+                    <div class="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-sm font-bold">3</div>
+                    <div>
+                        <h3 class="font-semibold text-gray-800 mb-1">Set New Password</h3>
+                        <p class="text-gray-600 text-sm">Create your new secure password</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Note -->
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
+                <p class="text-blue-800 text-sm">
+                    If you didn't request this password reset, you can safely ignore this email.
+                </p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="bg-gray-800 px-8 py-12 text-center">
+            <div class="flex justify-center space-x-8 mb-6">
+                <a href="#" class="text-gray-400 hover:text-white text-sm transition-colors">Privacy</a>
+                <a href="#" class="text-gray-400 hover:text-white text-sm transition-colors">Terms</a>
+                <a href="#" class="text-gray-400 hover:text-white text-sm transition-colors">Help</a>
+            </div>
+            
+            <div class="flex justify-center space-x-4 mb-6">
+                <a href="#" class="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-blue-600 transition-all">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M16 8.049c0-4.446-3.582-8.05-8-8.05C3.58 0-.002 3.603-.002 8.05c0 4.017 2.926 7.347 6.75 7.951v-5.625h-2.03V8.05H6.75V6.275c0-2.017 1.195-3.131 3.022-3.131.876 0 1.791.157 1.791.157v1.98h-1.009c-.993 0-1.303.621-1.303 1.258v1.51h2.218l-.354 2.326H9.25V16c3.824-.604 6.75-3.934 6.75-7.951z"/>
+                    </svg>
+                </a>
+                <a href="#" class="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-blue-400 transition-all">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M5.026 15c6.038 0 9.341-5.003 9.341-9.334 0-.14 0-.282-.006-.422A6.685 6.685 0 0 0 16 3.542a6.658 6.658 0 0 1-1.889.518 3.301 3.301 0 0 0 1.447-1.817 6.533 6.533 0 0 1-2.087.793A3.286 3.286 0 0 0 7.875 6.03a9.325 9.325 0 0 1-6.767-3.429 3.289 3.289 0 0 0 1.018 4.382A3.323 3.323 0 0 1 .64 6.575v.045a3.288 3.288 0 0 0 2.632 3.218 3.203 3.203 0 0 1-.865.115 3.23 3.23 0 0 1-.614-.057 3.283 3.283 0 0 0 3.067 2.277A6.588 6.588 0 0 1 .78 13.58a6.32 6.32 0 0 1-.78-.045A9.344 9.344 0 0 0 5.026 15z"/>
+                    </svg>
+                </a>
+                <a href="#" class="w-10 h-10 bg-gray-700 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-600 transition-all">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+                    </svg>
+                </a>
+            </div>
+            
+            <div class="text-gray-400 text-sm">
+                <p>© ${new Date().getFullYear()} MOMENTS & ME. All rights reserved.</p>
+                <p class="mt-1">Made with ❤️ for storytellers</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
       `,
       text: `
-Password Reset OTP - Vlog App
+MOMENTS & ME - Password Reset
 
 Hello ${userName},
 
-You requested to reset your password. Use the OTP below to verify your identity:
+You requested to reset your password for your MOMENTS & ME account.
 
-OTP: ${otp}
+Your OTP: ${otp}
 
 This OTP will expire in 10 minutes.
+
+Steps:
+1. Enter the OTP: ${otp}
+2. Verify your identity
+3. Create a new password
+
 If you didn't request this, please ignore this email.
+
+© ${new Date().getFullYear()} MOMENTS & ME
       `
     };
 
@@ -121,6 +281,12 @@ If you didn't request this, please ignore this email.
     throw error;
   }
 };
+
+
+
+
+
+
 
 // Forgot Password - Send OTP
 router.post('/forgot-password', async (req, res) => {
