@@ -13,8 +13,10 @@ const generateOTP = () => {
 // Store OTPs temporarily
 const otpStore = new Map();
 
-// Email transporter configuration - FIXED
-const createTransporter = () => {
+// ✅ FIXED: Global Transporter (Create once, reuse everywhere)
+let transporter = null;
+
+const initializeTransporter = () => {
   try {
     // Check if email config exists
     if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
@@ -24,21 +26,35 @@ const createTransporter = () => {
 
     console.log('📧 Creating email transporter...');
     
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
+    // ✅ FIXED: Better configuration for Render
+    transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      requireTLS: true,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
       },
-      secure: false,
       tls: {
         rejectUnauthorized: false
       },
-      connectionTimeout: 10000, // 10 seconds timeout
-      socketTimeout: 10000      // 10 seconds timeout
+      connectionTimeout: 30000, // 30 seconds
+      greetingTimeout: 30000,
+      socketTimeout: 30000
     });
 
     console.log('✅ Email transporter created');
+    
+    // ✅ Verify transporter once at startup
+    transporter.verify((error, success) => {
+      if (error) {
+        console.log('❌ Transporter verification failed:', error.message);
+      } else {
+        console.log('✅ Transporter is ready to send emails');
+      }
+    });
+    
     return transporter;
     
   } catch (error) {
@@ -47,24 +63,23 @@ const createTransporter = () => {
   }
 };
 
-// OTP email sending function - FIXED
+// ✅ Initialize transporter when module loads
+initializeTransporter();
+
+// ✅ FIXED: OTP email sending function
 const sendOTPEmail = async (email, otp, userName = 'User') => {
   console.log(`📧 Attempting to send OTP to: ${email}`);
   
-  let transporter;
   try {
-    transporter = createTransporter();
-    
+    // ✅ Use global transporter instead of creating new one
     if (!transporter) {
-      console.log('📧 No transporter, returning OTP in response');
-      return { success: true, debug: true, otp: otp };
+      console.log('❌ No transporter available');
+      return { success: false, debug: true, otp: otp };
     }
 
-    console.log('📧 Verifying transporter...');
-    await transporter.verify();
-    console.log('✅ Transporter verified');
-
-    // SIMPLE EMAIL TEMPLATE - No external dependencies
+    // ✅ REMOVED: transporter.verify() - Don't verify every time
+    
+    // SIMPLE EMAIL TEMPLATE
     const mailOptions = {
       from: `"MOMENTS & ME" <${process.env.EMAIL_USER}>`,
       to: email,
@@ -115,12 +130,11 @@ If you didn't request this, please ignore this email.
     
   } catch (error) {
     console.error('❌ Email sending failed:', error.message);
+    
+    // ✅ FIXED: Don't close transporter, keep it for reuse
     return { success: false, error: error.message, debug: true, otp: otp };
-  } finally {
-    if (transporter) {
-      transporter.close();
-    }
   }
+  // ✅ REMOVED: finally block with transporter.close()
 };
 
 // Forgot Password - Send OTP - FIXED
@@ -187,7 +201,6 @@ router.post('/forgot-password', async (req, res) => {
   } catch (error) {
     console.error('❌ Forgot password error:', error);
     
-    // Never return 500 error
     res.json({
       success: false,
       message: 'Failed to process request. Please try again.'
@@ -195,7 +208,7 @@ router.post('/forgot-password', async (req, res) => {
   }
 });
 
-// Test Email Endpoint - FIXED
+// ✅ FIXED: Test Email Endpoint
 router.post('/test-email', async (req, res) => {
   try {
     const { email } = req.body;
@@ -207,15 +220,13 @@ router.post('/test-email', async (req, res) => {
       });
     }
 
-    const transporter = createTransporter();
+    // ✅ Use global transporter
     if (!transporter) {
       return res.json({
         success: false,
         message: 'Email service not configured'
       });
     }
-
-    await transporter.verify();
 
     const testOTP = generateOTP();
     
@@ -236,7 +247,7 @@ router.post('/test-email', async (req, res) => {
     };
 
     const info = await transporter.sendMail(mailOptions);
-    transporter.close();
+    // ✅ REMOVED: transporter.close()
 
     res.json({
       success: true,
