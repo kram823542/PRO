@@ -27,10 +27,10 @@ const LoginForm = ({ isOpen, onClose, onLogin, onRegister, currentUser, onLogout
     error: '#ef4444'         // Red
   };
 
-  // ✅ FIXED: Correct API Base URL
-  const API_BASE_URL = 'https://pro-muko.onrender.com/api';
-  // Localhost testing ke liye
+  // ✅ FIXED: Correct API Base URL with proper endpoints
   // const API_BASE_URL = 'http://localhost:5000/api';
+  // Production ke liye:
+  const API_BASE_URL = 'https://your-backend-url.com/api';
 
   const validateForm = () => {
     const newErrors = {};
@@ -55,9 +55,11 @@ const LoginForm = ({ isOpen, onClose, onLogin, onRegister, currentUser, onLogout
     return Object.keys(newErrors).length === 0;
   };
 
-  // ✅ FIXED: Real API call for login
+  // ✅ FIXED: Enhanced API call for login with better error handling
   const handleLoginAPI = async (email, password) => {
     try {
+      console.log('🔐 Attempting login for:', email);
+      
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
@@ -67,20 +69,33 @@ const LoginForm = ({ isOpen, onClose, onLogin, onRegister, currentUser, onLogout
       });
 
       const data = await response.json();
+      console.log('🔐 Login response:', data);
 
       if (!response.ok) {
-        throw new Error(data.message || 'Login failed');
+        // Handle different HTTP status codes
+        if (response.status === 400) {
+          throw new Error(data.message || 'Invalid email or password');
+        } else if (response.status === 404) {
+          throw new Error('User not found');
+        } else if (response.status === 500) {
+          throw new Error('Server error. Please try again later.');
+        } else {
+          throw new Error(data.message || 'Login failed');
+        }
       }
 
       return data;
     } catch (error) {
+      console.error('🔐 Login API error:', error);
       throw error;
     }
   };
 
-  // ✅ FIXED: Real API call for register
+  // ✅ FIXED: Enhanced API call for register with better error handling
   const handleRegisterAPI = async (name, email, password) => {
     try {
+      console.log('🚀 Attempting registration for:', email);
+      
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: {
@@ -90,23 +105,36 @@ const LoginForm = ({ isOpen, onClose, onLogin, onRegister, currentUser, onLogout
       });
 
       const data = await response.json();
+      console.log('🚀 Register response:', data);
 
       if (!response.ok) {
-        throw new Error(data.message || 'Registration failed');
+        // Handle different HTTP status codes
+        if (response.status === 400) {
+          throw new Error(data.message || 'Invalid registration data');
+        } else if (response.status === 409) {
+          throw new Error('User already exists with this email');
+        } else if (response.status === 500) {
+          throw new Error('Server error. Please try again later.');
+        } else {
+          throw new Error(data.message || 'Registration failed');
+        }
       }
 
       return data;
     } catch (error) {
+      console.error('🚀 Register API error:', error);
       throw error;
     }
   };
 
+  // ✅ FIXED: Enhanced submit handler with better error management
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (!validateForm()) return;
 
     setIsLoading(true);
+    setErrors({}); // Clear previous errors
 
     try {
       let response;
@@ -115,39 +143,43 @@ const LoginForm = ({ isOpen, onClose, onLogin, onRegister, currentUser, onLogout
         // Login API call
         response = await handleLoginAPI(formData.email, formData.password);
         
-        onLogin({
-          id: response.user.id,
-          name: response.user.name,
-          email: response.user.email,
-          isAdmin: response.user.role === 'admin',
+        // ✅ FIXED: Handle user data properly
+        const userData = {
+          id: response.user?.id || response.user?._id,
+          name: response.user?.name,
+          email: response.user?.email,
+          isAdmin: response.user?.role === 'admin' || response.user?.isAdmin,
           token: response.token
-        });
+        };
 
-        // Store token in localStorage
+        console.log('✅ Login successful:', userData);
+        
+        onLogin(userData);
+
+        // Store token and user data in localStorage
         localStorage.setItem('token', response.token);
-        localStorage.setItem('user', JSON.stringify({
-          ...response.user,
-          isAdmin: response.user.role === 'admin'
-        }));
+        localStorage.setItem('user', JSON.stringify(userData));
 
       } else {
         // Register API call
         response = await handleRegisterAPI(formData.name, formData.email, formData.password);
         
-        onRegister({
-          id: response.user.id,
-          name: response.user.name,
-          email: response.user.email,
-          isAdmin: response.user.role === 'admin',
+        // ✅ FIXED: Handle user data properly
+        const userData = {
+          id: response.user?.id || response.user?._id,
+          name: response.user?.name,
+          email: response.user?.email,
+          isAdmin: response.user?.role === 'admin' || response.user?.isAdmin,
           token: response.token
-        });
+        };
 
-        // Store token in localStorage
+        console.log('✅ Registration successful:', userData);
+        
+        onRegister(userData);
+
+        // Store token and user data in localStorage
         localStorage.setItem('token', response.token);
-        localStorage.setItem('user', JSON.stringify({
-          ...response.user,
-          isAdmin: response.user.role === 'admin'
-        }));
+        localStorage.setItem('user', JSON.stringify(userData));
       }
 
       // Reset form
@@ -160,7 +192,10 @@ const LoginForm = ({ isOpen, onClose, onLogin, onRegister, currentUser, onLogout
       onClose();
 
     } catch (error) {
-      setErrors({ submit: error.message || 'Something went wrong. Please try again.' });
+      console.error('❌ Form submission error:', error);
+      setErrors({ 
+        submit: error.message || 'Something went wrong. Please try again.' 
+      });
     } finally {
       setIsLoading(false);
     }
@@ -177,6 +212,13 @@ const LoginForm = ({ isOpen, onClose, onLogin, onRegister, currentUser, onLogout
       setErrors(prev => ({
         ...prev,
         [name]: ''
+      }));
+    }
+    // Clear submit error when any input changes
+    if (errors.submit) {
+      setErrors(prev => ({
+        ...prev,
+        submit: ''
       }));
     }
   };
@@ -204,6 +246,15 @@ const LoginForm = ({ isOpen, onClose, onLogin, onRegister, currentUser, onLogout
     }
   };
 
+  // Handle forgot password
+  const handleForgotPassword = () => {
+    if (!formData.email) {
+      setErrors({ submit: 'Please enter your email address first' });
+      return;
+    }
+    setShowForgotPassword(true);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -227,6 +278,7 @@ const LoginForm = ({ isOpen, onClose, onLogin, onRegister, currentUser, onLogout
               <button 
                 onClick={onClose}
                 className="text-white hover:text-blue-100 transition duration-200 p-2 rounded-full hover:bg-white/10 flex items-center justify-center"
+                disabled={isLoading}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -265,11 +317,12 @@ const LoginForm = ({ isOpen, onClose, onLogin, onRegister, currentUser, onLogout
                       onChange={handleInputChange}
                       className={`w-full pl-10 pr-4 py-3 rounded-xl border transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                         errors.name 
-                          ? 'border-red-300' 
+                          ? 'border-red-300 bg-red-50' 
                           : 'border-gray-300'
                       }`}
-                      style={{ backgroundColor: colors.light }}
+                      style={{ backgroundColor: errors.name ? '#fef2f2' : colors.light }}
                       placeholder="Enter your full name"
+                      disabled={isLoading}
                     />
                   </div>
                   {errors.name && (
@@ -300,11 +353,12 @@ const LoginForm = ({ isOpen, onClose, onLogin, onRegister, currentUser, onLogout
                     onChange={handleInputChange}
                     className={`w-full pl-10 pr-4 py-3 rounded-xl border transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                       errors.email 
-                        ? 'border-red-300' 
+                        ? 'border-red-300 bg-red-50' 
                         : 'border-gray-300'
                     }`}
-                    style={{ backgroundColor: colors.light }}
+                    style={{ backgroundColor: errors.email ? '#fef2f2' : colors.light }}
                     placeholder="your@email.com"
+                    disabled={isLoading}
                   />
                 </div>
                 {errors.email && (
@@ -334,17 +388,19 @@ const LoginForm = ({ isOpen, onClose, onLogin, onRegister, currentUser, onLogout
                     onChange={handleInputChange}
                     className={`w-full pl-10 pr-12 py-3 rounded-xl border transition duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                       errors.password 
-                        ? 'border-red-300' 
+                        ? 'border-red-300 bg-red-50' 
                         : 'border-gray-300'
                     }`}
-                    style={{ backgroundColor: colors.light }}
+                    style={{ backgroundColor: errors.password ? '#fef2f2' : colors.light }}
                     placeholder="Enter your password"
+                    disabled={isLoading}
                   />
                   {/* Password Toggle Button */}
                   <button
                     type="button"
                     onClick={togglePasswordVisibility}
                     className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition duration-200"
+                    disabled={isLoading}
                   >
                     {showPassword ? (
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -371,7 +427,9 @@ const LoginForm = ({ isOpen, onClose, onLogin, onRegister, currentUser, onLogout
                   <span className="text-xs text-gray-500">
                     {showPassword ? 'Password is visible' : 'Password is hidden'}
                   </span>
-                  <span className="text-xs text-gray-500">
+                  <span className={`text-xs ${
+                    formData.password.length >= 6 ? 'text-green-600' : 'text-gray-500'
+                  }`}>
                     {formData.password.length}/6+
                   </span>
                 </div>
@@ -382,9 +440,10 @@ const LoginForm = ({ isOpen, onClose, onLogin, onRegister, currentUser, onLogout
                 <div className="text-right">
                   <button
                     type="button"
-                    onClick={() => setShowForgotPassword(true)}
-                    className="text-sm font-medium hover:underline transition duration-200"
+                    onClick={handleForgotPassword}
+                    className="text-sm font-medium hover:underline transition duration-200 disabled:opacity-50"
                     style={{ color: colors.primary }}
+                    disabled={isLoading}
                   >
                     Forgot your password?
                   </button>
@@ -439,8 +498,9 @@ const LoginForm = ({ isOpen, onClose, onLogin, onRegister, currentUser, onLogout
                   <button
                     type="button"
                     onClick={switchMode}
-                    className="font-semibold hover:underline transition duration-200"
+                    className="font-semibold hover:underline transition duration-200 disabled:opacity-50"
                     style={{ color: colors.primary }}
+                    disabled={isLoading}
                   >
                     {isLogin ? 'Sign up now' : 'Sign in here'}
                   </button>
@@ -454,7 +514,7 @@ const LoginForm = ({ isOpen, onClose, onLogin, onRegister, currentUser, onLogout
                 <svg className="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
-                Your data is securely encrypted
+                Your data is securely encrypted with Nodemailer authentication
               </p>
             </div>
           </div>
@@ -467,10 +527,10 @@ const LoginForm = ({ isOpen, onClose, onLogin, onRegister, currentUser, onLogout
           onClose={() => setShowForgotPassword(false)}
           showLogin={() => {
             setShowForgotPassword(false);
-            // Optionally switch to login mode
             setIsLogin(true);
           }}
           API_BASE_URL={API_BASE_URL}
+          prefillEmail={formData.email}
         />
       )}
     </>
