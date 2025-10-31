@@ -11,6 +11,7 @@ const ForgotPassword = ({ onClose, showLogin, API_BASE_URL }) => {
   const [error, setError] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [debugOTP, setDebugOTP] = useState(''); // ✅ For development OTP display
 
   // Professional Color Scheme
   const colors = {
@@ -30,7 +31,7 @@ const ForgotPassword = ({ onClose, showLogin, API_BASE_URL }) => {
     return emailRegex.test(email);
   };
 
-  // Send OTP to email
+  // ✅ FIXED: Send OTP to email - Backend response handle karega
   const handleSendOTP = async (e) => {
     e.preventDefault();
     
@@ -47,6 +48,7 @@ const ForgotPassword = ({ onClose, showLogin, API_BASE_URL }) => {
     setLoading(true);
     setError('');
     setMessage('');
+    setDebugOTP(''); // Reset debug OTP
 
     try {
       const response = await fetch(`${API_BASE_URL}/auth/forgot-password`, {
@@ -57,32 +59,28 @@ const ForgotPassword = ({ onClose, showLogin, API_BASE_URL }) => {
         body: JSON.stringify({ email }),
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        try {
-          const errorData = JSON.parse(errorText);
-          throw new Error(errorData.message || `Server error: ${response.status}`);
-        } catch (parseError) {
-          throw new Error(`Server error: ${response.status} - ${response.statusText}`);
-        }
-      }
-
       const data = await response.json();
       
       if (data.success) {
-        setMessage('OTP sent to your email successfully!');
+        // ✅ Check if OTP is returned in response (development mode)
+        if (data.otp) {
+          setDebugOTP(data.otp);
+          setMessage(`OTP sent to your email! Development OTP: ${data.otp}`);
+        } else {
+          setMessage('OTP sent to your email successfully!');
+        }
         setStep(2);
       } else {
         setError(data.message || 'Failed to send OTP. Please try again.');
       }
     } catch (error) {
-      setError(error.message || 'An unexpected error occurred. Please try again.');
+      setError('Network error. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Verify OTP and reset password
+  // ✅ FIXED: Verify OTP and reset password
   const handleResetPassword = async (e) => {
     e.preventDefault();
     
@@ -124,16 +122,6 @@ const ForgotPassword = ({ onClose, showLogin, API_BASE_URL }) => {
         }),
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        try {
-          const errorData = JSON.parse(errorText);
-          throw new Error(errorData.message || `Server error: ${response.status}`);
-        } catch (parseError) {
-          throw new Error(`Server error: ${response.status} - ${response.statusText}`);
-        }
-      }
-
       const data = await response.json();
       
       if (data.success) {
@@ -143,16 +131,17 @@ const ForgotPassword = ({ onClose, showLogin, API_BASE_URL }) => {
         setError(data.message || 'Invalid OTP or OTP expired');
       }
     } catch (error) {
-      setError(error.message || 'An unexpected error occurred. Please try again.');
+      setError('Network error. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  // Resend OTP functionality
+  // ✅ FIXED: Resend OTP functionality
   const handleResendOTP = async () => {
     setLoading(true);
     setError('');
+    setDebugOTP('');
     
     try {
       const response = await fetch(`${API_BASE_URL}/auth/resend-otp`, {
@@ -163,20 +152,21 @@ const ForgotPassword = ({ onClose, showLogin, API_BASE_URL }) => {
         body: JSON.stringify({ email }),
       });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || 'Failed to resend OTP');
-      }
-
       const data = await response.json();
       
       if (data.success) {
-        setMessage('New OTP sent to your email!');
+        // ✅ Check if OTP is returned in response (development mode)
+        if (data.otp) {
+          setDebugOTP(data.otp);
+          setMessage(`New OTP sent! Development OTP: ${data.otp}`);
+        } else {
+          setMessage('New OTP sent to your email!');
+        }
       } else {
         setError(data.message || 'Failed to resend OTP');
       }
     } catch (error) {
-      setError(error.message || 'An unexpected error occurred. Please try again.');
+      setError('Network error. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -202,6 +192,7 @@ const ForgotPassword = ({ onClose, showLogin, API_BASE_URL }) => {
     setStep(previousStep);
     setError('');
     setMessage('');
+    setDebugOTP('');
   };
 
   // Toggle password visibility
@@ -264,6 +255,19 @@ const ForgotPassword = ({ onClose, showLogin, API_BASE_URL }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span>{message}</span>
+            </div>
+          )}
+
+          {/* ✅ Debug OTP Display (Development only) */}
+          {debugOTP && (
+            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-xl text-yellow-800 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold">Development Mode:</span>
+                <span className="font-mono text-lg">{debugOTP}</span>
+              </div>
+              <p className="text-xs mt-1 text-yellow-600">
+                Use this OTP for testing (Email service in development)
+              </p>
             </div>
           )}
 

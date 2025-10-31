@@ -2,8 +2,17 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const nodemailer = require('nodemailer');
+const nodemailer = require('nodemailer'); // ✅ Nodemailer import
 const User = require('../models/User');
+
+// ✅ FIXED: CORRECT Nodemailer transporter setup
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER, // आपका email
+    pass: process.env.EMAIL_PASS  // आपका app password
+  }
+});
 
 // Generate 6-digit OTP
 const generateOTP = () => {
@@ -13,73 +22,11 @@ const generateOTP = () => {
 // Store OTPs temporarily
 const otpStore = new Map();
 
-// ✅ FIXED: Global Transporter (Create once, reuse everywhere)
-let transporter = null;
-
-const initializeTransporter = () => {
-  try {
-    // Check if email config exists
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      console.log('📧 Email configuration not found');
-      return null;
-    }
-
-    console.log('📧 Creating email transporter...');
-    
-    // ✅ FIXED: Better configuration for Render
-    transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      requireTLS: true,
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      },
-      tls: {
-        rejectUnauthorized: false
-      },
-      connectionTimeout: 30000, // 30 seconds
-      greetingTimeout: 30000,
-      socketTimeout: 30000
-    });
-
-    console.log('✅ Email transporter created');
-    
-    // ✅ Verify transporter once at startup
-    transporter.verify((error, success) => {
-      if (error) {
-        console.log('❌ Transporter verification failed:', error.message);
-      } else {
-        console.log('✅ Transporter is ready to send emails');
-      }
-    });
-    
-    return transporter;
-    
-  } catch (error) {
-    console.error('❌ Transporter creation failed:', error.message);
-    return null;
-  }
-};
-
-// ✅ Initialize transporter when module loads
-initializeTransporter();
-
-// ✅ FIXED: OTP email sending function
+// ✅ FIXED: Nodemailer email function
 const sendOTPEmail = async (email, otp, userName = 'User') => {
-  console.log(`📧 Attempting to send OTP to: ${email}`);
-  
   try {
-    // ✅ Use global transporter instead of creating new one
-    if (!transporter) {
-      console.log('❌ No transporter available');
-      return { success: false, debug: true, otp: otp };
-    }
-
-    // ✅ REMOVED: transporter.verify() - Don't verify every time
+    console.log(`📧 Nodemailer: Sending OTP to ${email}`);
     
-    // SIMPLE EMAIL TEMPLATE
     const mailOptions = {
       from: `"MOMENTS & ME" <${process.env.EMAIL_USER}>`,
       to: email,
@@ -107,34 +54,22 @@ const sendOTPEmail = async (email, otp, userName = 'User') => {
           </div>
         </div>
       `,
-      text: `
-MOMENTS & ME - Password Reset
-
-Hello ${userName},
-
-Use this OTP to reset your password: ${otp}
-
-This OTP expires in 10 minutes.
-
-If you didn't request this, please ignore this email.
-
-© ${new Date().getFullYear()} MOMENTS & ME
-      `
+      text: `MOMENTS & ME - Password Reset\n\nHello ${userName},\n\nUse this OTP to reset your password: ${otp}\n\nThis OTP expires in 10 minutes.\n\nIf you didn't request this, please ignore this email.\n\n© ${new Date().getFullYear()} MOMENTS & ME`
     };
 
-    console.log('📧 Sending email...');
     const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Email sent successfully:', info.messageId);
-    
+    console.log('✅ Email sent via Nodemailer:', info.messageId);
     return { success: true, messageId: info.messageId };
     
   } catch (error) {
-    console.error('❌ Email sending failed:', error.message);
-    
-    // ✅ FIXED: Don't close transporter, keep it for reuse
-    return { success: false, error: error.message, debug: true, otp: otp };
+    console.log('❌ Nodemailer error:', error);
+    return { 
+      success: false, 
+      error: error.message,
+      debug: true,
+      otp: otp // Development के लिए OTP return करें
+    };
   }
-  // ✅ REMOVED: finally block with transporter.close()
 };
 
 // Forgot Password - Send OTP - FIXED
@@ -178,37 +113,36 @@ router.post('/forgot-password', async (req, res) => {
 
     console.log(`✅ OTP generated: ${otp}`);
 
-    // Send OTP email
+    // ✅ Send OTP email using Nodemailer
     const emailResult = await sendOTPEmail(email, otp, user.name);
 
-    if (emailResult.success && !emailResult.debug) {
-      console.log('✅ OTP email sent successfully');
+    if (emailResult.success) {
+      console.log('✅ OTP email sent successfully via Nodemailer');
       res.json({
         success: true,
         message: 'OTP sent to your email successfully'
       });
     } else {
-      console.log('⚠️ Email service not configured, returning OTP in response');
+      console.log('⚠️ Email service issue, returning OTP in response');
       res.json({
         success: true,
         message: 'OTP generated successfully',
         otp: otp,
         debug: true,
-        note: 'Email service not configured'
+        note: 'Check email configuration'
       });
     }
 
   } catch (error) {
     console.error('❌ Forgot password error:', error);
-    
-    res.json({
+    res.status(500).json({
       success: false,
       message: 'Failed to process request. Please try again.'
     });
   }
 });
 
-// ✅ FIXED: Test Email Endpoint
+// ✅ FIXED: Test Email Endpoint (Nodemailer version)
 router.post('/test-email', async (req, res) => {
   try {
     const { email } = req.body;
@@ -220,18 +154,10 @@ router.post('/test-email', async (req, res) => {
       });
     }
 
-    // ✅ Use global transporter
-    if (!transporter) {
-      return res.json({
-        success: false,
-        message: 'Email service not configured'
-      });
-    }
-
     const testOTP = generateOTP();
     
     const mailOptions = {
-      from: `"Test MOMENTS & ME" <${process.env.EMAIL_USER}>`,
+      from: `"MOMENTS & ME" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: 'Test Email - MOMENTS & ME Backend',
       html: `
@@ -239,29 +165,26 @@ router.post('/test-email', async (req, res) => {
           <h2 style="color: #10b981;">✅ Test Email Successful!</h2>
           <p>This is a test email from your MOMENTS & ME backend server.</p>
           <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
-          <p><strong>From:</strong> ${process.env.EMAIL_USER}</p>
+          <p><strong>Service:</strong> Nodemailer</p>
           <p><strong>Test OTP:</strong> <code style="background: #f3f4f6; padding: 5px 10px; border-radius: 5px; font-size: 18px;">${testOTP}</code></p>
         </div>
-      `,
-      text: `Test Email Successful!\nTime: ${new Date().toLocaleString()}\nFrom: ${process.env.EMAIL_USER}\nTest OTP: ${testOTP}`
+      `
     };
 
     const info = await transporter.sendMail(mailOptions);
-    // ✅ REMOVED: transporter.close()
 
     res.json({
       success: true,
-      message: 'Test email sent successfully!',
+      message: 'Test email sent successfully via Nodemailer!',
       messageId: info.messageId,
       timestamp: new Date().toISOString()
     });
 
   } catch (error) {
     console.error('Test email error:', error);
-    
-    res.json({
+    res.status(500).json({
       success: false,
-      message: 'Failed to send test email'
+      message: 'Failed to send test email: ' + error.message
     });
   }
 });
@@ -302,7 +225,7 @@ router.post('/resend-otp', async (req, res) => {
     // Send OTP email
     const emailResult = await sendOTPEmail(email, otp, user.name);
 
-    if (emailResult.success && !emailResult.debug) {
+    if (emailResult.success) {
       res.json({
         success: true,
         message: 'New OTP sent successfully'
@@ -318,7 +241,7 @@ router.post('/resend-otp', async (req, res) => {
 
   } catch (error) {
     console.error('Resend OTP error:', error);
-    res.json({
+    res.status(500).json({
       success: false,
       message: 'Failed to resend OTP'
     });
@@ -547,6 +470,42 @@ router.post('/register', async (req, res) => {
     res.status(500).json({
       success: false,
       message: errorMessage
+    });
+  }
+});
+
+// Get current user
+router.get('/me', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'No token provided'
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret-key');
+    const user = await User.findById(decoded.userId).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      user
+    });
+
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(401).json({
+      success: false,
+      message: 'Invalid token'
     });
   }
 });

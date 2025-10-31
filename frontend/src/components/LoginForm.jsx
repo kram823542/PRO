@@ -27,7 +27,7 @@ const LoginForm = ({ isOpen, onClose, onLogin, onRegister, currentUser, onLogout
     error: '#ef4444'         // Red
   };
 
-  // API Base URL
+  // ✅ FIXED: Correct API Base URL
   const API_BASE_URL = 'https://pro-muko.onrender.com/api';
   // Localhost testing ke liye
   // const API_BASE_URL = 'http://localhost:5000/api';
@@ -55,7 +55,7 @@ const LoginForm = ({ isOpen, onClose, onLogin, onRegister, currentUser, onLogout
     return Object.keys(newErrors).length === 0;
   };
 
-  // Real API call for login
+  // ✅ FIXED: Real API call for login
   const handleLoginAPI = async (email, password) => {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
@@ -78,7 +78,7 @@ const LoginForm = ({ isOpen, onClose, onLogin, onRegister, currentUser, onLogout
     }
   };
 
-  // Real API call for register
+  // ✅ FIXED: Real API call for register
   const handleRegisterAPI = async (name, email, password) => {
     try {
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
