@@ -1,5 +1,3 @@
-
-
 import React from "react";
 import { 
   Sparkles, MoveRight, Mail, MapPin, 
@@ -181,27 +179,6 @@ const About = () => {
               ))}
             </div>
           </section>
-
-          {/* CONTACT CARD */}
-{/* <section className="mt-32 border-t border-white/5 pt-20">
-  <div className="bg-gradient-to-br from-white/[0.03] to-transparent border border-white/10 rounded-[2rem] p-8 md:p-14 text-center md:text-left flex flex-col md:flex-row items-center justify-between gap-10 group hover:border-cyan-500/30 transition-all duration-500">
-    <div>
-      <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter italic mb-4 leading-none">
-        Let's build <br/> something new.
-      </h2>
-      <p className="text-gray-500 text-sm md:text-base max-w-xs">
-        Interested in tech projects, social work, or content collaboration? Reach out today.
-      </p>
-    </div>
-    
-    <a 
-      href="/contactme" 
-      className="inline-flex items-center gap-5 px-12 py-6 bg-white text-black rounded-full font-black text-xs uppercase tracking-[0.2em] hover:bg-cyan-500 hover:text-white transition-all transform hover:-translate-y-2 shadow-[0_10px_30px_rgba(255,255,255,0.1)] active:scale-95 cursor-pointer"
-    >
-      Get In Touch <MoveRight size={20}/>
-    </a>
-  </div>
-</section> */}
 
 
 {/* CONTACT CARD SECTION */}
