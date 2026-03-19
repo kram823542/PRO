@@ -1,426 +1,296 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import Footer from '../components/Footer';
-import Newsletter from '../components/Newsletter';
+import React, { useState, useEffect } from "react";
+import { Sparkles, X, ChevronRight, ArrowUpRight, Github, Instagram, Quote as QuoteIcon, Terminal, Code } from "lucide-react";
+import { postAPI } from '../services/api';
+import PublicPost from './PublicPost';
 
 const Home = () => {
+  const [fontIndex, setFontIndex] = useState(0);
   const [posts, setPosts] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const navigate = useNavigate();
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [selectedImg, setSelectedImg] = useState(null);
+  const [quoteIndex, setQuoteIndex] = useState(0);
 
-  // const API_BASE_URL = '${process.env.REACT_APP_API_URL}/api';
-  // const API_BASE_URL = `${process.env.REACT_APP_API_URL}/api`;
-  const API_BASE_URL = 'https://pro-muko.onrender.com/api';
+  // Carousel Logic State
+  const [imgIndex, setImgIndex] = useState(0);
 
-  // State for popular tags - Updated for vlog style
-  const [popularTags] = useState(['Adventure', 'Fantasy', 'Challenge', 'Travel', 'Exploration', 'Dreams', 'Journey', 'Discovery']);
+  const fonts = [
+    { family: "'Pacifico', cursive", color: "text-blue-500" },
+    { family: "'Dancing Script', cursive", color: "text-slate-100" },
+    { family: "'Kaushan Script', cursive", color: "text-cyan-400" },
+    { family: "'Lobster', cursive", color: "text-white" },
+  ];
 
-  // Fetch posts from MongoDB
-  const fetchPosts = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/posts`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch posts');
-      }
-      
-      const data = await response.json();
-      setPosts(data.posts || []);
-      setCategories(data.categories || []);
-    } catch (err) {
-      console.error('Error fetching posts:', err);
-      setError('Failed to load posts. Please try again later.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const quotes = [
+    { text: "Your work is going to fill a large part of your life, and the only way to be truly satisfied is to do what you believe is great work.", author: "STEVE JOBS" },
+    { text: "First, solve the problem. Then, write the code.", author: "JOHN JOHNSON" },
+    { text: "The best way to predict the future is to invent it.", author: "ALAN KAY" }
+  ];
 
-  // Show only latest 3 posts on home page
-  const latestPosts = posts.slice(0, 3);
+  // Profile Image Array (Added 4 images as requested)
+  const profileImages = [
+    "https://res.cloudinary.com/dsjnikk42/image/upload/v1760289242/test-uploads/sazbscnhz4bhqqaeilvv.jpg",
+    "https://res.cloudinary.com/dsjnikk42/image/upload/v1761223239/Screenshot_20251023-180837.Photos_mwi249.png", // Replace with 2nd Image URL
+    "https://res.cloudinary.com/dsjnikk42/image/upload/v1761223239/Screenshot_20251023-180837.Photos_mwi249.png", // Replace with 3rd Image URL
+    "https://res.cloudinary.com/dsjnikk42/image/upload/v1761223215/Screenshot_20251023-180804.Photos_2_bgrsgh.png"  // Replace with 4th Image URL
+  ];
 
-  // Function to format post date
-  const formatPostDate = (postDate) => {
-    const date = new Date(postDate);
-    const options = { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric'
-    };
-    return date.toLocaleDateString('en-US', options);
-  };
-
-  // Handle share click
-  const handleShareClick = (post, e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const shareText = `Check out this story: ${post.title} - MOMENTS & ME`;
-    const shareUrl = window.location.origin + `/post/${post._id}`;
-    
-    if (navigator.share) {
-      navigator.share({
-        title: post.title,
-        text: shareText,
-        url: shareUrl,
-      })
-      .catch(console.error);
-    } else {
-      navigator.clipboard.writeText(`${shareText}\n${shareUrl}`)
-        .then(() => {
-          alert('Link copied to clipboard!');
-        })
-        .catch(() => {
-          window.open(shareUrl, '_blank');
-        });
-    }
-  };
-
-  // Handle tag click
-  const handleTagClick = (tag) => {
-    navigate('/posts', { state: { selectedTag: tag } });
-  };
-
-  // Handle category click
-  const handleCategoryClick = (category) => {
-    navigate('/posts', { state: { selectedCategory: category } });
-  };
-
-  // Fetch data on component mount
   useEffect(() => {
     fetchPosts();
+    const fontTimer = setInterval(() => setFontIndex((prev) => (prev + 1) % fonts.length), 2500);
+    const quoteTimer = setInterval(() => setQuoteIndex((prev) => (prev + 1) % quotes.length), 5000);
+
+    // Automatic Image Transition Timer (2 Seconds)
+    const imgTimer = setInterval(() => {
+      setImgIndex((prev) => (prev + 1) % profileImages.length);
+    }, 2000);
+
+    return () => {
+      clearInterval(fontTimer);
+      clearInterval(quoteTimer);
+      clearInterval(imgTimer);
+    };
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
-          <p className="text-white text-lg font-medium">Loading amazing stories...</p>
-        </div>
-      </div>
-    );
-  }
+  const fetchPosts = async () => {
+    try {
+      const response = await postAPI.getPosts({ limit: 50 });
+      const postsData = response.data.data || response.data;
+      setPosts(Array.isArray(postsData) ? postsData : []);
+    } catch (error) { console.error('Error:', error); } finally { setLoading(false); }
+  };
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-8">
-          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold text-white mb-4">Unable to Load Content</h2>
-          <p className="text-red-100 mb-6">{error}</p>
-          <button 
-            onClick={fetchPosts}
-            className="bg-white text-purple-600 px-8 py-3 rounded-xl hover:bg-gray-100 transition duration-300 font-semibold shadow-lg"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const categories = ['All', ...new Set(posts.map(post => post.category))];
+  const filteredPosts = selectedCategory === 'All' ? posts : posts.filter(post => post.category === selectedCategory);
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Vlog Style Hero Section */}
+    <div className="min-h-screen bg-[#020617] text-white selection:bg-blue-500/50 overflow-x-hidden font-sans">
 
-
-     <section className="relative text-white py-16 md:py-24 overflow-hidden bg-gradient-to-br from-purple-600 via-pink-500 to-purple-700">
-  {/* Animated Background Elements */}
-  <div className="absolute inset-0">
-    <div className="absolute top-10 left-10 w-72 h-72 bg-white/5 rounded-full blur-3xl"></div>
-    <div className="absolute bottom-10 right-10 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl"></div>
-    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-purple-400/10 rounded-full blur-3xl"></div>
-  </div>
-  
-  <div className="container mx-auto px-4 relative z-10">
-    <div className="max-w-6xl mx-auto text-center">
-      <div className="inline-flex items-center px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 mb-6">
-        <span className="text-sm font-medium">✨ Live Your Dreams, Share Your Journey</span>
-      </div>
-      
-      <h1 className="text-5xl md:text-7xl font-black mb-4 leading-tight tracking-tight">
-        <span className="bg-gradient-to-r from-white via-yellow-200 to-pink-300 bg-clip-text text-transparent animate-pulse">
-          MOMENTS
-        </span>
-        <br />
-        <span className="bg-gradient-to-r from-yellow-300 via-pink-400 to-purple-400 bg-clip-text text-transparent animate-pulse" style={{animationDelay: '0.5s'}}>
-          & ME
-        </span>
-      </h1>
-      
-      {/* Animated Rotating Text */}
-      <div className="h-20 mb-12 flex items-center justify-center">
-        <div className="text-xl md:text-2xl font-bold">
-          <span className="inline-block animate-rotate-text bg-gradient-to-r from-yellow-300 to-pink-400 bg-clip-text text-transparent">
-            Share Your Adventure Stories
-          </span>
+      {/* ZOOM MODAL */}
+      {selectedImg && (
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/95 backdrop-blur-2xl p-4" onClick={() => setSelectedImg(null)}>
+          <button onClick={() => setSelectedImg(null)} className="absolute top-6 right-6 p-4 bg-white text-black hover:bg-blue-600 hover:text-white rounded-full transition-all z-[100]">
+            <X size={24} strokeWidth={3} />
+          </button>
+          <img
+            src={selectedImg}
+            alt="zoom"
+            className="max-w-full max-h-[90vh] object-contain rounded-xl shadow-[0_0_50px_rgba(59,130,246,0.2)] animate-in zoom-in-95 duration-300"
+            onClick={(e) => e.stopPropagation()}
+          />
         </div>
-      </div>
-      
-      {/* CTA Buttons - More spacing after removing tags */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-        <Link 
-          to="/posts" 
-          className="group bg-white text-purple-600 px-8 py-3 rounded-xl font-black hover:bg-gray-50 transition-all duration-300 shadow-2xl hover:shadow-3xl transform hover:-translate-y-1 text-base hover:scale-105 flex items-center border-2 border-transparent hover:border-purple-200"
-        >
-          <svg className="w-5 h-5 mr-2 group-hover:rotate-12 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9m0 0v12m0-12a2 2 0 012-2h2a2 2 0 012 2m-6 9v2" />
-          </svg>
-          EXPLORE STORIES
-        </Link>
-        <Link 
-          to="/about" 
-          className="group bg-transparent border-2 border-white text-white px-8 py-3 rounded-xl font-black hover:bg-white hover:text-purple-600 transition-all duration-300 text-base transform hover:-translate-y-1 hover:scale-105 flex items-center backdrop-blur-sm"
-        >
-          <svg className="w-5 h-5 mr-2 group-hover:scale-125 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          MY JOURNEY
-        </Link>
+      )}
+
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-blue-600/10 blur-[120px] rounded-full" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[500px] h-[500px] bg-cyan-900/10 blur-[100px] rounded-full" />
       </div>
 
-      {/* Enhanced Stats Section - Made more compact */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-16 max-w-2xl mx-auto">
-        {[
-          { number: '50+', label: 'Adventures', color: 'from-yellow-300 to-yellow-500' },
-          { number: '25+', label: 'Fantasy Tales', color: 'from-pink-400 to-pink-600' },
-          { number: '15+', label: 'Challenges', color: 'from-purple-400 to-purple-600' },
-          { number: '100K+', label: 'Dreamers', color: 'from-blue-400 to-blue-600' }
-        ].map((stat, index) => (
-          <div key={stat.label} className="text-center animate-bounce" style={{animationDelay: `${index * 0.3}s`}}>
-            <div className={`text-3xl font-black mb-1 bg-gradient-to-r ${stat.color} bg-clip-text text-transparent`}>
-              {stat.number}
-            </div>
-            <div className="text-purple-200 text-xs font-semibold">{stat.label}</div>
-          </div>
-        ))}
-      </div>
-    </div>
-  </div>
+      <style dangerouslySetInnerHTML={{
+        __html: `
+        @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Kaushan+Script&family=Lobster&family=Pacifico&display=swap');
+        .octagon-clip { clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%); }
+        .glass-header { background: rgba(255, 255, 255, 0.02); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+      `}} />
 
-  {/* Enhanced Scroll Indicator */}
-  <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 animate-bounce">
-    <div className="w-6 h-10 border-2 border-white/80 rounded-full flex justify-center backdrop-blur-sm">
-      <div className="w-1 h-3 bg-gradient-to-b from-yellow-300 to-pink-400 rounded-full mt-2 animate-pulse"></div>
-    </div>
-  </div>
-</section>
+      {/* HERO SECTION */}
+      <section className="relative z-10 pt-16 md:pt-24 pb-12 md:pb-20 px-4 md:px-12 max-w-[1400px] mx-auto overflow-hidden">
+        {/* Cyberpunk Background Grid */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:30px_30px] md:bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] pointer-events-none" />
 
-      {/* Latest Stories Section */}
-      <section className="py-20 bg-gray-50 relative">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-purple-100 text-purple-600 font-semibold text-sm mb-4">
-              📖 LATEST STORIES
-            </div>
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              Recent <span className="text-purple-600">Adventures</span>
-            </h2>
-            <p className="text-gray-600 text-xl max-w-3xl mx-auto leading-relaxed">
-              Dive into my latest journeys through fantasy worlds and real-life challenges
-            </p>
-          </div>
+        <div className="flex flex-col items-center">
 
-          <div className="flex flex-col lg:flex-row gap-8">
-            {/* Main Content */}
-            <div className="lg:w-2/3">
-              {latestPosts.length === 0 ? (
-                <div className="text-center py-16 bg-white rounded-2xl border-2 border-dashed border-gray-300">
-                  <div className="w-24 h-24 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <svg className="w-12 h-12 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                    </svg>
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-3">No Stories Yet</h3>
-                  <p className="text-gray-600 mb-6 max-w-md mx-auto">The adventure begins soon! Stay tuned for amazing stories</p>
-                  <Link 
-                    to="/posts" 
-                    className="inline-flex items-center bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition duration-300 font-semibold"
-                  >
-                    Browse All Stories
-                  </Link>
+          {/* 1. IMAGE SECTION (TOP) */}
+          <div
+            className="relative w-full max-w-[1100px] aspect-[4/3] sm:aspect-[16/10] md:aspect-[21/9] mb-8 md:mb-16 group cursor-pointer md:cursor-none"
+            onClick={() => setSelectedImg(profileImages[imgIndex])}
+          >
+            <div className="absolute -inset-2 md:-inset-4 border border-blue-500/20 rounded-[1.5rem] md:rounded-[3rem] group-hover:scale-105 transition-transform duration-700 pointer-events-none" />
+            <div className="absolute -inset-1 md:-inset-2 border border-white/5 rounded-[1.2rem] md:rounded-[2.5rem] pointer-events-none" />
+
+            <div className="relative w-full h-full rounded-[1rem] md:rounded-[2rem] overflow-hidden bg-slate-900 shadow-2xl border border-white/10">
+              {profileImages.map((img, i) => (
+                <div
+                  key={i}
+                  className={`absolute inset-0 transition-all duration-1000 ease-in-out
+              ${i === imgIndex ? 'opacity-100 scale-100' : 'opacity-0 scale-110'}`}
+                >
+                  <img
+                    src={img}
+                    alt="Kundan Architecture"
+                    className="w-full h-full object-cover grayscale brightness-75 md:brightness-50 group-hover:grayscale-0 group-hover:brightness-100 group-hover:scale-105 transition-all duration-1000"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-transparent to-transparent opacity-80 md:opacity-60" />
                 </div>
-              ) : (
-                <div className="grid gap-8">
-                  {latestPosts.map((post, index) => (
-                    <article 
-                      key={post._id} 
-                      className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-500 border border-gray-100 group"
-                      style={{ animationDelay: `${index * 100}ms` }}
-                    >
-                      <div className="flex flex-col md:flex-row">
-                        {/* Post Image */}
-                        <div className="md:w-2/5 relative overflow-hidden">
-                          {post.image ? (
-                            <img 
-                              src={post.image}
-                              alt={post.title}
-                              className="w-full h-64 md:h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                            />
-                          ) : (
-                            <div className="w-full h-64 md:h-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center">
-                              <div className="text-center text-white p-6">
-                                <svg className="w-16 h-16 mx-auto mb-4 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                </svg>
-                                <h3 className="text-lg font-bold">Adventure Story</h3>
-                              </div>
-                            </div>
-                          )}
-                          
-                          {/* Category Badge */}
-                          <div className="absolute top-4 left-4">
-                            <span 
-                              onClick={() => handleCategoryClick(post.category)}
-                              className="bg-white/90 backdrop-blur-sm text-purple-600 px-3 py-1 rounded-lg text-sm font-bold hover:bg-purple-600 hover:text-white cursor-pointer transition-all duration-300 shadow-lg"
-                            >
-                              {post.category || 'Adventure'}
-                            </span>
-                          </div>
-                        </div>
+              ))}
 
-                        {/* Post Content */}
-                        <div className="md:w-3/5 p-8">
-                          <div className="flex items-center justify-between mb-4">
-                            <span className="text-gray-500 text-sm font-medium flex items-center">
-                              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                              {formatPostDate(post.date)}
-                            </span>
-                            
-                            <div className="flex items-center space-x-4">
-                              {post.likes?.count > 0 && (
-                                <span className="text-red-600 text-sm font-semibold flex items-center">
-                                  <svg className="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                                    <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-                                  </svg>
-                                  {post.likes.count}
-                                </span>
-                              )}
-                              
-                              <button 
-                                onClick={(e) => handleShareClick(post, e)}
-                                className="text-gray-400 hover:text-purple-600 transition-colors duration-300"
-                                title="Share this story"
-                              >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-                                </svg>
-                              </button>
-                            </div>
-                          </div>
-
-                          <h3 className="text-2xl font-bold mb-4 text-gray-900 leading-tight group-hover:text-purple-600 transition-colors duration-300">
-                            <Link to={`/post/${post._id}`} className="hover:text-purple-600 transition-colors duration-300">
-                              {post.title}
-                            </Link>
-                          </h3>
-                          
-                          <p className="text-gray-600 mb-6 leading-relaxed line-clamp-3">
-                            {post.excerpt || post.content?.substring(0, 200) + '...'}
-                          </p>
-                          
-                          {/* Tags */}
-                          {post.tags && post.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mb-6">
-                              {post.tags.slice(0, 4).map(tag => (
-                                <span 
-                                  key={tag}
-                                  onClick={() => handleTagClick(tag)}
-                                  className="bg-gray-100 text-gray-700 px-3 py-1 rounded-lg text-sm hover:bg-purple-100 hover:text-purple-700 cursor-pointer transition-all duration-300 font-medium"
-                                >
-                                  #{tag}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-
-                          <div className="flex justify-between items-center pt-6 border-t border-gray-100">
-                            <div className="flex items-center">
-                              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg">
-                                {post.author ? post.author.split(' ').map(n => n[0]).join('').toUpperCase() : 'MM'}
-                              </div>
-                              <div className="ml-3">
-                                <span className="text-gray-800 font-bold block text-sm">{post.author || 'MOMENTS & ME'}</span>
-                                <span className="text-gray-500 text-xs">Storyteller</span>
-                              </div>
-                            </div>
-                            <Link 
-                              to={`/post/${post._id}`}
-                              className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 text-sm"
-                            >
-                              Read Story
-                            </Link>
-                          </div>
-                        </div>
-                      </div>
-                    </article>
-                  ))}
+              <div className="hidden sm:flex absolute top-4 md:top-8 left-4 md:left-8 items-center gap-4 z-20">
+                <div className="px-4 py-2 bg-black/40 backdrop-blur-md border border-white/10 rounded-full">
+                  <span className="text-[10px] font-black tracking-[0.3em] text-blue-400 uppercase">System_Active_v2.6</span>
                 </div>
-              )}
+                <div className="h-[1px] w-24 bg-gradient-to-r from-blue-500 to-transparent" />
+              </div>
+
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 md:translate-x-0 md:left-auto md:bottom-8 md:right-8 flex gap-2 md:gap-3 z-20">
+                {profileImages.map((_, i) => (
+                  <div
+                    key={i}
+                    className={`h-1 md:h-1.5 transition-all duration-500 rounded-full ${i === imgIndex ? 'w-8 md:w-12 bg-blue-500' : 'w-2 md:w-4 bg-white/20'}`}
+                  />
+                ))}
+              </div>
             </div>
 
-            {/* Enhanced Sidebar */}
-            <div className="lg:w-1/3 space-y-8">
-              {/* Popular Topics */}
-              <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100">
-                <h3 className="text-xl font-bold mb-6 flex items-center text-gray-900">
-                  <svg className="w-5 h-5 mr-3 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                  </svg>
-                  Popular Themes
-                </h3>
-                <div className="flex flex-wrap gap-3">
-                  {popularTags.map(tag => (
-                    <span 
-                      key={tag}
-                      onClick={() => handleTagClick(tag)}
-                      className="bg-purple-50 text-purple-700 px-4 py-2 rounded-lg text-sm hover:bg-purple-100 cursor-pointer transition-all duration-300 font-medium border border-purple-200 hover:border-purple-300"
-                    >
-                      #{tag}
+            <div className="absolute -bottom-4 -left-2 md:-bottom-6 md:left-12 z-30 bg-blue-600 p-3 md:p-6 rounded-xl md:rounded-2xl shadow-xl transition-transform active:scale-90 md:group-hover:-translate-y-4 md:group-hover:rotate-6">
+              <Terminal size={20} className="text-white md:w-8 md:h-8" />
+            </div>
+          </div>
+
+          {/* 2. TEXT CONTENT (BOTTOM) */}
+          <div className="w-full max-w-[1200px] z-10 mt-6 md:mt-10">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 md:gap-12">
+
+              <div className="flex-1 text-center md:text-left">
+                <div className="inline-flex items-center gap-2 mb-4 md:mb-6 text-blue-500 font-bold text-[9px] md:text-[10px] tracking-[0.4em] md:tracking-[0.5em] uppercase">
+                  <span className="w-6 md:w-8 h-[1px] bg-blue-500" /> Based in Jharkhand
+                </div>
+
+                <h1
+                  className={`text-5xl sm:text-7xl md:text-9xl lg:text-[150px] xl:text-[180px] leading-[0.8] mb-6 transition-all duration-1000 tracking-tighter font-black ${fonts[fontIndex].color}`}
+                  style={{ fontFamily: fonts[fontIndex].family }}
+                >
+                  Kundan <br className="hidden md:block" />
+                  <span className="text-white md:mix-blend-difference">Kumar</span>
+                </h1>
+              </div>
+
+              <div className="flex-1 flex flex-col items-center md:items-start text-center md:text-left md:pb-12">
+                {/* Modern Quote Section - Now Fully Italic */}
+                <div className="relative group max-w-xl mb-10">
+                  <div className="absolute -left-4 top-0 h-full w-1 bg-gradient-to-b from-blue-600 to-transparent hidden md:block rounded-full shadow-[0_0_15px_rgba(37,99,235,0.5)]" />
+                  <p className="text-slate-400 text-lg md:text-2xl font-light leading-relaxed md:pl-8 transition-colors group-hover:text-slate-300 italic">
+                    <span className="opacity-80">"Pain builds power.</span>{' '}
+                    <span className="text-white font-semibold drop-shadow-sm">
+                      Focus creates future."
+                    </span>{' '}
+                    <span className="block mt-2 text-sm tracking-[0.3em] uppercase font-bold text-blue-500/80 not-italic">
+                      You are the plan
                     </span>
-                  ))}
+                  </p>
+                </div>
+
+                {/* Actions Container */}
+                <div className="flex flex-col sm:flex-row items-center gap-6 w-full">
+                  {/* Primary CTA: With Original Slide-up Animation */}
+                  <button
+                    onClick={() => (window.location.href = '/contactme')}
+                    className="group relative overflow-hidden px-8 py-5 bg-blue-600 rounded-xl transition-all active:scale-95 shadow-[0_10px_30px_-10px_rgba(37,99,235,0.5)] border border-blue-500/20"
+                  >
+                    <div className="relative z-10 flex items-center gap-3 text-white mix-blend-difference">
+                      <span className="text-[11px] font-black uppercase tracking-[0.2em]">CONTACT ME </span>
+                      <ArrowUpRight size={18} className="transition-transform duration-500 group-hover:translate-x-1 group-hover:-translate-y-1" />
+                    </div>
+
+                    {/* Animation Overlay */}
+                    <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out" />
+                  </button>
+
+                  {/* Modern Status Badge */}
+                  <div className="flex items-center gap-4 bg-slate-900/40 backdrop-blur-md border border-white/5 p-2 pr-6 rounded-2xl">
+                    <div className="flex -space-x-2 ml-2">
+                      {['W', 'E', 'L', 'C', 'O', 'M', 'E'].map((letter, idx) => (
+                        <div
+                          key={idx}
+                          className="w-9 h-9 rounded-full bg-gradient-to-b from-slate-800 to-slate-900 border border-white/10 flex items-center justify-center text-[10px] font-bold text-blue-400 shadow-xl ring-2 ring-slate-950 hover:z-20 hover:-translate-y-1 transition-all cursor-default"
+                        >
+                          {letter}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="flex flex-col">
+                      <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter leading-none">Status</span>
+                      <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest animate-pulse">Online</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Newsletter - Updated for Vlog */}
-              <Newsletter 
-                title="Adventure Updates"
-                description="Get notified when new fantasy adventures and challenges are published"
-                buttonText="Join the Journey"
-                successMessage="Welcome to our adventure community! You'll receive our next story update."
-                variant="default"
-              />
             </div>
           </div>
-
-          {/* View All Posts CTA */}
-          {posts.length > 3 && (
-            <div className="text-center mt-16">
-              <Link 
-                to="/posts"
-                className="inline-flex items-center bg-purple-600 text-white px-8 py-4 rounded-xl hover:bg-purple-700 transition-all duration-300 font-bold shadow-lg hover:shadow-xl transform hover:-translate-y-1 group"
-              >
-                Explore All Adventures
-                <svg className="w-5 h-5 ml-3 group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </Link>
-            </div>
-          )}
         </div>
       </section>
 
-      {/* Footer Component */}
-      <Footer />
+      {/* QUOTE SECTION */}
+      <section className="relative z-10 py-12 px-6 md:px-12 max-w-[1200px] mx-auto border-t border-white/5">
+        <div className="mb-10">
+          <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter text-white leading-none">
+            Core <span className="text-blue-600 font-serif">Principles</span>
+          </h2>
+        </div>
+        <div className="flex flex-col gap-10 md:gap-14">
+          {quotes.map((quote, index) => (
+            <div key={index} className={`flex w-full ${index % 2 !== 0 ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-xl w-full ${index % 2 !== 0 ? 'text-right' : 'text-left'}`}>
+                <p className={`text-slate-300 text-lg md:text-xl font-medium leading-relaxed italic py-1 transition-all duration-700 ${index % 2 === 0 ? 'border-l-2 border-blue-600 pl-5' : 'border-r-2 border-blue-600 pr-5'}`} style={{ fontFamily: "'Dancing Script', cursive" }}>
+                  "{quote.text}"
+                </p>
+                <div className={`mt-3 flex items-center gap-3 ${index % 2 !== 0 ? 'flex-row-reverse' : 'pl-5'}`}>
+                  <div className="h-[1px] w-6 bg-blue-600/40" />
+                  <span className="text-[9px] font-bold tracking-[0.3em] text-blue-500 uppercase opacity-80">{quote.author}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* POST SHOWCASE SECTION */}
+      <section className="relative z-10 pt-16 pb-6 px-4 md:px-12 max-w-[1600px] mx-auto">
+        <div className="flex flex-col md:flex-row items-center md:items-end justify-between gap-8 mb-12">
+          <div className="flex-1 text-center md:text-left">
+            <h2 className="text-4xl sm:text-5xl md:text-8xl font-black uppercase italic tracking-tighter text-white leading-[0.9]">
+              WORK <span className="text-blue-600">Insights</span>
+            </h2>
+            <p className="text-slate-500 text-[10px] md:text-sm mt-4 max-w-md border-l-0 md:border-l-2 border-blue-600 px-0 md:pl-4 italic">
+              Exploring the latest in system architecture and digital innovation.
+            </p>
+          </div>
+          <div className="w-full md:w-auto glass-header p-1.5 rounded-2xl border border-blue-500/10 overflow-hidden">
+            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 md:pb-0 px-2 md:px-0">
+              {categories.map(cat => (
+                <button key={cat} onClick={() => setSelectedCategory(cat)} className={`whitespace-nowrap px-6 py-2.5 md:px-8 md:py-3 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${selectedCategory === cat ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30' : 'text-slate-500 hover:text-white hover:bg-white/5'}`}>
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="h-[40vh] flex justify-center items-center">
+            <div className="w-10 h-10 border-4 border-t-blue-600 rounded-full animate-spin" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-5">
+            {filteredPosts.map((post, index) => (
+              <div key={post._id} className="group relative bg-white/[0.01] border border-white/5 rounded-[2rem] p-3 md:p-4 hover:border-blue-500/30 transition-all duration-500">
+                <PublicPost post={post} index={index} isHomePage={true} />
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <footer className="relative z-10 py-16 px-12 border-t border-white/5 bg-[#010409]">
+        <div className="max-w-[1600px] mx-auto flex flex-col md:flex-row justify-between items-center gap-12 text-center md:text-left">
+          <div>
+            <h2 className="text-2xl font-black uppercase italic tracking-widest text-blue-500">Kundan Kumar</h2>
+            <p className="text-slate-500 text-[10px] mt-2 font-medium uppercase tracking-tighter">""Be educated, be agitated , and be organized ."</p>
+          </div>
+          <p className="text-slate-700 text-[10px] font-black uppercase tracking-[0.5em]">© 2026 ARCHITECT CORE</p>
+        </div>
+      </footer>
     </div>
   );
 };

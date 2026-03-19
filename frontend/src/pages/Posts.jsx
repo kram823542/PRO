@@ -1,372 +1,233 @@
-// src/pages/Posts.jsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import Footer from '../components/Footer';
+import { TrashIcon, EyeIcon, PencilSquareIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import toast from 'react-hot-toast';
+import { format, isSameDay } from 'date-fns';
+import { postAPI } from '../services/api';
+import { Loader2, Calendar, FileText, Clock, Maximize2 } from 'lucide-react';
 
 const Posts = () => {
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [blogPosts, setBlogPosts] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('newest');
-
-  // API Base URL
-  const API_BASE_URL = 'https://pro-muko.onrender.com/api';
-
-  // Fetch posts from MongoDB
-  const fetchPosts = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await fetch(`${API_BASE_URL}/posts`);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch posts: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      setBlogPosts(data.posts || []);
-      setCategories(data.categories || []);
-    } catch (err) {
-      setError(err.message);
-      console.error('Error fetching posts:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [deletingId, setDeletingId] = useState(null);
+  const [selectedImg, setSelectedImg] = useState(null); // Image Zoom State
 
   useEffect(() => {
     fetchPosts();
   }, []);
 
-  // Memoized filtered and sorted posts
-  const filteredPosts = useMemo(() => {
-    let filtered = blogPosts;
-
-    // Category filter
-    if (selectedCategory !== 'All') {
-      filtered = filtered.filter(post => post.category === selectedCategory);
-    }
-
-    // Search filter
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(post => 
-        post.title?.toLowerCase().includes(term) ||
-        post.excerpt?.toLowerCase().includes(term) ||
-        post.author?.toLowerCase().includes(term)
+  const fetchPosts = async () => {
+    try {
+      const response = await postAPI.getPosts({ limit: 50 });
+      const postsData = response.data.data || response.data;
+      const sorted = (Array.isArray(postsData) ? postsData : []).sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
       );
+      setPosts(sorted);
+    } catch (error) {
+      toast.error('Sync Error');
+    } finally {
+      setLoading(false);
     }
-
-    // Sort posts
-    filtered = [...filtered].sort((a, b) => {
-      switch (sortBy) {
-        case 'newest':
-          return new Date(b.date) - new Date(a.date);
-        case 'oldest':
-          return new Date(a.date) - new Date(b.date);
-        case 'title':
-          return (a.title || '').localeCompare(b.title || '');
-        default:
-          return 0;
-      }
-    });
-
-    return filtered;
-  }, [blogPosts, selectedCategory, searchTerm, sortBy]);
-
-  // Category counts
-  const categoryCounts = useMemo(() => {
-    const counts = { 'All': blogPosts.length };
-    categories.forEach(category => {
-      counts[category] = blogPosts.filter(post => post.category === category).length;
-    });
-    return counts;
-  }, [blogPosts, categories]);
-
-  const handleRetry = () => {
-    fetchPosts();
   };
 
-  // Loading skeleton component
-  const LoadingSkeleton = () => (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
-          {/* Header Skeleton */}
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-300 rounded w-1/4 mb-2"></div>
-            <div className="h-4 bg-gray-300 rounded w-1/2 mb-8"></div>
-            
-            {/* Filter Skeleton */}
-            <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-              <div className="h-6 bg-gray-300 rounded w-1/6 mb-4"></div>
-              <div className="flex flex-wrap gap-2">
-                {[1, 2, 3, 4, 5].map(i => (
-                  <div key={i} className="h-8 bg-gray-300 rounded w-20"></div>
-                ))}
-              </div>
-            </div>
-
-            {/* Posts Grid Skeleton */}
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {[1, 2, 3, 4, 5, 6].map(i => (
-                <div key={i} className="bg-white rounded-xl shadow-lg overflow-hidden">
-                  <div className="w-full h-48 bg-gray-300"></div>
-                  <div className="p-6">
-                    <div className="flex justify-between mb-3">
-                      <div className="h-6 bg-gray-300 rounded w-20"></div>
-                      <div className="h-4 bg-gray-300 rounded w-16"></div>
-                    </div>
-                    <div className="h-5 bg-gray-300 rounded mb-3"></div>
-                    <div className="h-4 bg-gray-300 rounded mb-4"></div>
-                    <div className="flex justify-between">
-                      <div className="h-4 bg-gray-300 rounded w-16"></div>
-                      <div className="h-8 bg-gray-300 rounded w-20"></div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  const handleDelete = async (id) => {
+    if (!window.confirm('Permanent delete?')) return;
+    setDeletingId(id);
+    try {
+      await postAPI.deletePost(id);
+      setPosts(posts.filter(p => p._id !== id));
+      toast.success('Deleted');
+    } catch (error) {
+      toast.error('Failed');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   if (loading) {
-    return <LoadingSkeleton />;
-  }
-
-  if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center">
-        <div className="text-center max-w-md mx-auto p-8 bg-white rounded-2xl shadow-lg">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h3 className="text-xl font-bold text-gray-800 mb-2">Unable to Load Posts</h3>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <div className="flex gap-3 justify-center">
-            <button 
-              onClick={handleRetry}
-              className="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition duration-300 font-medium flex items-center"
-            >
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-              Try Again
-            </button>
-            <button 
-              onClick={() => window.location.reload()}
-              className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition duration-300 font-medium"
-            >
-              Refresh Page
-            </button>
-          </div>
-        </div>
+      <div className="h-screen bg-white md:ml-16 flex flex-col justify-center items-center gap-4">
+        <Loader2 className="animate-spin text-black" size={32} />
+        <span className="text-[10px] font-black uppercase tracking-[0.3em]">Temporal_Syncing</span>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
-      {/* Hero Section */}
-      <section className="bg-gradient-to-r from-green-600 to-blue-600 text-white py-16">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-5xl font-bold mb-4">Research Insights</h1>
-          <p className="text-xl text-blue-100 max-w-2xl mx-auto leading-relaxed">
-            Explore cutting-edge research and insights on AI-driven climate action and sustainable innovation
-          </p>
+    <div className="min-h-screen bg-[#FAFAFA] md:ml-16 font-sans text-black pb-32">
+      
+      {/* --- Image Zoom Overlay (Modal) --- */}
+      {selectedImg && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 md:p-10 transition-all"
+          onClick={() => setSelectedImg(null)}
+        >
+          <button className="absolute top-6 right-6 text-white hover:rotate-90 transition-transform">
+            <XMarkIcon className="h-10 w-10" />
+          </button>
+          <img 
+            src={selectedImg} 
+            alt="Preview" 
+            className="max-w-full max-h-full rounded-lg shadow-2xl animate-in zoom-in duration-300" 
+          />
         </div>
-      </section>
+      )}
 
-      {/* Posts Content */}
-      <div className="container mx-auto px-4 py-12 -mt-8">
-        <div className="max-w-7xl mx-auto">
-          {/* Stats and Controls */}
-          <div className="bg-white rounded-2xl shadow-xl p-8 mb-8">
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-6">
-              <div>
-                <h2 className="text-3xl font-bold text-gray-800 mb-2">
-                  All Publications
-                </h2>
-                <p className="text-gray-600">
-                  {filteredPosts.length} of {blogPosts.length} articles
-                  {searchTerm && ` matching "${searchTerm}"`}
-                </p>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-                {/* Search Box */}
-                <div className="relative flex-1 sm:w-64">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Search posts..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition duration-200"
-                  />
-                </div>
-
-                {/* Sort Dropdown */}
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition duration-200 bg-white"
-                >
-                  <option value="newest">Newest First</option>
-                  <option value="oldest">Oldest First</option>
-                  <option value="title">Title A-Z</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Category Filter */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Filter by Category</h3>
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={() => setSelectedCategory('All')}
-                  className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 transform hover:scale-105 ${
-                    selectedCategory === 'All' 
-                      ? 'bg-gradient-to-r from-green-600 to-blue-600 text-white shadow-lg' 
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  All Posts ({categoryCounts['All']})
-                </button>
-                {categories.map(category => (
-                  <button
-                    key={category}
-                    onClick={() => setSelectedCategory(category)}
-                    className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 transform hover:scale-105 ${
-                      selectedCategory === category 
-                        ? 'bg-gradient-to-r from-green-600 to-blue-600 text-white shadow-lg' 
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    {category} ({categoryCounts[category] || 0})
-                  </button>
-                ))}
-              </div>
-            </div>
+      <div className="p-4 md:p-10 max-w-5xl mx-auto">
+        
+        {/* Header */}
+        <div className="flex justify-between items-end mb-16 md:mb-24 border-b-2 border-black pb-8">
+          <div>
+            <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter italic leading-none">Archives</h1>
+            <p className="text-[9px] md:text-[11px] font-bold text-gray-400 uppercase tracking-[0.5em] mt-3">Timeline_Directory_v3</p>
           </div>
+          <Link
+            to="/admin/create-post"
+            className="h-14 w-14 bg-black text-white rounded-full flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-2xl"
+          >
+            <PlusIcon className="h-7 w-7 stroke-[2.5px]" />
+          </Link>
+        </div>
 
-          {/* Posts Grid */}
-          <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-8">
-            {filteredPosts.map(post => (
-              <article 
-                key={post._id} 
-                className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 group"
-              >
-                <div className="relative overflow-hidden">
-                  <img 
-                    src={post.image} 
-                    alt={post.title}
-                    className="w-full h-52 object-cover group-hover:scale-110 transition duration-500"
-                    onError={(e) => {
-                      e.target.src = 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&h=400&fit=crop';
-                    }}
-                  />
-                  <div className="absolute top-4 left-4">
-                    <span className="bg-white/90 backdrop-blur-sm text-green-800 px-3 py-1.5 rounded-full text-sm font-semibold shadow-lg">
-                      {post.category}
-                    </span>
+        {/* Tree Layout */}
+        <div className="relative">
+          {/* Main Vertical Trunk */}
+          <div className="absolute left-[19px] md:left-[31px] top-0 bottom-0 w-[2px] bg-gradient-to-b from-black/20 via-black/5 to-transparent" />
+
+          <div className="space-y-16 md:space-y-24">
+            {posts.map((post, index) => {
+              const postDate = new Date(post.createdAt);
+              const showDateLabel = index === 0 || !isSameDay(postDate, new Date(posts[index-1].createdAt));
+
+              return (
+                <div key={post._id} className="relative">
+                  
+                  {/* Date & Day Header */}
+                  {showDateLabel && (
+                    <div className="flex items-center gap-4 md:gap-8 mb-12 -ml-1 md:-ml-2">
+                      <div className="h-12 w-12 md:h-20 md:w-20 bg-black rounded-2xl md:rounded-[2rem] flex flex-col items-center justify-center z-10 shadow-xl border-[6px] border-[#FAFAFA]">
+                        <span className="text-[8px] md:text-[10px] font-black text-white/50 uppercase leading-none mb-1">
+                          {format(postDate, 'EEE')}
+                        </span>
+                        <Calendar className="text-white h-5 w-5 md:h-7 md:w-7" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-lg md:text-2xl font-black uppercase tracking-tighter text-black leading-none">
+                          {format(postDate, 'MMMM dd, yyyy')}
+                        </span>
+                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-[0.2em] mt-1">
+                          Entries for {format(postDate, 'EEEE')}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Post Node */}
+                  <div className="relative pl-12 md:pl-28 group">
+                    
+                    {/* Time Indicator on Line */}
+                    <div className="absolute hidden md:flex flex-col items-center -left-6 top-1/2 -translate-y-1/2 z-20">
+                      <div className="bg-white border-2 border-black text-[10px] font-black px-2 py-1 rounded shadow-sm group-hover:bg-black group-hover:text-white transition-all">
+                        {format(postDate, 'HH:mm')}
+                      </div>
+                    </div>
+
+                    {/* Horizontal Branch Connector */}
+                    <div className="absolute left-[19px] md:left-8 top-1/2 -translate-y-1/2 w-8 md:w-20 h-[2px] bg-black/10 group-hover:bg-black transition-all" />
+                    <div className="absolute left-[16px] md:left-[28px] top-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full bg-white border-2 border-gray-300 z-10 group-hover:border-black group-hover:scale-125 transition-all" />
+
+                    {/* Card Container */}
+                    <div className="bg-white border border-gray-100 rounded-[2rem] md:rounded-[3rem] p-5 md:p-8 flex flex-col lg:flex-row items-center gap-6 md:gap-10 shadow-sm hover:shadow-3xl hover:-translate-y-2 transition-all duration-700 overflow-hidden relative">
+                      
+                      {/* Image Scroller with Zoom Feature */}
+                      <div className="relative w-full lg:w-48 shrink-0">
+                        <div className="flex overflow-x-auto gap-3 no-scrollbar scroll-smooth p-1 snap-x">
+                          {post.teamPhotos && post.teamPhotos.length > 0 ? (
+                            post.teamPhotos.map((img, i) => (
+                              <div 
+                                key={i} 
+                                onClick={() => setSelectedImg(img.url)}
+                                className="h-28 w-28 md:h-40 md:w-40 shrink-0 rounded-[1.5rem] md:rounded-[2.2rem] overflow-hidden border border-gray-100 snap-center shadow-md relative group/img cursor-zoom-in"
+                              >
+                                <img src={img.url} alt="" className="h-full w-full object-cover transition-transform duration-700 group-hover/img:scale-110" />
+                                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                                  <Maximize2 className="text-white h-6 w-6" />
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="h-28 w-28 md:h-40 md:w-40 flex items-center justify-center bg-gray-50 rounded-[2.2rem] text-gray-200 border-2 border-dashed border-gray-100">
+                              <FileText size={32} />
+                            </div>
+                          )}
+                        </div>
+                        {post.teamPhotos?.length > 1 && (
+                          <p className="text-[8px] font-black text-gray-300 uppercase mt-2 text-center tracking-widest animate-pulse">Swipe to view more • {post.teamPhotos.length}</p>
+                        )}
+                      </div>
+
+                      {/* Content Section */}
+                      <div className="flex-1 min-w-0 w-full text-center lg:text-left">
+                        <div className="flex items-center justify-center lg:justify-start gap-3 mb-3">
+                          <span className="text-[9px] font-black uppercase bg-black text-white px-3 py-1 rounded-full tracking-tighter">
+                            {post.category}
+                          </span>
+                        </div>
+                        <h3 className="text-xl md:text-3xl font-bold text-gray-900 leading-tight mb-4 italic tracking-tighter">
+                          {post.title}
+                        </h3>
+                        
+                        <div className="flex items-center justify-center lg:justify-start gap-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                          <div className="flex items-center gap-2">
+                            <EyeIcon className="h-4 w-4 text-black" />
+                            <span>{post.views || 0}</span>
+                          </div>
+                          <div className="flex items-center gap-2 border-l border-gray-100 pl-6">
+                            <Clock className="h-4 w-4 text-black" />
+                            <span>{format(postDate, 'hh:mm a')}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex flex-row lg:flex-col gap-3 border-t lg:border-t-0 lg:border-l border-gray-50 pt-6 lg:pt-0 lg:pl-10 w-full lg:w-auto justify-center">
+                        <Link 
+                          to={`/admin/edit/${post._id}`} 
+                          className="h-12 w-12 md:h-14 md:w-14 flex items-center justify-center rounded-full bg-white border border-gray-100 hover:bg-black hover:text-white transition-all shadow-lg active:scale-90"
+                        >
+                          <PencilSquareIcon className="h-5 w-5 md:h-6 md:w-6" />
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(post._id)}
+                          disabled={deletingId === post._id}
+                          className="h-12 w-12 md:h-14 md:w-14 flex items-center justify-center rounded-full bg-white border border-gray-100 text-gray-300 hover:text-red-500 hover:border-red-500 transition-all shadow-lg active:scale-90"
+                        >
+                          {deletingId === post._id ? (
+                            <Loader2 className="animate-spin h-6 w-6" />
+                          ) : (
+                            <TrashIcon className="h-5 w-5 md:h-6 md:w-6" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-gray-500 text-sm flex items-center">
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      {new Date(post.date).toLocaleDateString('en-US', { 
-                        year: 'numeric', 
-                        month: 'short', 
-                        day: 'numeric' 
-                      })}
-                    </span>
-                    <span className="text-gray-700 font-medium text-sm flex items-center">
-                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                      {post.author}
-                    </span>
-                  </div>
-                  
-                  <h3 className="text-xl font-bold mb-3 text-gray-800 line-clamp-2 group-hover:text-green-600 transition duration-300">
-                    <Link to={`/post/${post._id}`} className="hover:no-underline">
-                      {post.title}
-                    </Link>
-                  </h3>
-                  
-                  <p className="text-gray-600 mb-4 leading-relaxed line-clamp-3">
-                    {post.excerpt}
-                  </p>
-                  
-                  <div className="flex justify-between items-center pt-4 border-t border-gray-100">
-                    <span className="text-green-600 font-semibold text-sm">
-                      {Math.ceil((post.content || '').split(' ').length / 200)} min read
-                    </span>
-                    <Link 
-                      to={`/post/${post._id}`}
-                      className="bg-gradient-to-r from-green-600 to-blue-600 text-white px-5 py-2.5 rounded-xl hover:from-green-700 hover:to-blue-700 transition duration-300 font-semibold text-sm flex items-center group/btn"
-                    >
-                      Read More
-                      <svg className="w-4 h-4 ml-2 transform group-hover/btn:translate-x-1 transition duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                      </svg>
-                    </Link>
-                  </div>
-                </div>
-              </article>
-            ))}
+              );
+            })}
           </div>
-
-          {/* No Posts Message */}
-          {filteredPosts.length === 0 && (
-            <div className="text-center py-16 bg-white rounded-2xl shadow-lg">
-              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-3">No Posts Found</h3>
-              <p className="text-gray-600 max-w-md mx-auto mb-6">
-                {searchTerm 
-                  ? `No posts found matching "${searchTerm}". Try adjusting your search terms.`
-                  : `No posts available in the "${selectedCategory}" category.`
-                }
-              </p>
-              {(searchTerm || selectedCategory !== 'All') && (
-                <button
-                  onClick={() => {
-                    setSearchTerm('');
-                    setSelectedCategory('All');
-                  }}
-                  className="bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 transition duration-300 font-medium"
-                >
-                  Clear Filters
-                </button>
-              )}
-            </div>
-          )}
         </div>
       </div>
-
-      {/* Footer */}
-      <Footer />
+      
+      <style>{`
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        @keyframes zoom-in {
+          from { opacity: 0; transform: scale(0.95); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        .animate-in { animation: zoom-in 0.3s ease-out; }
+      `}</style>
     </div>
   );
 };

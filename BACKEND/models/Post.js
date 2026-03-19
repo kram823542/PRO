@@ -1,164 +1,137 @@
 // const mongoose = require('mongoose');
 
 // const postSchema = new mongoose.Schema({
-//   title: {
-//     type: String,
-//     required: [true, 'Please add a title'],
-//     trim: true,
-//     maxlength: [200, 'Title cannot be more than 200 characters']
-//   },
-//   content: {
-//     type: String,
-//     required: [true, 'Please add content']
-//   },
-//   excerpt: {
-//     type: String,
-//     required: [true, 'Please add an excerpt'],
-//     maxlength: [500, 'Excerpt cannot be more than 500 characters']
-//   },
-//   author: {
-//     type: mongoose.Schema.Types.ObjectId,
-//     ref: 'User',
-//     required: true
-//   },
-//   authorName: {
-//     type: String,
-//     required: true
-//   },
-//   category: {
-//     type: String,
-//     required: true,
-//     enum: ['Nature', 'Climate', 'Photography', 'Travel', 'Technology'],
-//     default: 'Nature'
-//   },
-//   tags: [{
-//     type: String
-//   }],
-//   status: {
-//     type: String,
-//     enum: ['draft', 'published'],
-//     default: 'draft'
-//   },
-//   featuredImage: {
-//     type: String,
-//     default: ''
-//   },
-//   views: {
-//     type: Number,
-//     default: 0
-//   },
-//   // New fields for likes and comments count
-//   likesCount: {
-//     type: Number,
-//     default: 0
-//   },
-//   commentsCount: {
-//     type: Number,
-//     default: 0
-//   }
+//     title: {
+//         type: String,
+//         required: true,
+//         trim: true
+//     },
+//     content: {
+//         type: String,
+//         required: true
+//     },
+//     image: {
+//         public_id: {
+//             type: String,
+//             required: true
+//         },
+//         url: {
+//             type: String,
+//             required: true
+//         }
+//     },
+//     category: {
+//         type: String,
+//         default: 'General'
+//     },
+//     author: {
+//         type: mongoose.Schema.Types.ObjectId,
+//         ref: 'Admin',
+//         required: true
+//     },
+//     tags: [String],
+//     views: {
+//         type: Number,
+//         default: 0
+//     }
 // }, {
-//   timestamps: true
+//     timestamps: true
 // });
 
 // module.exports = mongoose.model('Post', postSchema);
 
-// models/Post.js
-// models/Post.js में commentSchema update करें
-
-
 
 const mongoose = require('mongoose');
 
-const commentSchema = new mongoose.Schema({
-  name: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  comment: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  date: {
-    type: Date,
-    default: Date.now
-  },
-  avatar: {
-    type: String,
-    default: ''
-  },
-  userId: {
-    type: String,
-    default: null
-  },
-  edited: {
-    type: Boolean,
-    default: false
-  },
-  editedAt: {
-    type: Date,
-    default: null
-  }
-});
-
 const postSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  excerpt: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  content: {
-    type: String,
-    required: true
-  },
-  author: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  date: {
-    type: Date,
-    default: Date.now
-  },
-  category: {
-    type: String,
-    required: true,
-    trim: true
-  },
-  tags: [{
-    type: String,
-    trim: true
-  }],
-  image: {
-    type: String,
-    default: ''
-  },
-  likes: {
-    count: {
-      type: Number,
-      default: 0
+    // Basic Info
+    name: {
+        type: String,
+        required: [true, 'Name is required'],
+        trim: true
     },
-    likedBy: [{
-      type: String
-    }]
-  },
-  comments: [commentSchema]
+    credit: {
+        type: String,
+        required: [true, 'Credit is required'],
+        trim: true
+    },
+    title: {
+        type: String,
+        required: [true, 'Title is required'],
+        trim: true
+    },
+    description: {
+        type: String,
+        required: [true, 'Description is required']
+    },
+    
+    // Work Details
+    workingText: {
+        type: String,
+        required: [true, 'Working text is required']
+    },
+    workPlaceName: {
+        type: String,
+        required: [true, 'Work place name is required'],
+        trim: true
+    },
+    
+    // Team Photos (Array for multiple images)
+    teamPhotos: [{
+        public_id: {
+            type: String,
+            required: true
+        },
+        url: {
+            type: String,
+            required: true
+        },
+        caption: {
+            type: String,
+            default: ''
+        }
+    }],
+    
+    // Meeting Output
+    meetingOutput: {
+        type: String,
+        required: [true, 'Meeting output is required']
+    },
+    
+    // Category and Tags
+    category: {
+        type: String,
+        default: 'General'
+    },
+    tags: [String],
+    
+    // Author and Metadata
+    author: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Admin',
+        required: true
+    },
+    views: {
+        type: Number,
+        default: 0
+    },
+    
+    // Status
+    isPublished: {
+        type: Boolean,
+        default: true
+    }
 }, {
-  timestamps: true
+    timestamps: true
 });
 
-// Add text index for search functionality
-postSchema.index({
-  title: 'text',
-  excerpt: 'text',
-  content: 'text',
-  tags: 'text'
+// Index for search functionality
+postSchema.index({ 
+    title: 'text', 
+    description: 'text', 
+    workingText: 'text',
+    name: 'text',
+    workPlaceName: 'text' 
 });
 
 module.exports = mongoose.model('Post', postSchema);

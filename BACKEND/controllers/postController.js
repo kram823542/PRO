@@ -1,306 +1,395 @@
 const Post = require('../models/Post');
-const cloudinary = require('../config/cloudinary');
+const cloudinary = require('cloudinary').v2;
 
-// Get all posts
-exports.getPosts = async (req, res) => {
-  try {
-    const { page = 1, limit = 10, category } = req.query;
-    let query = { status: 'published' };
-    
-    if (category) {
-      query.category = category;
-    }
-
-    const posts = await Post.find(query)
-      .populate('author', 'name email')
-      .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
-
-    const total = await Post.countDocuments(query);
-
-    res.status(200).json({
-      success: true,
-      count: posts.length,
-      total,
-      pages: Math.ceil(total / limit),
-      data: posts
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
-
-// Get single post
-exports.getPost = async (req, res) => {
-  try {
-    const post = await Post.findById(req.params.id)
-      .populate('author', 'name email');
-
-    if (!post) {
-      return res.status(404).json({
-        success: false,
-        message: 'Post not found'
-      });
-    }
-
-    post.views += 1;
-    await post.save();
-
-    res.status(200).json({
-      success: true,
-      data: post
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
-
-// Create post - FIXED VERSION
-exports.createPost = async (req, res) => {
-  try {
-    const { title, content, excerpt, category, tags, status, featuredImage } = req.body;
-
-    console.log('='.repeat(60));
-    console.log('🚀 CREATE POST STARTED');
-    console.log('📸 Featured Image URL:', featuredImage);
-
-    let finalImageUrl = '';
-    
-    // STEP 1: Cloudinary Upload with Enhanced Error Handling
-    if (featuredImage && featuredImage.startsWith('http')) {
-      try {
-        console.log('🔄 Starting Cloudinary Upload...');
-        
-        // Cloudinary upload with timeout protection
-        const uploadPromise = cloudinary.uploader.upload(featuredImage, {
-          folder: 'vlog-posts',
-          quality: 'auto',
-          fetch_format: 'auto',
-          timeout: 30000 // 30 seconds timeout
-        });
-
-        // Timeout handling
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Cloudinary upload timeout')), 30000);
-        });
-
-        const result = await Promise.race([uploadPromise, timeoutPromise]);
-        
-        finalImageUrl = result.secure_url;
-        console.log('✅ CLOUDINARY UPLOAD SUCCESS!');
-        console.log('🔗 Cloudinary URL:', finalImageUrl);
-        console.log('🆔 Public ID:', result.public_id);
-        
-      } catch (uploadError) {
-        console.log('❌ CLOUDINARY UPLOAD FAILED:', uploadError.message);
-        console.log('⚠️ Using original image URL as fallback');
-        finalImageUrl = featuredImage; // Fallback to original URL
-      }
-    } else {
-      console.log('ℹ️ No image URL provided, using empty string');
-      finalImageUrl = featuredImage || '';
-    }
-
-    // STEP 2: Create Post in Database
-    console.log('💾 Saving to database...');
-    console.log('🖼️ Final image URL to save:', finalImageUrl);
-
-    const postData = {
-      title: title || 'Untitled Post',
-      content: content || '',
-      excerpt: excerpt || '',
-      category: category || 'Nature',
-      tags: tags ? tags.split(',').map(tag => tag.trim()) : [],
-      status: status || 'draft',
-      author: req.user.id,
-      authorName: req.user.name,
-      featuredImage: finalImageUrl
-    };
-
-    const post = await Post.create(postData);
-
-    console.log('✅ POST CREATED SUCCESSFULLY!');
-    console.log('📄 Post ID:', post._id);
-    console.log('🖼️ Saved Image URL:', post.featuredImage);
-    console.log('='.repeat(60));
-
-    res.status(201).json({
-      success: true,
-      message: 'Post created successfully',
-      data: post
-    });
-
-  } catch (error) {
-    console.log('❌ POST CREATION FAILED:', error.message);
-    console.log('🔄 Attempting to create post without image...');
-    
-    // Emergency fallback - create post without image
+// @desc    Create a new post
+// @route   POST /api/posts
+// @desc    Create a new post
+// @route   POST /api/posts
+const createPost = async (req, res) => {
     try {
-      const emergencyPost = await Post.create({
-        title: req.body.title || 'Untitled Post',
-        content: req.body.content || '',
-        excerpt: req.body.excerpt || '',
-        category: req.body.category || 'Nature',
-        tags: req.body.tags ? req.body.tags.split(',').map(tag => tag.trim()) : [],
-        status: req.body.status || 'draft',
-        author: req.user.id,
-        authorName: req.user.name,
-        featuredImage: req.body.featuredImage || '' // Use original URL directly
-      });
+        const {
+            name,
+            credit,
+            title,
+            description,
+            workingText,
+            workPlaceName,
+            meetingOutput,
+            category,
+            tags,
+            teamPhotos  // ये JSON array से आएगा
+        } = req.body;
 
-      console.log('✅ EMERGENCY POST CREATED (without Cloudinary)');
-      
-      res.status(201).json({
-        success: true,
-        message: 'Post created (image upload skipped)',
-        data: emergencyPost
-      });
-    } catch (emergencyError) {
-      console.log('❌ EMERGENCY POST ALSO FAILED:', emergencyError.message);
-      
-      res.status(500).json({
-        success: false,
-        message: 'Post creation failed: ' + error.message
-      });
-    }
-  }
-};
+        console.log('📝 Creating new post...');
+        console.log('Files received:', req.files ? req.files.length : 0);
+        console.log('TeamPhotos from body:', teamPhotos);
 
-// Update post - FIXED VERSION
-exports.updatePost = async (req, res) => {
-  try {
-    let post = await Post.findById(req.params.id);
+        // Validation
+        if (!name || !credit || !title || !description || !workingText || !workPlaceName || !meetingOutput) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please fill all required fields'
+            });
+        }
 
-    if (!post) {
-      return res.status(404).json({
-        success: false,
-        message: 'Post not found'
-      });
-    }
+        // Process team photos - दोनों तरीके support करें
+        let processedTeamPhotos = [];
 
-    if (post.author.toString() !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to update this post'
-      });
-    }
+        // अगर files upload हुई हैं
+        if (req.files && req.files.length > 0) {
+            processedTeamPhotos = req.files.map((file, index) => ({
+                public_id: file.filename,
+                url: file.path,
+                caption: req.body[`caption_${index}`] || ''
+            }));
+        }
+        // अगर JSON में URLs भेजे हैं
+        else if (teamPhotos) {
+            // Parse अगर string है तो
+            if (typeof teamPhotos === 'string') {
+                try {
+                    processedTeamPhotos = JSON.parse(teamPhotos);
+                } catch (e) {
+                    processedTeamPhotos = [];
+                }
+            } 
+            // अगर already array है
+            else if (Array.isArray(teamPhotos)) {
+                processedTeamPhotos = teamPhotos;
+            }
+        }
 
-    let finalImageUrl = post.featuredImage;
-    
-    // Handle image update
-    if (req.body.featuredImage && req.body.featuredImage.startsWith('http')) {
-      try {
-        console.log('🔄 Updating image on Cloudinary...');
-        
-        const result = await cloudinary.uploader.upload(req.body.featuredImage, {
-          folder: 'vlog-posts',
-          quality: 'auto',
-          fetch_format: 'auto',
-          timeout: 30000
+        // Check if at least one photo is provided
+        if (processedTeamPhotos.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Please upload at least 1 team photo or provide photo URLs'
+            });
+        }
+
+        if (processedTeamPhotos.length > 5) {
+            return res.status(400).json({
+                success: false,
+                message: 'Maximum 5 images allowed'
+            });
+        }
+
+        // Create post
+        const post = await Post.create({
+            name,
+            credit,
+            title,
+            description,
+            workingText,
+            workPlaceName,
+            teamPhotos: processedTeamPhotos,
+            meetingOutput,
+            category: category || 'General',
+            tags: tags ? (typeof tags === 'string' ? tags.split(',').map(tag => tag.trim()) : tags) : [],
+            author: req.admin._id,
+            isPublished: true
         });
-        
-        finalImageUrl = result.secure_url;
-        console.log('✅ Image update successful:', finalImageUrl);
-      } catch (uploadError) {
-        console.log('❌ Image update failed, keeping old image');
-        // Keep the old image URL
-      }
+
+        console.log('✅ Post created successfully:', post._id);
+
+        res.status(201).json({
+            success: true,
+            message: 'Post created successfully',
+            data: post
+        });
+
+    } catch (error) {
+        console.error('❌ Error creating post:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
-
-    const updateData = {
-      ...req.body,
-      featuredImage: finalImageUrl,
-      tags: req.body.tags ? req.body.tags.split(',').map(tag => tag.trim()) : post.tags
-    };
-
-    const updatedPost = await Post.findByIdAndUpdate(req.params.id, updateData, {
-      new: true,
-      runValidators: true
-    });
-
-    res.status(200).json({
-      success: true,
-      message: 'Post updated successfully',
-      data: updatedPost
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
 };
 
-// Delete post
-exports.deletePost = async (req, res) => {
-  try {
-    const post = await Post.findById(req.params.id);
+// @desc    Get all posts
+// @route   GET /api/posts
+const getPosts = async (req, res) => {
+    try {
+        const {
+            page = 1,
+            limit = 10,
+            category,
+            search,
+            sortBy = 'createdAt',
+            order = 'desc'
+        } = req.query;
 
-    if (!post) {
-      return res.status(404).json({
-        success: false,
-        message: 'Post not found'
-      });
-    }
-
-    if (post.author.toString() !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to delete this post'
-      });
-    }
-
-    // Delete image from Cloudinary if it exists
-    if (post.featuredImage && post.featuredImage.includes('res.cloudinary.com')) {
-      try {
-        const urlParts = post.featuredImage.split('/');
-        const uploadIndex = urlParts.indexOf('upload');
-        const publicIdWithVersion = urlParts.slice(uploadIndex + 2).join('/');
-        const publicId = publicIdWithVersion.split('.')[0];
+        // Build query
+        let query = { isPublished: true };
         
-        await cloudinary.uploader.destroy(publicId);
-        console.log('✅ Cloudinary image deleted:', publicId);
-      } catch (deleteError) {
-        console.log('⚠️ Cloudinary image delete failed:', deleteError.message);
-      }
+        if (category) {
+            query.category = category;
+        }
+        
+        if (search) {
+            query.$text = { $search: search };
+        }
+
+        // Pagination
+        const pageNum = parseInt(page);
+        const limitNum = parseInt(limit);
+        const skip = (pageNum - 1) * limitNum;
+
+        // Sort order
+        const sortOrder = order === 'desc' ? -1 : 1;
+        const sort = { [sortBy]: sortOrder };
+
+        // Execute query
+        const posts = await Post.find(query)
+            .populate('author', 'username email')
+            .sort(sort)
+            .skip(skip)
+            .limit(limitNum);
+
+        // Get total count
+        const total = await Post.countDocuments(query);
+
+        res.json({
+            success: true,
+            data: posts,
+            pagination: {
+                currentPage: pageNum,
+                totalPages: Math.ceil(total / limitNum),
+                totalItems: total,
+                itemsPerPage: limitNum
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Error fetching posts:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
-
-    await Post.findByIdAndDelete(req.params.id);
-
-    res.status(200).json({
-      success: true,
-      message: 'Post deleted successfully'
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
 };
 
-// Get user's posts
-exports.getUserPosts = async (req, res) => {
-  try {
-    const posts = await Post.find({ author: req.user.id })
-      .sort({ createdAt: -1 });
+// @desc    Get single post
+// @route   GET /api/posts/:id
+const getPostById = async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.id)
+            .populate('author', 'username email');
 
-    res.status(200).json({
-      success: true,
-      count: posts.length,
-      data: posts
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
-  }
+        if (!post) {
+            return res.status(404).json({
+                success: false,
+                message: 'Post not found'
+            });
+        }
+
+        // Increment views
+        post.views += 1;
+        await post.save();
+
+        res.json({
+            success: true,
+            data: post
+        });
+
+    } catch (error) {
+        console.error('❌ Error fetching post:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+// @desc    Update a post
+// @route   PUT /api/posts/:id
+const updatePost = async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.id);
+
+        if (!post) {
+            return res.status(404).json({
+                success: false,
+                message: 'Post not found'
+            });
+        }
+
+        // Check authorization
+        if (post.author.toString() !== req.admin._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized to update this post'
+            });
+        }
+
+        // Update basic fields
+        const updateFields = [
+            'name', 'credit', 'title', 'description',
+            'workingText', 'workPlaceName', 'meetingOutput',
+            'category', 'isPublished'
+        ];
+
+        updateFields.forEach(field => {
+            if (req.body[field] !== undefined) {
+                post[field] = req.body[field];
+            }
+        });
+
+        // Update tags if provided
+        if (req.body.tags) {
+            post.tags = req.body.tags.split(',').map(tag => tag.trim());
+        }
+
+        // Handle new photos if uploaded
+        if (req.files && req.files.length > 0) {
+            // Delete old photos from Cloudinary
+            for (const photo of post.teamPhotos) {
+                await cloudinary.uploader.destroy(photo.public_id);
+            }
+
+            // Add new photos
+            const newPhotos = req.files.map((file, index) => ({
+                public_id: file.filename,
+                url: file.path,
+                caption: req.body[`new_caption_${index}`] || ''
+            }));
+
+            post.teamPhotos = newPhotos;
+        }
+
+        // Handle photo captions update
+        if (req.body.captions) {
+            const captions = JSON.parse(req.body.captions);
+            post.teamPhotos = post.teamPhotos.map((photo, index) => ({
+                ...photo,
+                caption: captions[index] || photo.caption
+            }));
+        }
+
+        const updatedPost = await post.save();
+
+        res.json({
+            success: true,
+            message: 'Post updated successfully',
+            data: updatedPost
+        });
+
+    } catch (error) {
+        console.error('❌ Error updating post:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+// @desc    Delete a post
+// @route   DELETE /api/posts/:id
+const deletePost = async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.id);
+
+        if (!post) {
+            return res.status(404).json({
+                success: false,
+                message: 'Post not found'
+            });
+        }
+
+        // Debug logs to see what's happening
+        console.log('🔍 Post author:', post.author.toString());
+        console.log('🔍 Request admin:', req.admin._id.toString());
+        console.log('🔍 Admin isAdmin:', req.admin.isAdmin);
+
+        // Check authorization - allow if user is admin OR is the author
+        if (!req.admin.isAdmin && post.author.toString() !== req.admin._id.toString()) {
+            return res.status(403).json({
+                success: false,
+                message: 'Not authorized to delete this post'
+            });
+        }
+
+        // Delete all photos from Cloudinary
+        if (post.teamPhotos && post.teamPhotos.length > 0) {
+            for (const photo of post.teamPhotos) {
+                if (photo.public_id) {
+                    await cloudinary.uploader.destroy(photo.public_id);
+                }
+            }
+        }
+
+        await post.deleteOne();
+
+        res.json({
+            success: true,
+            message: 'Post deleted successfully'
+        });
+
+    } catch (error) {
+        console.error('❌ Error deleting post:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+// @desc    Get posts by author
+// @route   GET /api/posts/author/:authorId
+const getPostsByAuthor = async (req, res) => {
+    try {
+        const posts = await Post.find({ 
+            author: req.params.authorId,
+            isPublished: true 
+        })
+        .populate('author', 'username email')
+        .sort('-createdAt');
+
+        res.json({
+            success: true,
+            data: posts
+        });
+
+    } catch (error) {
+        console.error('❌ Error fetching author posts:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+// @desc    Get posts by category
+// @route   GET /api/posts/category/:category
+const getPostsByCategory = async (req, res) => {
+    try {
+        const posts = await Post.find({ 
+            category: req.params.category,
+            isPublished: true 
+        })
+        .populate('author', 'username email')
+        .sort('-createdAt');
+
+        res.json({
+            success: true,
+            data: posts
+        });
+
+    } catch (error) {
+        console.error('❌ Error fetching category posts:', error);
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+module.exports = {
+    createPost,
+    getPosts,
+    getPostById,
+    updatePost,
+    deletePost,
+    getPostsByAuthor,
+    getPostsByCategory
 };
