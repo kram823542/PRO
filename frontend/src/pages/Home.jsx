@@ -335,8 +335,8 @@ const Home = () => {
   ];
 
   const quotes = [
-    { text: "Your work is going to fill a large part of your life, and the only way to be truly satisfied is to do what you believe is great work.", author: "STEVE JOBS" },
-    { text: "First, solve the problem. Then, write the code.", author: "JOHN JOHNSON" },
+    { text: " Dreams are not the ones you see while sleeping, dreams are those that don’t let you sleep..", author: "APJ Abdul Kalam" },
+    { text: "Educate, Agitate, Organize.", author: "Dr. B. R. Ambedkar" },
     { text: "The best way to predict the future is to invent it.", author: "ALAN KAY" }
   ];
 

@@ -438,12 +438,12 @@ const About = () => {
           <footer className="mt-24 pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8 text-gray-600">
               <div className="flex flex-col gap-2 items-center md:items-start">
                 <p className="text-[10px] uppercase tracking-[0.3em] font-bold text-white/20">© 2026 KUNDAN KUMAR</p>
-                <p className="text-[9px] uppercase tracking-widest italic">Physics • Tech • Social Impact</p>
+                <p className="text-[9px] uppercase tracking-widest italic"> • Tech • Social Impact</p>
               </div>
               
               <div className="flex items-center gap-8">
                 <a href="mailto:Kundanram7261@Gmail.Com" className="text-[10px] uppercase tracking-[0.2em] font-bold hover:text-cyan-400 transition-colors">Email</a>
-                <span className="text-[10px] font-bold text-white/10">+91 8235420468</span>
+                <span className="text-[10px] font-bold text-white/10">KUNDANRAM7261@GMAIL.COM</span>
               </div>
               
               <div className="flex items-center gap-2 text-gray-800">
