@@ -637,23 +637,39 @@ const PublicPost = ({ post: propPost, isHomePage = false }) => {
     }
   };
 
-  // Share Functionality
+  // --- Image + Text Share Logic ---
   const handleShare = async () => {
-    const shareData = {
-      title: post.title,
-      text: post.description || `Check out this post by @${post.credit}`,
-      url: window.location.href,
-    };
-
     try {
-      if (navigator.share) {
+      const shareUrl = window.location.href;
+      const imageUrl = post.teamPhotos[currentIndex]?.url;
+
+      // 1. Image ko fetch karke file mein convert karna (Sharing ke liye zaroori hai)
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const file = new File([blob], 'post-image.jpg', { type: blob.type });
+
+      const shareData = {
+        title: post.title,
+        text: `${post.title}\n\n${post.description || ''}\n\nShared via @${post.credit}\n`,
+        url: shareUrl,
+        files: [file], // Image file yahan attach hoti hai
+      };
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share(shareData);
       } else {
-        await navigator.clipboard.writeText(window.location.href);
-        alert("Link copied to clipboard!");
+        // Fallback agar file share support nahi hai
+        await navigator.share({
+          title: post.title,
+          text: post.title,
+          url: shareUrl
+        });
       }
     } catch (err) {
-      console.log("Error sharing:", err);
+      console.error("Sharing failed:", err);
+      // Basic fallback: Copy Link
+      navigator.clipboard.writeText(window.location.href);
+      alert("Sharing failed. Link copied to clipboard!");
     }
   };
 
@@ -702,7 +718,7 @@ const PublicPost = ({ post: propPost, isHomePage = false }) => {
             {showInCardDetail ? <X size={18} strokeWidth={3} /> : <Info size={18} strokeWidth={3} />}
           </button>
 
-          {/* Share Button */}
+          {/* New Share Button (Image + Link) */}
           <button 
             onClick={handleShare}
             className="p-2 rounded-full bg-white/10 backdrop-blur-md text-white border border-white/20 shadow-lg active:scale-90 transition-all"
@@ -786,15 +802,6 @@ const PublicPost = ({ post: propPost, isHomePage = false }) => {
                 </h3>
                 <p className="text-slate-300 text-[11px] leading-relaxed">
                   {post.workingText}
-                </p>
-              </div>
-            )}
-
-            {post.meetingOutput && (
-              <div className="bg-blue-600/10 p-4 rounded-xl border border-blue-500/20">
-                <h3 className="text-[9px] font-black text-blue-400 uppercase tracking-[0.2em] mb-1">Meeting Output</h3>
-                <p className="text-slate-200 text-[11px] italic font-semibold leading-relaxed">
-                  "{post.meetingOutput}"
                 </p>
               </div>
             )}
