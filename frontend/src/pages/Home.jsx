@@ -337,7 +337,7 @@ const Home = () => {
   const quotes = [
     { text: " Dreams are not the ones you see while sleeping, dreams are those that don’t let you sleep..", author: "APJ Abdul Kalam" },
     { text: "Educate, Agitate, Organize.", author: "Dr. B. R. Ambedkar" },
-    { text: "The best way to predict the future is to invent it.", author: "ALAN KAY" }
+    { text: "One skill can change your life… without skills, you only get struggle.", author: "ABHISHEK" }
   ];
 
   // Profile Image Array
