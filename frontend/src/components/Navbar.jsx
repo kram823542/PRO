@@ -1,8 +1,10 @@
+
 // import React from "react";
 // import { Link, useLocation, useNavigate } from "react-router-dom";
 // import {
 //   Home, User, Mail, ChevronLeft, ChevronRight,
-//   Github, Twitter, Youtube, Facebook, Instagram, MessageCircle
+//   Github, Twitter, Youtube, Facebook, Instagram, MessageCircle,
+//   Shield // Admin icon ke liye Shield import kiya
 // } from "lucide-react";
 
 // const Navbar = () => {
@@ -47,7 +49,6 @@
 //         `}
 //       </style>
 
-//       {/* ================= SOCIAL SIDEBAR (Desktop: Right | Mobile: Left) ================= */}
 //       {/* ================= SOCIAL MEDIA BAR (B&W - REPOSITIONED) ================= */}
 //       <div className={`fixed z-[100] transition-all duration-500 
 //   /* Desktop: Left Center Sidebar */
@@ -64,10 +65,19 @@
 //               rel="noopener noreferrer"
 //               className="text-zinc-500 transition-all duration-300 hover:scale-125 hover:text-white active:scale-90 p-1"
 //             >
-//               {/* Desktop icons are 20px (size 5), Mobile icons are 14px */}
 //               <social.icon size={14} className="md:w-5 md:h-5" strokeWidth={2} />
 //             </a>
 //           ))}
+
+//           {/* ================= ADMIN LOGIN ICON ================= */}
+//           <div className="w-full h-[1px] bg-white/10 my-1 md:my-2"></div> {/* Separator Line */}
+//           <button
+//             onClick={() => navigate('/admin/login')}
+//             className="text-zinc-500 transition-all duration-300 hover:scale-125 hover:text-purple-400 active:scale-90 p-1"
+//             title="Admin Login"
+//           >
+//             <Shield size={14} className="md:w-5 md:h-5" strokeWidth={2.5} />
+//           </button>
 //         </div>
 //       </div>
 
@@ -145,12 +155,13 @@
 
 
 
+
 import React from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Home, User, Mail, ChevronLeft, ChevronRight,
   Github, Twitter, Youtube, Facebook, Instagram, MessageCircle,
-  Shield // Admin icon ke liye Shield import kiya
+  Shield, Briefcase // Briefcase icon services ke liye
 } from "lucide-react";
 
 const Navbar = () => {
@@ -160,6 +171,7 @@ const Navbar = () => {
   const navItems = [
     { path: "/", label: "Home", icon: Home },
     { path: "/about", label: "About", icon: User },
+    { path: "/services", label: "Services", icon: Briefcase }, // ✅ Added Services
     { path: "/contactme", label: "Contact", icon: Mail },
   ];
 
@@ -250,13 +262,14 @@ const Navbar = () => {
           <div className="relative flex items-center ml-2">
             <div
               className="absolute h-8 rounded-full bg-white transition-all duration-500 ease-out"
-              style={{ width: "110px", left: `${activeIndex * 110}px` }}
+              /* Width updated to match new item count */
+              style={{ width: "100px", left: `${activeIndex * 100}px` }}
             />
             {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`relative z-10 w-[110px] text-center py-2 text-[15px] font-medium transition-all duration-300 ${location.pathname === item.path ? "text-black font-bold" : "text-zinc-500 hover:text-white"
+                className={`relative z-10 w-[100px] text-center py-2 text-[15px] font-medium transition-all duration-300 ${location.pathname === item.path ? "text-black font-bold" : "text-zinc-500 hover:text-white"
                   }`}
               >
                 {item.label}
@@ -267,7 +280,7 @@ const Navbar = () => {
       </nav>
 
       {/* ================= COMPACT MOBILE BOTTOM NAV ================= */}
-      <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[80%] max-w-[280px] font-nav-modern">
+      <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-40 w-[90%] max-w-[320px] font-nav-modern">
         <div className="relative flex items-center bg-black border border-white/20 rounded-full p-1 shadow-2xl overflow-hidden">
           <div
             className="absolute h-[80%] rounded-full bg-white transition-all duration-500"

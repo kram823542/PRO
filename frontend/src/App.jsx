@@ -258,6 +258,7 @@ import Sidebar from './components/Sidebar';
 
 import Home from './pages/Home';
 import About from './pages/About';
+import Services from './pages/Services'; // ✅ New Import
 import ContactMe from './pages/ContactMe';
 import AdminContacts from './pages/AdminContacts';
 import PublicPost from './pages/PublicPost'; 
@@ -322,6 +323,7 @@ function App() {
         {/* Admin Routes (Protected) */}
         <Route path="/admin/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/admin/posts" element={<ProtectedRoute><Posts /></ProtectedRoute>} />
+        <Route path="/services" element={<PublicLayout><Services /></PublicLayout>} /> {/* ✅ Added Service Route */}
         <Route path="/admin/create-post" element={<ProtectedRoute><CreatePost /></ProtectedRoute>} />
         <Route path="/admin/edit/:id" element={<ProtectedRoute><EditPost /></ProtectedRoute>} />
         <Route path="/admin/contacts" element={<ProtectedRoute><AdminContacts /></ProtectedRoute>} />
