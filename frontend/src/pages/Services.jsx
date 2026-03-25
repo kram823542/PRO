@@ -188,7 +188,6 @@
 // export default Services;
 
 
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -284,9 +283,15 @@ const Services = () => {
     }
   ];
 
-  const filteredServices = websiteSolutions.filter(service => 
-    service.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Improved Search Logic: Checks name, tagline, and features list
+  const filteredServices = websiteSolutions.filter(service => {
+    const searchLower = searchTerm.toLowerCase();
+    const matchesName = service.name.toLowerCase().includes(searchLower);
+    const matchesTagline = service.tagline.toLowerCase().includes(searchLower);
+    const matchesFeatures = service.features.some(feat => feat.toLowerCase().includes(searchLower));
+    
+    return matchesName || matchesTagline || matchesFeatures;
+  });
 
   const steps = [
     { title: "Planning", icon: <Target size={20}/>, desc: "Requirements & Strategy" },
@@ -298,16 +303,6 @@ const Services = () => {
   return (
     <div className="min-h-screen bg-[#020617] text-slate-300 font-sans pb-20 selection:bg-blue-500/30">
       
-      {/* Floating WhatsApp Button */}
-      <a 
-        href={`https://wa.me/${whatsappNumber}`} 
-        target="_blank" 
-        rel="noreferrer"
-        className="fixed bottom-6 right-6 z-50 bg-emerald-500 p-4 rounded-full shadow-2xl shadow-emerald-500/20 hover:scale-110 transition-transform active:scale-95 border border-white/20"
-      >
-        <MessageCircle className="text-white" size={28} />
-      </a>
-
       {/* Decorative Glows */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute top-[-10%] right-[-10%] w-[400px] h-[400px] bg-blue-600/10 blur-[120px] rounded-full" />
@@ -324,28 +319,28 @@ const Services = () => {
           <h1 className="text-4xl md:text-8xl font-black italic tracking-tighter text-white uppercase mb-4 leading-none">
             Elite <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-cyan-400">Web Models</span>
           </h1>
-          <p className="max-w-xl mx-auto text-slate-400 text-xs md:text-base font-medium leading-relaxed mb-10">
+          <p className="max-w-xl mx-auto text-slate-400 text-xs md:text-base font-medium leading-relaxed mb-10 px-4">
             Professional development services built for scale, speed, and success.
           </p>
 
-          {/* --- SEARCH BAR --- */}
-          <div className="max-w-md mx-auto relative group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors" size={18} />
+          {/* --- IMPROVED SEARCH BAR --- */}
+          <div className="max-w-md mx-auto relative group px-4">
+            <Search className="absolute left-8 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-blue-400 transition-colors" size={18} />
             <input 
               type="text" 
-              placeholder="Search for a service..." 
+              placeholder="Search by tech, feature or service..." 
               className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 pl-12 pr-4 text-sm focus:outline-none focus:border-blue-500/50 transition-all text-white placeholder:text-slate-600"
+              value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
         </div>
 
         {/* --- SERVICES GRID --- */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-24">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-24 px-4 md:px-0">
           {filteredServices.length > 0 ? (
             filteredServices.map((item, index) => (
-              <div key={index} className="group flex flex-col bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-8 hover:bg-white/[0.04] hover:border-blue-500/30 transition-all duration-500 overflow-hidden relative">
-                {/* Background Numbering */}
+              <div key={item.id} className="group flex flex-col bg-white/[0.02] border border-white/5 rounded-[2.5rem] p-8 hover:bg-white/[0.04] hover:border-blue-500/30 transition-all duration-500 overflow-hidden relative">
                 <div className="absolute -right-4 -top-4 text-8xl font-black text-white/[0.02] group-hover:text-blue-500/[0.05] transition-colors italic">0{index + 1}</div>
                 
                 <div className="flex justify-between items-start mb-8 relative z-10">
@@ -381,14 +376,15 @@ const Services = () => {
               </div>
             ))
           ) : (
-            <div className="col-span-full py-20 text-center">
-              <p className="text-slate-500 italic uppercase font-black tracking-widest">No matching service found</p>
+            <div className="col-span-full py-20 text-center bg-white/[0.01] border border-dashed border-white/5 rounded-3xl">
+              <Search className="mx-auto mb-4 text-slate-700" size={48} />
+              <p className="text-slate-500 italic uppercase font-black tracking-widest">No matching service found for "{searchTerm}"</p>
             </div>
           )}
         </div>
 
         {/* --- WORKFLOW ROADMAP --- */}
-        <div className="mb-32">
+        <div className="mb-32 px-4 md:px-0">
           <h2 className="text-center text-xs font-black uppercase tracking-[0.4em] text-blue-500 mb-12">Execution Strategy</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
              {steps.map((step, i) => (
@@ -404,7 +400,7 @@ const Services = () => {
         </div>
 
         {/* --- CTA SECTION --- */}
-        <div className="bg-gradient-to-br from-blue-600 to-blue-900 rounded-[3rem] p-10 md:p-16 relative overflow-hidden text-center md:text-left shadow-2xl shadow-blue-600/20">
+        <div className="mx-4 md:mx-0 bg-gradient-to-br from-blue-600 to-blue-900 rounded-[3rem] p-10 md:p-16 relative overflow-hidden text-center md:text-left shadow-2xl shadow-blue-600/20">
           <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 rounded-full blur-3xl -mr-40 -mt-40" />
           <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-10">
             <div className="max-w-lg">
