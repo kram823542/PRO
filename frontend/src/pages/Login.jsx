@@ -1,146 +1,108 @@
-// import React, { useState } from 'react';
+// import { useState } from 'react';
 // import { useNavigate } from 'react-router-dom';
-// import toast from 'react-hot-toast';
-// import { adminAPI } from '../services/api';
-// import { Loader2, Eye, EyeOff, X, ArrowRight } from 'lucide-react';
+// import { useAuth } from '../context/AuthContext';
+// import Loader from '../components/Loader';
 
-// const Login = ({ setIsAuthenticated }) => {
-//   const [formData, setFormData] = useState({ email: '', password: '' });
+// const Login = () => {
+//   const [userId, setUserId] = useState('');
+//   const [password, setPassword] = useState('');
 //   const [loading, setLoading] = useState(false);
-//   const [showPassword, setShowPassword] = useState(false);
+//   const { login } = useAuth();
 //   const navigate = useNavigate();
-
-//   const LOGO_URL = "https://res.cloudinary.com/dsjnikk42/image/upload/v1761223239/Screenshot_20251023-180837.Photos_mwi249.png";
-
-//   const handleChange = (e) =>
-//     setFormData({ ...formData, [e.target.name]: e.target.value });
 
 //   const handleSubmit = async (e) => {
 //     e.preventDefault();
 //     setLoading(true);
-//     try {
-//       const response = await adminAPI.login(formData);
-//       const data = response.data.data || response.data;
-//       localStorage.setItem('token', data.token);
-//       localStorage.setItem('admin', JSON.stringify(data));
-//       setIsAuthenticated(true);
-//       toast.success('Access Granted');
-//       navigate('/admin/dashboard');
-//     } catch (error) {
-//       toast.error('Unauthorized Access');
-//     } finally {
-//       setLoading(false);
+
+//     const result = await login(userId, password);
+
+//     if (result.success) {
+//       if (result.user.role === 'SUPER_ADMIN') {
+//         navigate('/admin-super');
+//       } else if (result.user.role === 'CLF_ADMIN') {
+//         navigate('/admin-clf');
+//       } else {
+//         navigate('/employee');
+//       }
 //     }
+
+//     setLoading(false);
 //   };
 
 //   return (
-//     <div className="min-h-screen w-full flex items-center justify-center bg-[#0f172a] p-4 font-sans selection:bg-red-100">
-      
-//       {/* Main Container */}
-//       <div className="relative w-full max-w-[950px] min-h-[600px] bg-white rounded-[2.5rem] overflow-hidden flex flex-col md:flex-row shadow-[0_50px_100px_-20px_rgba(0,0,0,0.4)]">
-        
-//         {/* --- LEFT SIDE: DESKTOP PANEL (Hidden on Mobile) --- */}
-//         <div className="hidden md:flex w-[45%] bg-[#1e293b] relative p-12 flex-col justify-between items-center text-center overflow-hidden">
-//           <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-red-600/20 via-transparent to-transparent animate-pulse"></div>
-//           <div className="relative z-10 mt-10">
-//             <div className="w-24 h-24 bg-white p-1 rounded-[2rem] shadow-2xl mb-8 mx-auto transform hover:rotate-12 transition-transform duration-500">
-//                <img src={LOGO_URL} alt="Logo" className="w-full h-full object-cover rounded-[1.8rem]" />
-//             </div>
-//             <h2 className="text-white text-2xl font-black tracking-[0.2em] uppercase mb-4">Admin Core</h2>
-//             <div className="h-1 w-12 bg-red-600 mx-auto rounded-full mb-6"></div>
+//     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary via-primary-light to-secondary p-4">
+//       <div className="w-full max-w-md">
+//         {/* Logo/Brand */}
+//         <div className="text-center mb-8">
+//           <div className="w-20 h-20 bg-secondary rounded-2xl mx-auto flex items-center justify-center shadow-2xl mb-4">
+//             <svg className="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+//               <path
+//                 strokeLinecap="round"
+//                 strokeLinejoin="round"
+//                 strokeWidth={2}
+//                 d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+//               />
+//             </svg>
 //           </div>
-//           <div className="relative z-10 text-[10px] text-slate-500 uppercase tracking-[0.4em] font-bold">
-//              System Secure
-//           </div>
+//           <h1 className="text-3xl font-extrabold text-white">CLF Attendance</h1>
+//           <p className="text-white/70 mt-2">Employee Attendance Management System</p>
 //         </div>
 
-//         {/* --- RIGHT SIDE: LOGIN FORM --- */}
-//         <div className="w-full md:w-[55%] bg-white p-8 md:p-16 flex flex-col justify-center relative">
-          
-//           {/* Mobile Only Logo Section */}
-//           <div className="md:hidden flex flex-col items-center mb-8">
-//             <div className="w-16 h-16 bg-white p-0.5 rounded-2xl shadow-xl mb-3 border border-slate-100">
-//               <img src={LOGO_URL} alt="Logo" className="w-full h-full object-cover rounded-[0.9rem]" />
-//             </div>
-//             <h2 className="text-slate-900 text-xs font-black tracking-[0.2em] uppercase">Admin Core</h2>
-//           </div>
+//         {/* Login Form */}
+//         <div className="bg-white rounded-2xl shadow-2xl p-8">
+//           <h2 className="text-2xl font-bold text-primary mb-6 text-center">Sign In</h2>
 
-//           <button 
-//             onClick={() => navigate('/')}
-//             className="absolute top-6 right-6 md:top-8 md:right-8 text-slate-300 hover:text-red-600 transition-all active:scale-75"
-//           >
-//             <X size={28} />
-//           </button>
-
-//           <div className="mb-12">
-//             <h1 className="text-4xl md:text-5xl font-black text-slate-900 mb-2 tracking-tight">Log in<span className="text-red-600">.</span></h1>
-//             <p className="text-slate-400 font-medium text-sm">Welcome back, Kundan Ram.</p>
-//           </div>
-
-//           <form onSubmit={handleSubmit} className="space-y-10">
-            
-//             {/* Email - Line Style with Left Border */}
-//             <div className="group relative">
-//               <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-slate-100 group-focus-within:bg-red-600 transition-colors duration-300"></div>
+//           <form onSubmit={handleSubmit} className="space-y-5">
+//             <div>
+//               <label className="label">User ID</label>
 //               <input
-//                 type="email"
-//                 name="email"
-//                 placeholder="Terminal ID"
-//                 value={formData.email}
-//                 onChange={handleChange}
-//                 className="w-full pl-6 pr-4 py-3 bg-transparent text-slate-900 border-b-2 border-slate-100 focus:border-red-600 outline-none transition-all duration-300 font-semibold placeholder:text-slate-300 placeholder:font-normal"
+//                 type="text"
+//                 value={userId}
+//                 onChange={(e) => setUserId(e.target.value)}
+//                 placeholder="e.g. kundan@82"
+//                 className="input-field"
 //                 required
+//                 disabled={loading}
 //               />
 //             </div>
 
-//             {/* Password - Line Style with Left Border */}
-//             <div className="group relative">
-//               <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-slate-100 group-focus-within:bg-red-600 transition-colors duration-300"></div>
+//             <div>
+//               <label className="label">Password</label>
 //               <input
-//                 type={showPassword ? "text" : "password"}
-//                 name="password"
-//                 placeholder="Access Key"
-//                 value={formData.password}
-//                 onChange={handleChange}
-//                 className="w-full pl-6 pr-12 py-3 bg-transparent text-slate-900 border-b-2 border-slate-100 focus:border-red-600 outline-none transition-all duration-300 font-semibold placeholder:text-slate-300 placeholder:font-normal"
+//                 type="password"
+//                 value={password}
+//                 onChange={(e) => setPassword(e.target.value)}
+//                 placeholder="Enter your password"
+//                 className="input-field"
 //                 required
+//                 disabled={loading}
 //               />
-//               <button
-//                 type="button"
-//                 onClick={() => setShowPassword(!showPassword)}
-//                 className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 hover:text-red-600 p-2 transition-colors"
-//               >
-//                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-//               </button>
 //             </div>
 
-//             <div className="flex items-center justify-between px-1">
-//                <label className="flex items-center gap-2 cursor-pointer group/check">
-//                   <input type="checkbox" className="w-4 h-4 rounded border-slate-200 text-red-600 focus:ring-red-500 cursor-pointer" />
-//                   <span className="text-[10px] font-bold text-slate-400 group-hover/check:text-slate-600 transition-colors uppercase tracking-widest">Remember Terminal</span>
-//                </label>
-//                <button type="button" className="text-[10px] font-bold text-slate-400 hover:text-red-600 transition-colors uppercase tracking-widest">Forgot Key?</button>
-//             </div>
-
-//             {/* Login Button */}
 //             <button
 //               type="submit"
 //               disabled={loading}
-//               className="group/btn relative w-full py-5 bg-[#1e293b] text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] overflow-hidden transition-all duration-500 hover:shadow-xl hover:shadow-red-600/20 active:scale-[0.97]"
+//               className="btn-primary w-full flex items-center justify-center gap-2"
 //             >
-//               <div className="absolute inset-0 w-0 bg-red-600 transition-all duration-500 ease-out group-hover/btn:w-full"></div>
-//               <span className="relative z-10 flex items-center justify-center gap-3">
-//                 {loading ? <Loader2 className="animate-spin" size={20} /> : (
-//                   <>Access System <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" /></>
-//                 )}
-//               </span>
+//               {loading ? (
+//                 <>
+//                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+//                   Signing in...
+//                 </>
+//               ) : (
+//                 'Sign In'
+//               )}
 //             </button>
-
-//             <p className="text-center text-[10px] text-slate-300 font-bold uppercase tracking-[0.2em]">
-//               Kundan Ram Infrastructure • 2026
-//             </p>
 //           </form>
+
+//           <p className="text-xs text-gray-500 text-center mt-6">
+//             Contact your CLF Admin for account access
+//           </p>
 //         </div>
+
+//         <p className="text-center text-white/60 text-sm mt-6">
+//           © 2026 CLF Attendance System
+//         </p>
 //       </div>
 //     </div>
 //   );
@@ -150,153 +112,313 @@
 
 
 
-import React, { useState } from 'react';
+
+
+
+// import { useState } from 'react';
+// import { useNavigate } from 'react-router-dom';
+// import { useAuth } from '../context/AuthContext';
+// import Loader from '../components/Loader';
+
+// const Login = () => {
+//   const [userId, setUserId] = useState('');
+//   const [password, setPassword] = useState('');
+//   const [loading, setLoading] = useState(false);
+//   const { login } = useAuth();
+//   const navigate = useNavigate();
+
+//   const handleSubmit = async (e) => {
+//     e.preventDefault();
+//     setLoading(true);
+
+//     const result = await login(userId, password);
+
+//     if (result.success) {
+//       if (result.user.role === 'SUPER_ADMIN') {
+//         navigate('/admin-super');
+//       } else if (result.user.role === 'CLF_ADMIN') {
+//         navigate('/admin-clf');
+//       } else {
+//         navigate('/employee');
+//       }
+//     }
+
+//     setLoading(false);
+//   };
+
+//   return (
+//     <div className="min-h-screen relative flex items-center justify-center bg-slate-900 overflow-hidden p-4 sm:p-6">
+//       {/* Background Decorative Blur Elements */}
+//       <div className="absolute -top-32 -left-32 w-96 h-96 bg-indigo-600/30 rounded-full blur-3xl pointer-events-none" />
+//       <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-blue-600/25 rounded-full blur-3xl pointer-events-none" />
+
+//       <div className="w-full max-w-md relative z-10">
+//         {/* Brand Header */}
+//         <div className="text-center mb-8">
+//           <div className="w-20 h-20 bg-gradient-to-tr from-indigo-600 to-blue-500 rounded-2xl mx-auto flex items-center justify-center shadow-lg shadow-indigo-500/30 mb-4 ring-1 ring-white/20 transition-transform duration-300 hover:scale-105">
+//             <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+//               <path
+//                 strokeLinecap="round"
+//                 strokeLinejoin="round"
+//                 strokeWidth={2}
+//                 d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+//               />
+//             </svg>
+//           </div>
+//           <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">CLF Attendance</h1>
+//           <p className="text-slate-400 mt-2 text-sm sm:text-base">Employee Attendance Management System</p>
+//         </div>
+
+//         {/* Glassmorphic Login Form Card */}
+//         <div className="bg-slate-800/80 backdrop-blur-xl border border-slate-700/60 rounded-3xl shadow-2xl p-6 sm:p-8">
+//           <div className="mb-6 text-center">
+//             <h2 className="text-2xl font-bold text-white tracking-wide">Sign In</h2>
+//             <p className="text-slate-400 text-xs mt-1">Please enter your details to continue</p>
+//           </div>
+
+//           <form onSubmit={handleSubmit} className="space-y-5">
+//             <div>
+//               <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+//                 User ID
+//               </label>
+//               <div className="relative">
+//                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+//                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+//                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+//                   </svg>
+//                 </div>
+//                 <input
+//                   type="text"
+//                   value={userId}
+//                   onChange={(e) => setUserId(e.target.value)}
+//                   placeholder="e.g. kundan@82"
+//                   className="w-full pl-10 pr-4 py-3 bg-slate-900/60 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all disabled:opacity-50"
+//                   required
+//                   disabled={loading}
+//                 />
+//               </div>
+//             </div>
+
+//             <div>
+//               <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
+//                 Password
+//               </label>
+//               <div className="relative">
+//                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+//                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+//                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+//                   </svg>
+//                 </div>
+//                 <input
+//                   type="password"
+//                   value={password}
+//                   onChange={(e) => setPassword(e.target.value)}
+//                   placeholder="Enter your password"
+//                   className="w-full pl-10 pr-4 py-3 bg-slate-900/60 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all disabled:opacity-50"
+//                   required
+//                   disabled={loading}
+//                 />
+//               </div>
+//             </div>
+
+//             <button
+//               type="submit"
+//               disabled={loading}
+//               className="w-full py-3.5 px-4 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-semibold rounded-xl shadow-lg shadow-indigo-600/30 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-800 active:scale-[0.99] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+//             >
+//               {loading ? (
+//                 <>
+//                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+//                   <span>Signing in...</span>
+//                 </>
+//               ) : (
+//                 'Sign In'
+//               )}
+//             </button>
+//           </form>
+
+//           <p className="text-xs text-slate-400 text-center mt-6 pt-4 border-t border-slate-700/50">
+//             Contact your <span className="text-indigo-400 font-medium">CLF Admin</span> for account access
+//           </p>
+//         </div>
+
+//         {/* Footer */}
+//         <p className="text-center text-slate-500 text-xs mt-6">
+//           © 2026 CLF Attendance System. All rights reserved.
+//         </p>
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default Login;
+
+
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
-import { adminAPI } from '../services/api';
-import { Loader2, Eye, EyeOff, X, ArrowRight } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import Loader from '../components/Loader';
 
-const Login = ({ setIsAuthenticated }) => {
-  const [formData, setFormData] = useState({ email: '', password: '' });
-  const [loading, setLoading] = useState(false);
+const Login = () => {
+  const [userId, setUserId] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
   const navigate = useNavigate();
-
-  const LOGO_URL = "https://res.cloudinary.com/dsjnikk42/image/upload/v1761223239/Screenshot_20251023-180837.Photos_mwi249.png";
-
-  const handleChange = (e) =>
-    setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    try {
-      const response = await adminAPI.login(formData);
-      const data = response.data.data || response.data;
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('admin', JSON.stringify(data));
-      setIsAuthenticated(true);
-      toast.success('Access Granted');
-      navigate('/admin/dashboard');
-    } catch (error) {
-      toast.error('Unauthorized Access');
-    } finally {
-      setLoading(false);
+
+    const result = await login(userId, password);
+
+    if (result.success) {
+      if (result.user.role === 'SUPER_ADMIN') {
+        navigate('/admin-super');
+      } else if (result.user.role === 'CLF_ADMIN') {
+        navigate('/admin-clf');
+      } else {
+        navigate('/employee');
+      }
     }
+
+    setLoading(false);
   };
 
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-red-950 p-4 font-sans selection:bg-red-500/30">
-      
-      {/* Main Container - Dark Red/Slate Mix */}
-      <div className="relative w-full max-w-[950px] min-h-[600px] bg-red-950 rounded-[2.5rem] overflow-hidden flex flex-col md:flex-row shadow-[0_50px_100px_-20px_rgba(220,38,38,0.3)] border border-red-500/20">
-        
-        {/* --- LEFT SIDE: DESKTOP PANEL --- */}
-        <div className="hidden md:flex w-[45%] bg-red-600 relative p-12 flex-col justify-between items-center text-center overflow-hidden">
-          {/* Background tint pattern */}
-          <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-br from-red-400/20 via-transparent to-transparent animate-pulse"></div>
-          
-          <div className="relative z-10 mt-10">
-            <div className="w-24 h-24 bg-red-950 p-1.5 rounded-[2rem] shadow-2xl mb-8 mx-auto transform hover:rotate-12 transition-transform duration-500 border border-red-400/30">
-               <img src={LOGO_URL} alt="Logo" className="w-full h-full object-cover rounded-[1.8rem] grayscale brightness-125" />
-            </div>
-            <h2 className="text-red-50 text-2xl font-black tracking-[0.2em] uppercase mb-4">Admin Core</h2>
-            <div className="h-1 w-12 bg-red-400 mx-auto rounded-full mb-6"></div>
-            <p className="text-red-100 text-[10px] uppercase tracking-widest font-bold">Authenticated Access Only</p>
-          </div>
+    <div className="min-h-screen relative flex items-center justify-center bg-zinc-950 text-zinc-100 overflow-hidden p-4 sm:p-6 selection:bg-zinc-800 selection:text-white">
+      {/* Background Decorative Blur Elements */}
+      <div className="absolute -top-32 -left-32 w-96 h-96 bg-zinc-700/20 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-zinc-800/30 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="relative z-10 text-[10px] text-red-300 uppercase tracking-[0.4em] font-bold">
-              Secure Terminal 2.0
+      <div className="w-full max-w-md relative z-10">
+        {/* Brand Header */}
+        <div className="text-center mb-8">
+          <div className="w-20 h-20 bg-gradient-to-tr from-zinc-800 to-zinc-900 border border-zinc-700/60 rounded-2xl mx-auto flex items-center justify-center shadow-xl mb-4 transition-transform duration-300 hover:scale-105">
+            <svg className="w-10 h-10 text-zinc-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+              />
+            </svg>
           </div>
+          <h1 className="text-3xl font-bold tracking-tight text-zinc-100 sm:text-4xl">CLF Attendance</h1>
+          <p className="text-zinc-400 mt-2 text-sm sm:text-base font-medium">Employee Attendance Management System</p>
         </div>
 
-        {/* --- RIGHT SIDE: LOGIN FORM --- */}
-        <div className="w-full md:w-[55%] bg-red-950 p-8 md:p-16 flex flex-col justify-center relative">
-          
-          {/* Mobile Only Logo Section */}
-          <div className="md:hidden flex flex-col items-center mb-8">
-            <div className="w-16 h-16 bg-red-900 p-0.5 rounded-2xl shadow-xl mb-3 border border-red-500/30">
-              <img src={LOGO_URL} alt="Logo" className="w-full h-full object-cover rounded-[0.9rem] grayscale brightness-125" />
-            </div>
-            <h2 className="text-red-500 text-xs font-black tracking-[0.2em] uppercase">Admin Core</h2>
+        {/* Glassmorphic Dark Zinc Login Form Card */}
+        <div className="bg-zinc-900/90 backdrop-blur-md border border-zinc-800 rounded-3xl shadow-2xl p-6 sm:p-8">
+          <div className="mb-6 text-center">
+            <h2 className="text-2xl font-bold text-zinc-100 tracking-wide">Sign In</h2>
+            <p className="text-zinc-400 text-xs mt-1">Please enter your details to continue</p>
           </div>
 
-          <button 
-            onClick={() => navigate('/')}
-            className="absolute top-6 right-6 md:top-8 md:right-8 text-red-800 hover:text-red-500 transition-all active:scale-75"
-          >
-            <X size={28} />
-          </button>
-
-          <div className="mb-12">
-            <h1 className="text-4xl md:text-5xl font-black text-red-50 mb-2 tracking-tight">Log in<span className="text-red-600">.</span></h1>
-            <p className="text-red-400/60 font-medium text-sm">Welcome back, Kundan Ram.</p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-10">
-            
-            {/* Email - Red Line Style */}
-            <div className="group relative">
-              <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-red-900/50 group-focus-within:bg-red-500 transition-colors duration-300"></div>
-              <input
-                type="email"
-                name="email"
-                placeholder="Terminal ID"
-                value={formData.email}
-                onChange={handleChange}
-                className="w-full pl-6 pr-4 py-3 bg-transparent text-red-50 border-b-2 border-red-900/50 focus:border-red-500 outline-none transition-all duration-300 font-semibold placeholder:text-red-800 placeholder:font-normal"
-                required
-              />
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+                User ID
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  value={userId}
+                  onChange={(e) => setUserId(e.target.value)}
+                  placeholder="e.g. kundan@82"
+                  className="w-full pl-10 pr-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-700 transition-all disabled:opacity-50 text-sm"
+                  required
+                  disabled={loading}
+                />
+              </div>
             </div>
 
-            {/* Password - Red Line Style */}
-            <div className="group relative">
-              <div className="absolute left-0 top-0 bottom-0 w-[4px] bg-red-900/50 group-focus-within:bg-red-500 transition-colors duration-300"></div>
-              <input
-                type={showPassword ? "text" : "password"}
-                name="password"
-                placeholder="Access Key"
-                value={formData.password}
-                onChange={handleChange}
-                className="w-full pl-6 pr-12 py-3 bg-transparent text-red-50 border-b-2 border-red-900/50 focus:border-red-500 outline-none transition-all duration-300 font-semibold placeholder:text-red-800 placeholder:font-normal"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-red-800 hover:text-red-500 p-2 transition-colors"
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
+            <div>
+              <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-500">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                </div>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  className="w-full pl-10 pr-12 py-3 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-700 transition-all disabled:opacity-50 text-sm"
+                  required
+                  disabled={loading}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-zinc-500 hover:text-zinc-300 transition-colors focus:outline-none"
+                >
+                  {showPassword ? (
+                    /* Eye Off Icon */
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858-5.908a10.025 10.025 0 014.122-.963c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m-3.177-3.177a3 3 0 00-4.243-4.243M9.878 9.878l4.242 4.242M3 3l18 18"
+                      />
+                    </svg>
+                  ) : (
+                    /* Eye Icon */
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
 
-            <div className="flex items-center justify-between px-1">
-               <label className="flex items-center gap-2 cursor-pointer group/check">
-                  <input type="checkbox" className="w-4 h-4 rounded border-red-900 bg-transparent text-red-600 focus:ring-red-500 cursor-pointer" />
-                  <span className="text-[10px] font-bold text-red-700 group-hover/check:text-red-500 transition-colors uppercase tracking-widest">Remember Terminal</span>
-               </label>
-               <button type="button" className="text-[10px] font-bold text-red-700 hover:text-red-500 transition-colors uppercase tracking-widest">Forgot Key?</button>
-            </div>
-
-            {/* Login Button - Dark Red with Red Glow */}
             <button
               type="submit"
               disabled={loading}
-              className="group/btn relative w-full py-5 bg-red-600 text-white rounded-2xl font-black text-sm uppercase tracking-[0.2em] overflow-hidden transition-all duration-500 hover:shadow-[0_0_30px_rgba(220,38,38,0.3)] active:scale-[0.97]"
+              className="w-full py-3.5 px-4 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-white font-semibold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
-              <div className="absolute inset-0 w-0 bg-red-700 transition-all duration-500 ease-out group-hover/btn:w-full"></div>
-              <span className="relative z-10 flex items-center justify-center gap-3">
-                {loading ? <Loader2 className="animate-spin" size={20} /> : (
-                  <>Access System <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" /></>
-                )}
-              </span>
+              {loading ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Signing in...</span>
+                </>
+              ) : (
+                'Sign In'
+              )}
             </button>
-
-            <p className="text-center text-[10px] text-red-900 font-bold uppercase tracking-[0.2em]">
-              Kundan Ram Infrastructure • 2026
-            </p>
           </form>
+
+          <p className="text-xs text-zinc-400 text-center mt-6 pt-4 border-t border-zinc-800">
+            Contact your <span className="text-zinc-200 font-semibold">CLF Admin</span> for account access
+          </p>
         </div>
+
+        {/* Footer */}
+        <p className="text-center text-zinc-600 text-xs mt-6">
+          © 2026 CLF Attendance System. All rights reserved.
+        </p>
       </div>
     </div>
   );

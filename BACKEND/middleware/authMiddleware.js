@@ -1,40 +1,51 @@
 const jwt = require('jsonwebtoken');
-const Admin = require('../models/Admin');
+const User = require('../models/User');
 
 const protect = async (req, res, next) => {
-    let token;
+  let token;
 
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-        try {
-            // Get token from header
-            token = req.headers.authorization.split(' ')[1];
+  // Check for token in Authorization header
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    try {
+      // Get token from header
+      token = req.headers.authorization.split(' ')[1];
 
-            // Verify token
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      // Verify token
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-            // Get admin from token
-            req.admin = await Admin.findById(decoded.id).select('-password');
+      // Get user from token
+      req.user = await User.findById(decoded.id).select('-passwordHash');
 
-            if (!req.admin) {
-                return res.status(401).json({ message: 'Not authorized' });
-            }
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message: 'User not found',
+        });
+      }
 
-            next(); // ✅ Important: next() call
-        } catch (error) {
-            console.error(error);
-            return res.status(401).json({ message: 'Not authorized' });
-        }
-    } else {
-        return res.status(401).json({ message: 'Not authorized, no token' });
+      if (req.user.status === 'INACTIVE') {
+        return res.status(401).json({
+          success: false,
+          message: 'User account is inactive',
+        });
+      }
+
+      next();
+    } catch (error) {
+      console.error('Auth Error:', error);
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized, invalid token',
+      });
     }
+  }
+
+  if (!token) {
+    return res.status(401).json({
+      success: false,
+      message: 'Not authorized, no token provided',
+    });
+  }
 };
 
-const adminOnly = (req, res, next) => {
-    if (req.admin && req.admin.isAdmin) {
-        next(); // ✅ Important: next() call
-    } else {
-        return res.status(403).json({ message: 'Access denied. Admin only.' });
-    }
-};
-
-module.exports = { protect, adminOnly };
+module.exports = { protect };
