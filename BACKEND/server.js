@@ -4,7 +4,6 @@
 // const mongoose = require('mongoose');
 // const fs = require('fs');
 // const path = require('path');
-
 const dotenv = require('dotenv');
 dotenv.config();   // ✅ .env file load karo — SABSE PEHLE
 
@@ -13,9 +12,6 @@ const cors = require('cors');
 const mongoose = require('mongoose');
 const fs = require('fs');
 const path = require('path');
-
-// Load environment variables FIRST
-dotenv.config();
 
 const connectDB = require('./config/db');
 const cloudinary = require('./config/cloudinary');
@@ -100,7 +96,7 @@ const startServer = async () => {
     process.exit(1);
   }
 
-    // ==============================
+  // ==============================
   // ☁️  CLOUDINARY CHECK
   // ==============================
   log.subSection('☁️  CLOUDINARY CONFIGURATION CHECK');
@@ -119,7 +115,6 @@ const startServer = async () => {
       );
       log.success('Cloudinary API Secret: ********');
 
-      // Live ping test to Cloudinary
       try {
         const result = await cloudinary.api.ping();
         log.success(`Cloudinary Live Check: ${result.status}`);
@@ -137,14 +132,6 @@ const startServer = async () => {
   } catch (error) {
     log.error(`Cloudinary Config Error: ${error.message}`);
   }
-
-
-
-
-
-
-
-
 
   // ==============================
   // 🗄️  MONGODB CONNECTION
@@ -165,8 +152,46 @@ const startServer = async () => {
   // ==============================
   log.subSection('🔌 MIDDLEWARE SETUP');
 
-  app.use(cors());
-  log.success('CORS middleware enabled');
+  // ✅ CORS — Sabhi allowed origins
+  const allowedOrigins = [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://localhost:5174',
+    'https://pro-p20n03dl2-kundan-rams-projects.vercel.app',
+    'https://momentsme.vercel.app',
+    'https://pro-muko.onrender.com',
+  ];
+
+  app.use(
+    cors({
+      origin: function (origin, callback) {
+        // Allow requests with no origin (Postman, mobile apps, curl)
+        if (!origin) return callback(null, true);
+
+        // Allow if in whitelist
+        if (allowedOrigins.indexOf(origin) !== -1) {
+          return callback(null, true);
+        }
+
+        // Allow all vercel.app subdomains
+        if (/\.vercel\.app$/.test(origin)) {
+          return callback(null, true);
+        }
+
+        // Allow all onrender.com subdomains
+        if (/\.onrender\.com$/.test(origin)) {
+          return callback(null, true);
+        }
+
+        console.log(`❌ CORS blocked origin: ${origin}`);
+        return callback(new Error('Not allowed by CORS'));
+      },
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization'],
+    })
+  );
+  log.success('CORS middleware enabled with whitelist');
 
   app.use(express.json());
   log.success('JSON body parser enabled');
@@ -221,18 +246,22 @@ const startServer = async () => {
   });
   log.success('Request logger middleware enabled');
 
-  // // ==============================
-  // // 📁 UPLOADS FOLDER
-  // // ==============================
-  // log.subSection('📁 UPLOADS FOLDER CHECK');
-
-  // const uploadsPath = path.join(__dirname, 'uploads');
-  // if (!fs.existsSync(uploadsPath)) {
-  //   fs.mkdirSync(uploadsPath, { recursive: true });
-  //   log.warning('uploads/ folder created');
-  // } else {
-  //   log.success('uploads/ folder exists');
-  // }
+  // ==============================
+  // 🏠 ROOT ROUTE (Render Health Check)
+  // ==============================
+  app.get('/', (req, res) => {
+    res.json({
+      status: 'OK',
+      message: 'CLF Attendance System API',
+      version: '1.0.0',
+      environment: process.env.NODE_ENV,
+      endpoints: {
+        health: '/api/health',
+        auth: '/api/auth/login',
+      },
+    });
+  });
+  log.success('Root route: GET /');
 
   // ==============================
   // 🛣️  LOADING ROUTES
@@ -323,6 +352,7 @@ const startServer = async () => {
     console.log(`${colors.reset}`);
 
     console.log(`${colors.bright}${colors.white}   📍 Available Endpoints:${colors.reset}`);
+    console.log(`${colors.white}      Root:           ${colors.cyan}GET  http://localhost:${PORT}/${colors.reset}`);
     console.log(`${colors.white}      Health Check:   ${colors.cyan}GET  http://localhost:${PORT}/api/health${colors.reset}`);
     console.log(`${colors.white}      Login:          ${colors.cyan}POST http://localhost:${PORT}/api/auth/login${colors.reset}`);
     console.log(`${colors.white}      Get Me:         ${colors.cyan}GET  http://localhost:${PORT}/api/auth/me${colors.reset}`);
