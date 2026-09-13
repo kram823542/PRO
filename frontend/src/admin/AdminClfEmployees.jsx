@@ -600,12 +600,12 @@
 //   };
 
 //   return (
-//     <div className="space-y-6 text-black">
+//     <div className="space-y-6 text-zinc-100">
 //       {/* Header Bar */}
-//       <div className="bg-white border border-black p-6 md:p-8 rounded-2xl shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+//       <div className="bg-zinc-900 border border-zinc-800 p-6 md:p-8 rounded-3xl shadow-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
 //         <div>
-//           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-black">Employees</h1>
-//           <p className="text-neutral-600 text-sm font-medium mt-1">
+//           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-white">Employees</h1>
+//           <p className="text-zinc-400 text-sm font-medium mt-1">
 //             Manage all team members and access credentials
 //           </p>
 //         </div>
@@ -614,17 +614,17 @@
 //             resetForm();
 //             setShowModal(true);
 //           }}
-//           className="bg-black hover:bg-neutral-800 text-white font-semibold px-5 py-2.5 rounded-xl shadow-sm transition-all active:scale-95"
+//           className="bg-zinc-100 hover:bg-white text-zinc-900 font-semibold px-5 py-2.5 rounded-xl shadow-md transition-all active:scale-95 text-sm"
 //         >
 //           + Add Employee
 //         </button>
 //       </div>
 
 //       {/* Filters Section */}
-//       <div className="bg-white border border-black p-5 rounded-2xl shadow-sm">
+//       <div className="bg-zinc-900 border border-zinc-800 p-5 rounded-2xl shadow-md">
 //         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 //           <div>
-//             <label className="block text-xs font-semibold text-black uppercase tracking-wider mb-2">
+//             <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
 //               Search
 //             </label>
 //             <input
@@ -632,38 +632,38 @@
 //               value={filters.search}
 //               onChange={(e) => setFilters({ ...filters, search: e.target.value })}
 //               placeholder="Name or User ID"
-//               className="w-full bg-white border border-neutral-300 focus:border-black rounded-xl px-4 py-2.5 text-sm text-black placeholder-neutral-400 focus:outline-none transition-colors"
+//               className="w-full bg-zinc-950 border border-zinc-800 focus:border-zinc-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none transition-colors"
 //             />
 //           </div>
 //           <div>
-//             <label className="block text-xs font-semibold text-black uppercase tracking-wider mb-2">
+//             <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
 //               Employee Type
 //             </label>
 //             <select
 //               value={filters.employeeType}
 //               onChange={(e) => setFilters({ ...filters, employeeType: e.target.value })}
-//               className="w-full bg-white border border-neutral-300 focus:border-black rounded-xl px-4 py-2.5 text-sm text-black focus:outline-none transition-colors"
+//               className="w-full bg-zinc-950 border border-zinc-800 focus:border-zinc-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 focus:outline-none transition-colors"
 //             >
 //               <option value="">All Types</option>
 //               {EMPLOYEE_TYPES.map((t) => (
-//                 <option key={t} value={t}>
+//                 <option key={t} value={t} className="bg-zinc-900 text-zinc-100">
 //                   {t}
 //                 </option>
 //               ))}
 //             </select>
 //           </div>
 //           <div>
-//             <label className="block text-xs font-semibold text-black uppercase tracking-wider mb-2">
+//             <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
 //               Status
 //             </label>
 //             <select
 //               value={filters.status}
 //               onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-//               className="w-full bg-white border border-neutral-300 focus:border-black rounded-xl px-4 py-2.5 text-sm text-black focus:outline-none transition-colors"
+//               className="w-full bg-zinc-950 border border-zinc-800 focus:border-zinc-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 focus:outline-none transition-colors"
 //             >
 //               <option value="">All</option>
-//               <option value="ACTIVE">Active</option>
-//               <option value="INACTIVE">Inactive</option>
+//               <option value="ACTIVE" className="bg-zinc-900 text-zinc-100">Active</option>
+//               <option value="INACTIVE" className="bg-zinc-900 text-zinc-100">Inactive</option>
 //             </select>
 //           </div>
 //         </div>
@@ -673,15 +673,15 @@
 //       {loading ? (
 //         <Loader />
 //       ) : employees.length === 0 ? (
-//         <div className="bg-white border border-black text-center py-12 rounded-2xl shadow-sm">
-//           <p className="text-neutral-500 font-medium">No employees found</p>
+//         <div className="bg-zinc-900 border border-zinc-800 text-center py-12 rounded-2xl shadow-md">
+//           <p className="text-zinc-400 font-medium text-sm">No employees found</p>
 //         </div>
 //       ) : (
-//         <div className="bg-white border border-black rounded-2xl shadow-sm overflow-hidden">
+//         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden">
 //           <div className="overflow-x-auto">
 //             <table className="w-full min-w-[600px] border-collapse">
 //               <thead>
-//                 <tr className="bg-neutral-100 text-black border-b border-black text-left uppercase text-xs tracking-wider">
+//                 <tr className="bg-zinc-950/60 text-zinc-400 border-b border-zinc-800 text-left uppercase text-xs tracking-wider">
 //                   <th className="p-4 font-bold">Name</th>
 //                   <th className="p-4 font-bold">User ID</th>
 //                   <th className="p-4 font-bold">Type</th>
@@ -690,19 +690,19 @@
 //                   <th className="p-4 font-bold text-right">Actions</th>
 //                 </tr>
 //               </thead>
-//               <tbody className="divide-y divide-neutral-200">
+//               <tbody className="divide-y divide-zinc-800/60">
 //                 {employees.map((emp) => (
-//                   <tr key={emp._id} className="hover:bg-neutral-50 transition-colors">
-//                     <td className="p-4 text-sm font-semibold text-black">{emp.name}</td>
-//                     <td className="p-4 text-sm text-neutral-800 font-mono">{emp.userId}</td>
-//                     <td className="p-4 text-sm text-neutral-700">{emp.employeeType}</td>
-//                     <td className="p-4 text-sm text-neutral-700">{emp.mobile || '-'}</td>
+//                   <tr key={emp._id} className="hover:bg-zinc-800/40 transition-colors">
+//                     <td className="p-4 text-sm font-semibold text-zinc-100">{emp.name}</td>
+//                     <td className="p-4 text-sm text-zinc-400 font-mono">{emp.userId}</td>
+//                     <td className="p-4 text-sm text-zinc-300">{emp.employeeType}</td>
+//                     <td className="p-4 text-sm text-zinc-300">{emp.mobile || '-'}</td>
 //                     <td className="p-4">
 //                       <span
 //                         className={`text-xs px-2.5 py-1 rounded-full font-bold uppercase tracking-wider border ${
 //                           emp.status === 'ACTIVE'
-//                             ? 'bg-black text-white border-black'
-//                             : 'bg-neutral-200 text-neutral-800 border-neutral-400'
+//                             ? 'bg-emerald-950/40 text-emerald-400 border-emerald-800/60'
+//                             : 'bg-zinc-800 text-zinc-400 border-zinc-700'
 //                         }`}
 //                       >
 //                         {emp.status}
@@ -712,7 +712,7 @@
 //                       <div className="flex justify-end gap-2 flex-wrap">
 //                         <button
 //                           onClick={() => openEdit(emp)}
-//                           className="text-xs bg-white hover:bg-neutral-100 text-black px-3 py-1.5 rounded-lg font-medium transition-colors border border-black"
+//                           className="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200 px-3 py-1.5 rounded-lg font-medium transition-colors border border-zinc-700"
 //                         >
 //                           Edit
 //                         </button>
@@ -721,21 +721,21 @@
 //                             setResetUserId(emp._id);
 //                             setShowResetModal(true);
 //                           }}
-//                           className="text-xs bg-neutral-100 hover:bg-neutral-200 text-black px-3 py-1.5 rounded-lg font-medium transition-colors border border-black"
+//                           className="text-xs bg-zinc-800 hover:bg-zinc-700 text-zinc-200 px-3 py-1.5 rounded-lg font-medium transition-colors border border-zinc-700"
 //                         >
 //                           Reset Pass
 //                         </button>
 //                         {emp.status === 'ACTIVE' ? (
 //                           <button
 //                             onClick={() => handleDelete(emp._id)}
-//                             className="text-xs bg-black hover:bg-neutral-800 text-white px-3 py-1.5 rounded-lg font-medium transition-colors border border-black"
+//                             className="text-xs bg-red-950/40 hover:bg-red-900/50 text-red-400 px-3 py-1.5 rounded-lg font-medium transition-colors border border-red-800/60"
 //                           >
 //                             Deactivate
 //                           </button>
 //                         ) : (
 //                           <button
 //                             onClick={() => handleActivate(emp._id)}
-//                             className="text-xs bg-white hover:bg-neutral-100 text-black px-3 py-1.5 rounded-lg font-medium transition-colors border border-black"
+//                             className="text-xs bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-400 px-3 py-1.5 rounded-lg font-medium transition-colors border border-emerald-800/60"
 //                           >
 //                             Activate
 //                           </button>
@@ -760,29 +760,29 @@
 //         title={editingId ? 'Edit Employee' : 'Add New Employee'}
 //         size="lg"
 //       >
-//         <form onSubmit={handleSubmit} className="space-y-4 pt-2 text-black">
+//         <form onSubmit={handleSubmit} className="space-y-4 pt-2 text-zinc-100">
 //           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 //             <div>
-//               <label className="block text-xs font-bold text-black uppercase tracking-wider mb-2">
+//               <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
 //                 Full Name *
 //               </label>
 //               <input
 //                 type="text"
 //                 value={formData.name}
 //                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-//                 className="w-full bg-white border border-neutral-300 focus:border-black rounded-xl px-4 py-2.5 text-sm text-black placeholder-neutral-400 focus:outline-none transition-colors"
+//                 className="w-full bg-zinc-950 border border-zinc-800 focus:border-zinc-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none transition-colors"
 //                 required
 //               />
 //             </div>
 //             <div>
-//               <label className="block text-xs font-bold text-black uppercase tracking-wider mb-2">
+//               <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
 //                 User ID *
 //               </label>
 //               <input
 //                 type="text"
 //                 value={formData.userId}
 //                 onChange={(e) => setFormData({ ...formData, userId: e.target.value })}
-//                 className="w-full bg-white border border-neutral-300 focus:border-black rounded-xl px-4 py-2.5 text-sm text-black placeholder-neutral-400 focus:outline-none transition-colors disabled:bg-neutral-100 disabled:opacity-70"
+//                 className="w-full bg-zinc-950 border border-zinc-800 focus:border-zinc-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none transition-colors disabled:bg-zinc-900 disabled:opacity-50"
 //                 disabled={!!editingId}
 //                 required
 //                 placeholder="e.g. ramesh@101"
@@ -790,7 +790,7 @@
 //             </div>
 //             {!editingId && (
 //               <div>
-//                 <label className="block text-xs font-bold text-black uppercase tracking-wider mb-2">
+//                 <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
 //                   Password *
 //                 </label>
 //                 <input
@@ -799,14 +799,14 @@
 //                   onChange={(e) =>
 //                     setFormData({ ...formData, password: e.target.value })
 //                   }
-//                   className="w-full bg-white border border-neutral-300 focus:border-black rounded-xl px-4 py-2.5 text-sm text-black placeholder-neutral-400 focus:outline-none transition-colors"
+//                   className="w-full bg-zinc-950 border border-zinc-800 focus:border-zinc-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none transition-colors"
 //                   required
 //                   minLength={6}
 //                 />
 //               </div>
 //             )}
 //             <div>
-//               <label className="block text-xs font-bold text-black uppercase tracking-wider mb-2">
+//               <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
 //                 Employee Type *
 //               </label>
 //               <select
@@ -814,18 +814,18 @@
 //                 onChange={(e) =>
 //                   setFormData({ ...formData, employeeType: e.target.value })
 //                 }
-//                 className="w-full bg-white border border-neutral-300 focus:border-black rounded-xl px-4 py-2.5 text-sm text-black focus:outline-none transition-colors"
+//                 className="w-full bg-zinc-950 border border-zinc-800 focus:border-zinc-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 focus:outline-none transition-colors"
 //                 required
 //               >
 //                 {EMPLOYEE_TYPES.map((t) => (
-//                   <option key={t} value={t}>
+//                   <option key={t} value={t} className="bg-zinc-900 text-zinc-100">
 //                     {t}
 //                   </option>
 //                 ))}
 //               </select>
 //             </div>
 //             <div>
-//               <label className="block text-xs font-bold text-black uppercase tracking-wider mb-2">
+//               <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
 //                 Designation
 //               </label>
 //               <input
@@ -834,11 +834,11 @@
 //                 onChange={(e) =>
 //                   setFormData({ ...formData, designation: e.target.value })
 //                 }
-//                 className="w-full bg-white border border-neutral-300 focus:border-black rounded-xl px-4 py-2.5 text-sm text-black placeholder-neutral-400 focus:outline-none transition-colors"
+//                 className="w-full bg-zinc-950 border border-zinc-800 focus:border-zinc-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none transition-colors"
 //               />
 //             </div>
 //             <div>
-//               <label className="block text-xs font-bold text-black uppercase tracking-wider mb-2">
+//               <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
 //                 Mobile
 //               </label>
 //               <input
@@ -847,11 +847,11 @@
 //                 onChange={(e) =>
 //                   setFormData({ ...formData, mobile: e.target.value })
 //                 }
-//                 className="w-full bg-white border border-neutral-300 focus:border-black rounded-xl px-4 py-2.5 text-sm text-black placeholder-neutral-400 focus:outline-none transition-colors"
+//                 className="w-full bg-zinc-950 border border-zinc-800 focus:border-zinc-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none transition-colors"
 //               />
 //             </div>
 //             <div>
-//               <label className="block text-xs font-bold text-black uppercase tracking-wider mb-2">
+//               <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
 //                 Joining Date
 //               </label>
 //               <input
@@ -860,15 +860,15 @@
 //                 onChange={(e) =>
 //                   setFormData({ ...formData, joiningDate: e.target.value })
 //                 }
-//                 className="w-full bg-white border border-neutral-300 focus:border-black rounded-xl px-4 py-2.5 text-sm text-black focus:outline-none transition-colors"
+//                 className="w-full bg-zinc-950 border border-zinc-800 focus:border-zinc-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 focus:outline-none transition-colors"
 //               />
 //             </div>
 //           </div>
 
-//           <div className="flex gap-3 pt-4 border-t border-neutral-200 mt-6">
+//           <div className="flex gap-3 pt-4 border-t border-zinc-800 mt-6">
 //             <button
 //               type="submit"
-//               className="bg-black hover:bg-neutral-800 text-white font-semibold py-2.5 flex-1 rounded-xl shadow-sm transition-all active:scale-95"
+//               className="bg-zinc-100 hover:bg-white text-zinc-900 font-semibold py-2.5 flex-1 rounded-xl shadow-md transition-all active:scale-95 text-sm"
 //             >
 //               {editingId ? 'Update' : 'Create'} Employee
 //             </button>
@@ -878,7 +878,7 @@
 //                 setShowModal(false);
 //                 resetForm();
 //               }}
-//               className="px-6 py-2.5 bg-white hover:bg-neutral-100 text-black font-semibold rounded-xl border border-neutral-300 transition-colors"
+//               className="px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold rounded-xl border border-zinc-700 transition-colors text-sm"
 //             >
 //               Cancel
 //             </button>
@@ -896,30 +896,30 @@
 //         }}
 //         title="Reset Password"
 //       >
-//         <div className="space-y-4 pt-2 text-black">
+//         <div className="space-y-4 pt-2 text-zinc-100">
 //           <div>
-//             <label className="block text-xs font-bold text-black uppercase tracking-wider mb-2">
+//             <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
 //               New Password *
 //             </label>
 //             <input
 //               type="password"
 //               value={newPassword}
 //               onChange={(e) => setNewPassword(e.target.value)}
-//               className="w-full bg-white border border-neutral-300 focus:border-black rounded-xl px-4 py-2.5 text-sm text-black placeholder-neutral-400 focus:outline-none transition-colors"
+//               className="w-full bg-zinc-950 border border-zinc-800 focus:border-zinc-500 rounded-xl px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none transition-colors"
 //               minLength={6}
 //               placeholder="Minimum 6 characters"
 //             />
 //           </div>
-//           <div className="flex gap-3 pt-4 border-t border-neutral-200">
+//           <div className="flex gap-3 pt-4 border-t border-zinc-800">
 //             <button
 //               onClick={handleResetPassword}
-//               className="bg-black hover:bg-neutral-800 text-white font-semibold py-2.5 flex-1 rounded-xl shadow-sm transition-all active:scale-95"
+//               className="bg-zinc-100 hover:bg-white text-zinc-900 font-semibold py-2.5 flex-1 rounded-xl shadow-md transition-all active:scale-95 text-sm"
 //             >
 //               Reset Password
 //             </button>
 //             <button
 //               onClick={() => setShowResetModal(false)}
-//               className="px-6 py-2.5 bg-white hover:bg-neutral-100 text-black font-semibold rounded-xl border border-neutral-300 transition-colors"
+//               className="px-6 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-semibold rounded-xl border border-zinc-700 transition-colors text-sm"
 //             >
 //               Cancel
 //             </button>
@@ -931,6 +931,9 @@
 // };
 
 // export default AdminClfEmployees;
+
+
+
 
 import { useState, useEffect } from 'react';
 import {
@@ -964,6 +967,9 @@ const AdminClfEmployees = () => {
   const [editingId, setEditingId] = useState(null);
   const [resetUserId, setResetUserId] = useState(null);
   const [filters, setFilters] = useState({ employeeType: '', status: '', search: '' });
+
+  // ✅ Photo Zoom state
+  const [zoomPhoto, setZoomPhoto] = useState(null);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -1164,9 +1170,10 @@ const AdminClfEmployees = () => {
       ) : (
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[600px] border-collapse">
+            <table className="w-full min-w-[700px] border-collapse">
               <thead>
                 <tr className="bg-zinc-950/60 text-zinc-400 border-b border-zinc-800 text-left uppercase text-xs tracking-wider">
+                  <th className="p-4 font-bold">Photo</th>
                   <th className="p-4 font-bold">Name</th>
                   <th className="p-4 font-bold">User ID</th>
                   <th className="p-4 font-bold">Type</th>
@@ -1178,6 +1185,26 @@ const AdminClfEmployees = () => {
               <tbody className="divide-y divide-zinc-800/60">
                 {employees.map((emp) => (
                   <tr key={emp._id} className="hover:bg-zinc-800/40 transition-colors">
+                    {/* ✅ Profile Picture Column */}
+                    <td className="p-4">
+                      <div
+                        className={`w-12 h-12 rounded-full bg-zinc-800 border-2 border-zinc-700 flex items-center justify-center text-white font-bold text-lg overflow-hidden ${
+                          emp.profilePicture ? 'cursor-pointer hover:border-zinc-500 transition-colors' : ''
+                        }`}
+                        onClick={() => emp.profilePicture && setZoomPhoto({ url: emp.profilePicture, name: emp.name })}
+                        title={emp.profilePicture ? 'Click to view full photo' : 'No photo'}
+                      >
+                        {emp.profilePicture ? (
+                          <img
+                            src={emp.profilePicture}
+                            alt={emp.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          emp.name?.charAt(0).toUpperCase()
+                        )}
+                      </div>
+                    </td>
                     <td className="p-4 text-sm font-semibold text-zinc-100">{emp.name}</td>
                     <td className="p-4 text-sm text-zinc-400 font-mono">{emp.userId}</td>
                     <td className="p-4 text-sm text-zinc-300">{emp.employeeType}</td>
@@ -1411,6 +1438,43 @@ const AdminClfEmployees = () => {
           </div>
         </div>
       </Modal>
+
+      {/* ✅ Photo Zoom Modal */}
+      {zoomPhoto && (
+        <div
+          className="fixed inset-0 bg-black/90 backdrop-blur-md z-[60] flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setZoomPhoto(null)}
+        >
+          <div
+            className="relative max-w-2xl w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Close Button */}
+            <button
+              onClick={() => setZoomPhoto(null)}
+              className="absolute -top-12 right-0 w-10 h-10 rounded-full bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 flex items-center justify-center text-white transition-colors"
+              title="Close"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Photo */}
+            <div className="bg-zinc-900 rounded-3xl overflow-hidden border-2 border-zinc-800 shadow-2xl">
+              <img
+                src={zoomPhoto.url}
+                alt={zoomPhoto.name}
+                className="w-full h-auto max-h-[80vh] object-contain bg-zinc-950"
+              />
+              <div className="p-4 text-center bg-zinc-900 border-t border-zinc-800">
+                <p className="text-white font-bold text-lg">{zoomPhoto.name}</p>
+                <p className="text-zinc-500 text-xs mt-1">Tap anywhere to close</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
