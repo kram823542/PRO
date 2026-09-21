@@ -1,8 +1,429 @@
+// const Employee = require('../models/Employee');
+// const User = require('../models/User');
+// const CLF = require('../models/CLF');
+// const bcrypt = require('bcryptjs');
+// const AuditLog = require('../models/AuditLog');
+
+// // @desc    Create employee
+// // @route   POST /api/admin/employees
+// // @access  Private (Super Admin or CLF Admin)
+// const createEmployee = async (req, res) => {
+//   try {
+//     const {
+//       name,
+//       userId,
+//       password,
+//       employeeType,
+//       designation,
+//       mobile,
+//       clfId,
+//       joiningDate,
+//     } = req.body;
+
+//     // Check if CLF exists
+//     const clf = await CLF.findById(clfId);
+//     if (!clf) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'CLF not found',
+//       });
+//     }
+
+//     // Check if CLF is active
+//     if (clf.status !== 'ACTIVE') {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'CLF is inactive. Cannot add employees.',
+//       });
+//     }
+
+//     // Check if employee ID exists
+//     const employeeExists = await Employee.findOne({ userId });
+//     if (employeeExists) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Employee ID already exists',
+//       });
+//     }
+
+//     // Check if employee ID exists in User model
+//     const userExists = await User.findOne({ userId });
+//     if (userExists) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Employee ID already exists in system',
+//       });
+//     }
+
+//     // Hash password
+//     const salt = await bcrypt.genSalt(10);
+//     const passwordHash = await bcrypt.hash(password, salt);
+
+//     // Create employee
+//     const employee = await Employee.create({
+//       name,
+//       userId,
+//       passwordHash,
+//       employeeType,
+//       designation,
+//       mobile,
+//       clfId,
+//       joiningDate: joiningDate || new Date(),
+//     });
+
+//     // Create corresponding User record
+//     await User.create({
+//       name,
+//       userId,
+//       passwordHash,
+//       role: 'EMPLOYEE',
+//       clfId,
+//       status: 'ACTIVE',
+//     });
+
+//     // Log the action
+//     await AuditLog.create({
+//       userId: req.user._id,
+//       action: 'EMPLOYEE_CREATE',
+//       targetId: employee._id,
+//       targetModel: 'Employee',
+//       details: { name, userId, employeeType, clfId },
+//     });
+
+//     res.status(201).json({
+//       success: true,
+//       message: 'Employee created successfully',
+//       employee: {
+//         id: employee._id,
+//         name: employee.name,
+//         userId: employee.userId,
+//         employeeType: employee.employeeType,
+//         designation: employee.designation,
+//         mobile: employee.mobile,
+//         clfId: employee.clfId,
+//         joiningDate: employee.joiningDate,
+//         status: employee.status,
+//       },
+//     });
+//   } catch (error) {
+//     console.error('Create Employee Error:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: 'Server error',
+//     });
+//   }
+// };
+
+// // @desc    Get all employees (with filters)
+// // @route   GET /api/admin/employees
+// // @access  Private
+// const getEmployees = async (req, res) => {
+//   try {
+//     const { clfId, employeeType, status, search } = req.query;
+
+//     // Build filter
+//     const filter = {};
+    
+//     if (clfId) filter.clfId = clfId;
+//     if (employeeType) filter.employeeType = employeeType;
+//     if (status) filter.status = status;
+//     if (search) {
+//       filter.$or = [
+//         { name: { $regex: search, $options: 'i' } },
+//         { userId: { $regex: search, $options: 'i' } },
+//       ];
+//     }
+
+//     // CLF Admin can only see their own CLF employees
+//     if (req.user.role === 'CLF_ADMIN') {
+//       filter.clfId = req.user.clfId;
+//     }
+
+//     const employees = await Employee.find(filter)
+//       .populate('clfId', 'name code')
+//       .sort({ name: 1 });
+
+//     res.status(200).json({
+//       success: true,
+//       count: employees.length,
+//       employees,
+//     });
+//   } catch (error) {
+//     console.error('Get Employees Error:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: 'Server error',
+//     });
+//   }
+// };
+
+// // @desc    Get single employee
+// // @route   GET /api/admin/employees/:id
+// // @access  Private
+// const getEmployee = async (req, res) => {
+//   try {
+//     const employeeId = req.params.id;
+
+//     const employee = await Employee.findById(employeeId).populate('clfId', 'name code');
+//     if (!employee) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'Employee not found',
+//       });
+//     }
+
+//     // Check access
+//     if (req.user.role === 'CLF_ADMIN' && 
+//         employee.clfId._id.toString() !== req.user.clfId.toString()) {
+//       return res.status(403).json({
+//         success: false,
+//         message: 'You do not have access to this employee',
+//       });
+//     }
+
+//     if (req.user.role === 'EMPLOYEE') {
+//       const userEmployee = await Employee.findOne({ userId: req.user.userId });
+//       if (!userEmployee || userEmployee._id.toString() !== employeeId) {
+//         return res.status(403).json({
+//           success: false,
+//           message: 'You can only access your own data',
+//         });
+//       }
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       employee,
+//     });
+//   } catch (error) {
+//     console.error('Get Employee Error:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: 'Server error',
+//     });
+//   }
+// };
+
+// // @desc    Update employee
+// // @route   PUT /api/admin/employees/:id
+// // @access  Private
+// const updateEmployee = async (req, res) => {
+//   try {
+//     const employeeId = req.params.id;
+//     const { name, employeeType, designation, mobile, status, joiningDate } = req.body;
+
+//     const employee = await Employee.findById(employeeId);
+//     if (!employee) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'Employee not found',
+//       });
+//     }
+
+//     // Check access
+//     if (req.user.role === 'CLF_ADMIN' && 
+//         employee.clfId.toString() !== req.user.clfId.toString()) {
+//       return res.status(403).json({
+//         success: false,
+//         message: 'You do not have access to this employee',
+//       });
+//     }
+
+//     // Update fields
+//     if (name) employee.name = name;
+//     if (employeeType) employee.employeeType = employeeType;
+//     if (designation) employee.designation = designation;
+//     if (mobile) employee.mobile = mobile;
+//     if (status) employee.status = status;
+//     if (joiningDate) employee.joiningDate = joiningDate;
+
+//     await employee.save();
+
+//     // Update corresponding User record
+//     await User.findOneAndUpdate(
+//       { userId: employee.userId },
+//       { name, status }
+//     );
+
+//     // Log the action
+//     await AuditLog.create({
+//       userId: req.user._id,
+//       action: 'EMPLOYEE_UPDATE',
+//       targetId: employee._id,
+//       targetModel: 'Employee',
+//       details: { updates: req.body },
+//     });
+
+//     res.status(200).json({
+//       success: true,
+//       message: 'Employee updated successfully',
+//       employee,
+//     });
+//   } catch (error) {
+//     console.error('Update Employee Error:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: 'Server error',
+//     });
+//   }
+// };
+
+// // @desc    Delete/Deactivate employee
+// // @route   DELETE /api/admin/employees/:id
+// // @access  Private
+// const deleteEmployee = async (req, res) => {
+//   try {
+//     const employeeId = req.params.id;
+
+//     const employee = await Employee.findById(employeeId);
+//     if (!employee) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'Employee not found',
+//       });
+//     }
+
+//     // Check access
+//     if (req.user.role === 'CLF_ADMIN' && 
+//         employee.clfId.toString() !== req.user.clfId.toString()) {
+//       return res.status(403).json({
+//         success: false,
+//         message: 'You do not have access to this employee',
+//       });
+//     }
+
+//     // Deactivate employee
+//     employee.status = 'INACTIVE';
+//     await employee.save();
+
+//     // Deactivate corresponding User
+//     await User.findOneAndUpdate(
+//       { userId: employee.userId },
+//       { status: 'INACTIVE' }
+//     );
+
+//     // Log the action
+//     await AuditLog.create({
+//       userId: req.user._id,
+//       action: 'EMPLOYEE_DELETE',
+//       targetId: employee._id,
+//       targetModel: 'Employee',
+//     });
+
+//     res.status(200).json({
+//       success: true,
+//       message: 'Employee deactivated successfully',
+//     });
+//   } catch (error) {
+//     console.error('Delete Employee Error:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: 'Server error',
+//     });
+//   }
+// };
+
+// // @desc    Reset employee password
+// // @route   POST /api/admin/employees/:id/reset-password
+// // @access  Private
+// const resetEmployeePassword = async (req, res) => {
+//   try {
+//     const employeeId = req.params.id;
+//     const { newPassword } = req.body;
+
+//     if (!newPassword || newPassword.length < 6) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Password must be at least 6 characters',
+//       });
+//     }
+
+//     const employee = await Employee.findById(employeeId);
+//     if (!employee) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'Employee not found',
+//       });
+//     }
+
+//     // Check access
+//     if (req.user.role === 'CLF_ADMIN' && 
+//         employee.clfId.toString() !== req.user.clfId.toString()) {
+//       return res.status(403).json({
+//         success: false,
+//         message: 'You do not have access to this employee',
+//       });
+//     }
+
+//     // Hash new password
+//     const salt = await bcrypt.genSalt(10);
+//     const passwordHash = await bcrypt.hash(newPassword, salt);
+
+//     // Update employee password
+//     employee.passwordHash = passwordHash;
+//     await employee.save();
+
+//     // Update corresponding User password
+//     await User.findOneAndUpdate(
+//       { userId: employee.userId },
+//       { passwordHash }
+//     );
+
+//     // Log the action
+//     await AuditLog.create({
+//       userId: req.user._id,
+//       action: 'PASSWORD_RESET',
+//       targetId: employee._id,
+//       targetModel: 'Employee',
+//     });
+
+//     res.status(200).json({
+//       success: true,
+//       message: 'Password reset successfully',
+//     });
+//   } catch (error) {
+//     console.error('Reset Password Error:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: 'Server error',
+//     });
+//   }
+// };
+
+// module.exports = {
+//   createEmployee,
+//   getEmployees,
+//   getEmployee,
+//   updateEmployee,
+//   deleteEmployee,
+//   resetEmployeePassword,
+// };
+
+
 const Employee = require('../models/Employee');
 const User = require('../models/User');
 const CLF = require('../models/CLF');
 const bcrypt = require('bcryptjs');
 const AuditLog = require('../models/AuditLog');
+const DESIGNATIONS = require('../utils/designations');
+
+// @desc    Get all designations
+// @route   GET /api/admin/employees/designations
+// @access  Private
+const getDesignations = async (req, res) => {
+  try {
+    res.status(200).json({
+      success: true,
+      designations: DESIGNATIONS,
+    });
+  } catch (error) {
+    console.error('Get Designations Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+    });
+  }
+};
 
 // @desc    Create employee
 // @route   POST /api/admin/employees
@@ -13,14 +434,16 @@ const createEmployee = async (req, res) => {
       name,
       userId,
       password,
-      employeeType,
       designation,
       mobile,
+      bankName,
+      bankAccountNumber,
+      branch,
+      ifscCode,
       clfId,
       joiningDate,
     } = req.body;
 
-    // Check if CLF exists
     const clf = await CLF.findById(clfId);
     if (!clf) {
       return res.status(404).json({
@@ -29,7 +452,6 @@ const createEmployee = async (req, res) => {
       });
     }
 
-    // Check if CLF is active
     if (clf.status !== 'ACTIVE') {
       return res.status(400).json({
         success: false,
@@ -37,7 +459,6 @@ const createEmployee = async (req, res) => {
       });
     }
 
-    // Check if employee ID exists
     const employeeExists = await Employee.findOne({ userId });
     if (employeeExists) {
       return res.status(400).json({
@@ -46,7 +467,6 @@ const createEmployee = async (req, res) => {
       });
     }
 
-    // Check if employee ID exists in User model
     const userExists = await User.findOne({ userId });
     if (userExists) {
       return res.status(400).json({
@@ -55,23 +475,23 @@ const createEmployee = async (req, res) => {
       });
     }
 
-    // Hash password
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    // Create employee
     const employee = await Employee.create({
       name,
       userId,
       passwordHash,
-      employeeType,
       designation,
       mobile,
+      bankName,
+      bankAccountNumber,
+      branch,
+      ifscCode: ifscCode.toUpperCase(),
       clfId,
       joiningDate: joiningDate || new Date(),
     });
 
-    // Create corresponding User record
     await User.create({
       name,
       userId,
@@ -81,13 +501,12 @@ const createEmployee = async (req, res) => {
       status: 'ACTIVE',
     });
 
-    // Log the action
     await AuditLog.create({
       userId: req.user._id,
       action: 'EMPLOYEE_CREATE',
       targetId: employee._id,
       targetModel: 'Employee',
-      details: { name, userId, employeeType, clfId },
+      details: { name, userId, designation, clfId },
     });
 
     res.status(201).json({
@@ -97,9 +516,12 @@ const createEmployee = async (req, res) => {
         id: employee._id,
         name: employee.name,
         userId: employee.userId,
-        employeeType: employee.employeeType,
         designation: employee.designation,
         mobile: employee.mobile,
+        bankName: employee.bankName,
+        bankAccountNumber: employee.bankAccountNumber,
+        branch: employee.branch,
+        ifscCode: employee.ifscCode,
         clfId: employee.clfId,
         joiningDate: employee.joiningDate,
         status: employee.status,
@@ -109,7 +531,7 @@ const createEmployee = async (req, res) => {
     console.error('Create Employee Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error',
+      message: error.message || 'Server error',
     });
   }
 };
@@ -119,13 +541,12 @@ const createEmployee = async (req, res) => {
 // @access  Private
 const getEmployees = async (req, res) => {
   try {
-    const { clfId, employeeType, status, search } = req.query;
+    const { clfId, designation, status, search } = req.query;
 
-    // Build filter
     const filter = {};
-    
+
     if (clfId) filter.clfId = clfId;
-    if (employeeType) filter.employeeType = employeeType;
+    if (designation) filter.designation = designation;
     if (status) filter.status = status;
     if (search) {
       filter.$or = [
@@ -134,7 +555,6 @@ const getEmployees = async (req, res) => {
       ];
     }
 
-    // CLF Admin can only see their own CLF employees
     if (req.user.role === 'CLF_ADMIN') {
       filter.clfId = req.user.clfId;
     }
@@ -172,8 +592,7 @@ const getEmployee = async (req, res) => {
       });
     }
 
-    // Check access
-    if (req.user.role === 'CLF_ADMIN' && 
+    if (req.user.role === 'CLF_ADMIN' &&
         employee.clfId._id.toString() !== req.user.clfId.toString()) {
       return res.status(403).json({
         success: false,
@@ -210,7 +629,17 @@ const getEmployee = async (req, res) => {
 const updateEmployee = async (req, res) => {
   try {
     const employeeId = req.params.id;
-    const { name, employeeType, designation, mobile, status, joiningDate } = req.body;
+    const {
+      name,
+      designation,
+      mobile,
+      bankName,
+      bankAccountNumber,
+      branch,
+      ifscCode,
+      status,
+      joiningDate,
+    } = req.body;
 
     const employee = await Employee.findById(employeeId);
     if (!employee) {
@@ -220,8 +649,7 @@ const updateEmployee = async (req, res) => {
       });
     }
 
-    // Check access
-    if (req.user.role === 'CLF_ADMIN' && 
+    if (req.user.role === 'CLF_ADMIN' &&
         employee.clfId.toString() !== req.user.clfId.toString()) {
       return res.status(403).json({
         success: false,
@@ -229,23 +657,23 @@ const updateEmployee = async (req, res) => {
       });
     }
 
-    // Update fields
     if (name) employee.name = name;
-    if (employeeType) employee.employeeType = employeeType;
     if (designation) employee.designation = designation;
     if (mobile) employee.mobile = mobile;
+    if (bankName) employee.bankName = bankName;
+    if (bankAccountNumber) employee.bankAccountNumber = bankAccountNumber;
+    if (branch) employee.branch = branch;
+    if (ifscCode) employee.ifscCode = ifscCode.toUpperCase();
     if (status) employee.status = status;
     if (joiningDate) employee.joiningDate = joiningDate;
 
     await employee.save();
 
-    // Update corresponding User record
     await User.findOneAndUpdate(
       { userId: employee.userId },
       { name, status }
     );
 
-    // Log the action
     await AuditLog.create({
       userId: req.user._id,
       action: 'EMPLOYEE_UPDATE',
@@ -263,7 +691,7 @@ const updateEmployee = async (req, res) => {
     console.error('Update Employee Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error',
+      message: error.message || 'Server error',
     });
   }
 };
@@ -283,8 +711,7 @@ const deleteEmployee = async (req, res) => {
       });
     }
 
-    // Check access
-    if (req.user.role === 'CLF_ADMIN' && 
+    if (req.user.role === 'CLF_ADMIN' &&
         employee.clfId.toString() !== req.user.clfId.toString()) {
       return res.status(403).json({
         success: false,
@@ -292,17 +719,14 @@ const deleteEmployee = async (req, res) => {
       });
     }
 
-    // Deactivate employee
     employee.status = 'INACTIVE';
     await employee.save();
 
-    // Deactivate corresponding User
     await User.findOneAndUpdate(
       { userId: employee.userId },
       { status: 'INACTIVE' }
     );
 
-    // Log the action
     await AuditLog.create({
       userId: req.user._id,
       action: 'EMPLOYEE_DELETE',
@@ -346,8 +770,7 @@ const resetEmployeePassword = async (req, res) => {
       });
     }
 
-    // Check access
-    if (req.user.role === 'CLF_ADMIN' && 
+    if (req.user.role === 'CLF_ADMIN' &&
         employee.clfId.toString() !== req.user.clfId.toString()) {
       return res.status(403).json({
         success: false,
@@ -355,21 +778,17 @@ const resetEmployeePassword = async (req, res) => {
       });
     }
 
-    // Hash new password
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(newPassword, salt);
 
-    // Update employee password
     employee.passwordHash = passwordHash;
     await employee.save();
 
-    // Update corresponding User password
     await User.findOneAndUpdate(
       { userId: employee.userId },
       { passwordHash }
     );
 
-    // Log the action
     await AuditLog.create({
       userId: req.user._id,
       action: 'PASSWORD_RESET',
@@ -391,6 +810,7 @@ const resetEmployeePassword = async (req, res) => {
 };
 
 module.exports = {
+  getDesignations,
   createEmployee,
   getEmployees,
   getEmployee,

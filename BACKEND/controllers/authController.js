@@ -1,8 +1,10 @@
+
 // const User = require('../models/User');
 // const Employee = require('../models/Employee');
 // const bcrypt = require('bcryptjs');
 // const generateToken = require('../utils/generateToken');
 // const { generateUserId } = require('../utils/generateUserId');
+// const cloudinaryService = require('../services/cloudinaryService');
 
 // // @desc    Login user
 // // @route   POST /api/auth/login
@@ -28,8 +30,7 @@
 //     if (user) {
 //       role = user.role;
 //       clfId = user.clfId;
-      
-//       // Check password
+
 //       const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
 //       if (!isPasswordValid) {
 //         return res.status(401).json({
@@ -38,11 +39,9 @@
 //         });
 //       }
 
-//       // Update last login
 //       user.lastLogin = new Date();
 //       await user.save();
 
-//       // Generate token
 //       const token = generateToken(user);
 
 //       return res.status(200).json({
@@ -55,6 +54,7 @@
 //           role: user.role,
 //           clfId: user.clfId,
 //           status: user.status,
+//           profilePicture: user.profilePicture || null,
 //         },
 //       });
 //     }
@@ -65,8 +65,7 @@
 //     if (employee) {
 //       role = 'EMPLOYEE';
 //       clfId = employee.clfId;
-      
-//       // Check password
+
 //       const isPasswordValid = await bcrypt.compare(password, employee.passwordHash);
 //       if (!isPasswordValid) {
 //         return res.status(401).json({
@@ -85,14 +84,14 @@
 //           role: 'EMPLOYEE',
 //           clfId: employee.clfId,
 //           status: employee.status,
+//           profilePicture: employee.profilePicture || null,
+//           profilePicturePublicId: employee.profilePicturePublicId || null,
 //         });
 //       }
 
-//       // Update last login
 //       userRecord.lastLogin = new Date();
 //       await userRecord.save();
 
-//       // Generate token
 //       const token = generateToken(userRecord);
 
 //       return res.status(200).json({
@@ -106,7 +105,8 @@
 //           clfId: userRecord.clfId,
 //           status: userRecord.status,
 //           employeeId: employee._id,
-//           employeeType: employee.employeeType,
+//           designation: employee.designation,
+//           profilePicture: userRecord.profilePicture || employee.profilePicture || null,
 //         },
 //       });
 //     }
@@ -130,7 +130,7 @@
 // const getMe = async (req, res) => {
 //   try {
 //     const user = await User.findById(req.user._id).select('-passwordHash');
-    
+
 //     if (!user) {
 //       return res.status(404).json({
 //         success: false,
@@ -145,18 +145,31 @@
 //       role: user.role,
 //       clfId: user.clfId,
 //       status: user.status,
+//       profilePicture: user.profilePicture || null,
 //     };
 
-//     // If employee, get additional data
+//     // ✅ If employee, add employee details
 //     if (user.role === 'EMPLOYEE') {
-//       const employee = await Employee.findOne({ userId: user.userId });
+//       const employee = await Employee.findOne({ userId: user.userId }).populate(
+//         'clfId',
+//         'name'
+//       );
+
 //       if (employee) {
 //         response.employeeId = employee._id;
-//         response.employeeType = employee.employeeType;
 //         response.designation = employee.designation;
 //         response.mobile = employee.mobile;
 //         response.joiningDate = employee.joiningDate;
-//         response.clfName = employee.clfId ? (await employee.populate('clfId')).clfId.name : null;
+//         // ✅ Bank Details
+//         response.bankName = employee.bankName;
+//         response.bankAccountNumber = employee.bankAccountNumber;
+//         response.branch = employee.branch;
+//         response.ifscCode = employee.ifscCode;
+//         // ✅ CLF Name
+//         response.clfName = employee.clfId?.name || null;
+//         // ✅ Profile Picture
+//         response.profilePicture =
+//           user.profilePicture || employee.profilePicture || null;
 //       }
 //     }
 
@@ -173,11 +186,119 @@
 //   }
 // };
 
-// module.exports = { login, getMe };
+// // @desc    Upload profile picture
+// // @route   POST /api/auth/upload-profile-picture
+// // @access  Private (All roles)
+// const uploadProfilePicture = async (req, res) => {
+//   try {
+//     if (!req.file) {
+//       return res.status(400).json({
+//         success: false,
+//         message: 'Photo is required. Upload using form-data with "photo" field.',
+//       });
+//     }
 
+//     const user = await User.findById(req.user._id);
+//     if (!user) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'User not found',
+//       });
+//     }
+
+//     if (user.profilePicturePublicId) {
+//       try {
+//         await cloudinaryService.deleteFromCloudinary(user.profilePicturePublicId);
+//         console.log('🗑️  Old profile picture deleted from Cloudinary');
+//       } catch (err) {
+//         console.error('Failed to delete old profile picture:', err.message);
+//       }
+//     }
+
+//     const uploadResult = await cloudinaryService.uploadToCloudinary(
+//       req.file.buffer,
+//       `profile_pictures/${user.role.toLowerCase()}`
+//     );
+
+//     user.profilePicture = uploadResult.url;
+//     user.profilePicturePublicId = uploadResult.publicId;
+//     await user.save();
+
+//     if (user.role === 'EMPLOYEE') {
+//       const employee = await Employee.findOne({ userId: user.userId });
+//       if (employee) {
+//         employee.profilePicture = uploadResult.url;
+//         employee.profilePicturePublicId = uploadResult.publicId;
+//         await employee.save();
+//       }
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       message: 'Profile picture updated successfully',
+//       profilePicture: uploadResult.url,
+//     });
+//   } catch (error) {
+//     console.error('Upload Profile Picture Error:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: error.message || 'Failed to upload profile picture',
+//     });
+//   }
+// };
+
+// // @desc    Remove profile picture
+// // @route   DELETE /api/auth/remove-profile-picture
+// // @access  Private (All roles)
+// const removeProfilePicture = async (req, res) => {
+//   try {
+//     const user = await User.findById(req.user._id);
+//     if (!user) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'User not found',
+//       });
+//     }
+
+//     if (user.profilePicturePublicId) {
+//       try {
+//         await cloudinaryService.deleteFromCloudinary(user.profilePicturePublicId);
+//       } catch (err) {
+//         console.error('Cloudinary delete failed:', err.message);
+//       }
+//     }
+
+//     user.profilePicture = null;
+//     user.profilePicturePublicId = null;
+//     await user.save();
+
+//     if (user.role === 'EMPLOYEE') {
+//       const employee = await Employee.findOne({ userId: user.userId });
+//       if (employee) {
+//         employee.profilePicture = null;
+//         employee.profilePicturePublicId = null;
+//         await employee.save();
+//       }
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       message: 'Profile picture removed successfully',
+//     });
+//   } catch (error) {
+//     console.error('Remove Profile Picture Error:', error);
+//     res.status(500).json({
+//       success: false,
+//       message: error.message || 'Failed to remove profile picture',
+//     });
+//   }
+// };
+
+// module.exports = { login, getMe, uploadProfilePicture, removeProfilePicture };
 
 const User = require('../models/User');
 const Employee = require('../models/Employee');
+const CLF = require('../models/CLF');
 const bcrypt = require('bcryptjs');
 const generateToken = require('../utils/generateToken');
 const { generateUserId } = require('../utils/generateUserId');
@@ -282,7 +403,7 @@ const login = async (req, res) => {
           clfId: userRecord.clfId,
           status: userRecord.status,
           employeeId: employee._id,
-          employeeType: employee.employeeType,
+          designation: employee.designation,
           profilePicture: userRecord.profilePicture || employee.profilePicture || null,
         },
       });
@@ -325,20 +446,36 @@ const getMe = async (req, res) => {
       profilePicture: user.profilePicture || null,
     };
 
+    // ✅ If employee, add employee details
     if (user.role === 'EMPLOYEE') {
-      const employee = await Employee.findOne({ userId: user.userId });
+      const employee = await Employee.findOne({ userId: user.userId }).populate(
+        'clfId',
+        'name'
+      );
+
       if (employee) {
         response.employeeId = employee._id;
-        response.employeeType = employee.employeeType;
         response.designation = employee.designation;
         response.mobile = employee.mobile;
         response.joiningDate = employee.joiningDate;
-        response.clfName = employee.clfId
-          ? (await employee.populate('clfId')).clfId.name
-          : null;
-        // ✅ Profile picture preference: User first, then Employee
+        response.bankName = employee.bankName;
+        response.bankAccountNumber = employee.bankAccountNumber;
+        response.branch = employee.branch;
+        response.ifscCode = employee.ifscCode;
+        response.clfName = employee.clfId?.name || null;
         response.profilePicture =
           user.profilePicture || employee.profilePicture || null;
+      }
+    }
+
+    // ✅ If CLF Admin, add CLF details
+    if (user.role === 'CLF_ADMIN' && user.clfId) {
+      const clf = await CLF.findById(user.clfId);
+      if (clf) {
+        response.clfName = clf.name;
+        response.clfCode = clf.code;
+        response.clfBlock = clf.block;
+        response.clfDistrict = clf.district;
       }
     }
 
@@ -360,7 +497,6 @@ const getMe = async (req, res) => {
 // @access  Private (All roles)
 const uploadProfilePicture = async (req, res) => {
   try {
-    // ✅ Check photo
     if (!req.file) {
       return res.status(400).json({
         success: false,
@@ -368,7 +504,6 @@ const uploadProfilePicture = async (req, res) => {
       });
     }
 
-    // Get current user
     const user = await User.findById(req.user._id);
     if (!user) {
       return res.status(404).json({
@@ -377,29 +512,24 @@ const uploadProfilePicture = async (req, res) => {
       });
     }
 
-    // ✅ Delete old profile picture from Cloudinary if exists
     if (user.profilePicturePublicId) {
       try {
         await cloudinaryService.deleteFromCloudinary(user.profilePicturePublicId);
         console.log('🗑️  Old profile picture deleted from Cloudinary');
       } catch (err) {
         console.error('Failed to delete old profile picture:', err.message);
-        // Continue anyway
       }
     }
 
-    // ✅ Upload new photo to Cloudinary
     const uploadResult = await cloudinaryService.uploadToCloudinary(
       req.file.buffer,
       `profile_pictures/${user.role.toLowerCase()}`
     );
 
-    // ✅ Update User model
     user.profilePicture = uploadResult.url;
     user.profilePicturePublicId = uploadResult.publicId;
     await user.save();
 
-    // ✅ If employee, also update Employee model
     if (user.role === 'EMPLOYEE') {
       const employee = await Employee.findOne({ userId: user.userId });
       if (employee) {
@@ -436,7 +566,6 @@ const removeProfilePicture = async (req, res) => {
       });
     }
 
-    // ✅ Delete from Cloudinary
     if (user.profilePicturePublicId) {
       try {
         await cloudinaryService.deleteFromCloudinary(user.profilePicturePublicId);
@@ -445,12 +574,10 @@ const removeProfilePicture = async (req, res) => {
       }
     }
 
-    // ✅ Clear from User model
     user.profilePicture = null;
     user.profilePicturePublicId = null;
     await user.save();
 
-    // ✅ Clear from Employee model if employee
     if (user.role === 'EMPLOYEE') {
       const employee = await Employee.findOne({ userId: user.userId });
       if (employee) {
