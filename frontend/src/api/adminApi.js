@@ -1,3 +1,4 @@
+
 // import api from './api';
 
 // // ==============================
@@ -65,6 +66,12 @@
 // // ==============================
 // // EMPLOYEE APIs
 // // ==============================
+
+// // ✅ GET /api/admin/employees/designations  ← YE NAYA FUNCTION HAI
+// export const getDesignationsApi = async () => {
+//   const response = await api.get('/admin/employees/designations');
+//   return response.data;
+// };
 
 // // POST /api/admin/employees
 // export const createEmployeeApi = async (data) => {
@@ -189,6 +196,7 @@
 //   return response.data;
 // };
 
+
 import api from './api';
 
 // ==============================
@@ -257,9 +265,15 @@ export const deleteClfApi = async (id) => {
 // EMPLOYEE APIs
 // ==============================
 
-// ✅ GET /api/admin/employees/designations  ← YE NAYA FUNCTION HAI
+// ✅ GET /api/admin/employees/designations
 export const getDesignationsApi = async () => {
   const response = await api.get('/admin/employees/designations');
+  return response.data;
+};
+
+// ✅ GET /api/admin/employees/banks  ← YE NAYA FUNCTION HAI
+export const getBanksApi = async () => {
+  const response = await api.get('/admin/employees/banks');
   return response.data;
 };
 
