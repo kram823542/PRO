@@ -1,102 +1,54 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from './context/AuthContext.jsx';
-import Loader from './components/Loader.jsx';
+// import { BrowserRouter } from 'react-router-dom';
+// import AppRouter from './app/router.jsx';
+// import { theme } from './config/theme.js';
 
-// Pages
-import Login from './pages/Login.jsx';
-import Employee from './pages/Employee.jsx';
-import AdminClf from './pages/AdminClf.jsx';
-import AdminSuper from './pages/AdminSuper.jsx';
+// export default function App() {
+//   // Inject theme CSS variables globally
+//   const cssVars = Object.entries(theme.colors)
+//     .map(([key, val]) => `--color-${key}: ${val};`)
+//     .join('\n');
 
-const ProtectedRoute = ({ children, allowedRoles }) => {
-  const { user, loading } = useAuth();
+//   return (
+//     <>
+//       <style>{`:root { ${cssVars} }`}</style>
+//       <BrowserRouter>
+//         <AppRouter />
+//       </BrowserRouter>
+//     </>
+//   );
+// }
 
-  if (loading) return <Loader fullScreen />;
+import { BrowserRouter } from 'react-router-dom';
+import AppRouter from './app/router.jsx';
+import { theme } from './config/theme.js';
 
-  if (!user) return <Navigate to="/login" replace />;
-
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return children;
-};
-
-const App = () => {
-  const { user, loading } = useAuth();
-
-  if (loading) return <Loader fullScreen />;
+export default function App() {
+  // Inject theme CSS variables globally
+  const cssVars = Object.entries(theme.colors)
+    .map(([key, val]) => `--color-${key}: ${val};`)
+    .join('\n');
 
   return (
-    <Routes>
-      <Route
-        path="/login"
-        element={
-          user ? (
-            <Navigate
-              to={
-                user.role === 'SUPER_ADMIN'
-                  ? '/admin-super'
-                  : user.role === 'CLF_ADMIN'
-                  ? '/admin-clf'
-                  : '/employee'
-              }
-              replace
-            />
-          ) : (
-            <Login />
-          )
-        }
-      />
+    <>
+      <style>{`
+        :root { ${cssVars} }
+        body { margin: 0; font-family: system-ui, sans-serif; }
 
-      <Route
-        path="/employee/*"
-        element={
-          <ProtectedRoute allowedRoles={['EMPLOYEE']}>
-            <Employee />
-          </ProtectedRoute>
+        /* ✅ Floating sidebar offset for content */
+        .clf-content {
+          margin-left: 96px;
+          transition: margin-left 0.3s ease;
         }
-      />
-
-      <Route
-        path="/admin-clf/*"
-        element={
-          <ProtectedRoute allowedRoles={['CLF_ADMIN']}>
-            <AdminClf />
-          </ProtectedRoute>
+        body[data-sidebar="expanded"] .clf-content {
+          margin-left: 242px;
         }
-      />
-
-      <Route
-        path="/admin-super/*"
-        element={
-          <ProtectedRoute allowedRoles={['SUPER_ADMIN']}>
-            <AdminSuper />
-          </ProtectedRoute>
+        @media (max-width: 900px) {
+          .clf-content { margin-left: 0 !important; }
         }
-      />
-
-      <Route
-        path="/"
-        element={
-          <Navigate
-            to={
-              user
-                ? user.role === 'SUPER_ADMIN'
-                  ? '/admin-super'
-                  : user.role === 'CLF_ADMIN'
-                  ? '/admin-clf'
-                  : '/employee'
-                : '/login'
-            }
-            replace
-          />
-        }
-      />
-
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      `}</style>
+      <BrowserRouter>
+        <AppRouter />
+      </BrowserRouter>
+    </>
   );
-};
-
-export default App;
+}
