@@ -632,12 +632,10 @@
 
 
 
-
-
 import PDFDocument from 'pdfkit';
 import fs from 'fs';
-import path from 'path';                                  // ✅ NAYA: path resolve karne ke liye
-import { fileURLToPath } from 'url';                     // ✅ NAYA: ESM me __dirname nikalne ke liye
+import path from 'path';
+import { fileURLToPath } from 'url';
 import mongoose from 'mongoose';
 import { Advice } from './advice.model.js';
 import { CLF } from '../clfs/clf.model.js';
@@ -646,47 +644,53 @@ import { createAudit } from '../../middlewares/audit.middleware.js';
 import { getISTDateString } from '../../utils/security.js';
 
 /* ────────────────────────────────────────────
-   Fonts
+   Fonts — Auto Detect Path
    ──────────────────────────────────────────── */
-
-// ✅ ESM me __dirname manually banana padta hai
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ✅ Bundled fonts — ye backend ke andar hi rakhe hain
-// Render (Linux) par Windows fonts nahi milte, isliye apne font bundle kar rahe hain
-// Path: BACKEND/src/assets/fonts/NotoSansDevanagari-Regular.ttf
-const BUNDLED_FONT_REGULAR = path.join(
-  __dirname,
-  '../../assets/fonts/NotoSansDevanagari-Regular.ttf'
-);
-const BUNDLED_FONT_BOLD = path.join(
-  __dirname,
-  '../../assets/fonts/NotoSansDevanagari-Bold.ttf'
-);
+// ✅ Auto-Detect Function: Check karega ki font kahan pada hai
+const getFontPath = (fontName) => {
+  const possiblePaths = [
+    path.join(process.cwd(), 'assets', 'fonts', fontName), // Aapke structure ke liye (assets src ke bahar)
+    path.join(process.cwd(), 'src', 'assets', 'fonts', fontName), // Agar assets src ke andar ho
+    path.join(__dirname, '..', '..', '..', 'assets', 'fonts', fontName), // Local testing ke liye
+  ];
+
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      console.log(`✅ FONT MIL GAYA: ${p}`); // Render logs mein check karna
+      return p;
+    }
+  }
+  console.log(`❌ FONT NAHI MILA: ${fontName}`);
+  return null;
+};
+
+const BUNDLED_FONT_REGULAR = getFontPath('NotoSansDevanagari-Regular.ttf');
+const BUNDLED_FONT_BOLD = getFontPath('NotoSansDevanagari-Bold.ttf');
 
 const SYSTEM_FONTS = {
   regular: [
-    BUNDLED_FONT_REGULAR,                                  // ✅ Pehle bundled font try karo (har platform par milega)
-    'C:\\Windows\\Fonts\\Nirmala.ttf',                     // Windows fallback
+    BUNDLED_FONT_REGULAR,
+    'C:\\Windows\\Fonts\\Nirmala.ttf',
     'C:\\Windows\\Fonts\\mangal.ttf',
     'C:\\Windows\\Fonts\\arialuni.ttf',
-    '/System/Library/Fonts/Supplemental/Devanagari Sangam MN.ttc', // macOS fallback
+    '/System/Library/Fonts/Supplemental/Devanagari Sangam MN.ttc',
     '/Library/Fonts/Arial Unicode.ttf',
-    '/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf', // Linux fallback
-  ],
+    '/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf',
+  ].filter(Boolean), // null values hata do
   bold: [
-    BUNDLED_FONT_BOLD,                                     // ✅ Pehle bundled bold try karo
+    BUNDLED_FONT_BOLD,
     'C:\\Windows\\Fonts\\NirmalaB.ttf',
     'C:\\Windows\\Fonts\\mangalb.ttf',
     'C:\\Windows\\Fonts\\arialunib.ttf',
     '/System/Library/Fonts/Supplemental/Devanagari Sangam MN Bold.ttc',
     '/Library/Fonts/Arial Unicode Bold.ttf',
     '/usr/share/fonts/truetype/noto/NotoSansDevanagari-Bold.ttf',
-  ],
+  ].filter(Boolean),
 };
 
-// ✅ Har candidate path check karta hai, jo pehla exist kare wahi return karta hai
 const findFont = (candidates) => {
   for (const p of candidates) {
     try {
@@ -698,7 +702,6 @@ const findFont = (candidates) => {
   return null;
 };
 
-// ✅ PDF document me Devanagari fonts register karta hai
 const registerFonts = (doc) => {
   const regular = findFont(SYSTEM_FONTS.regular);
   const bold = findFont(SYSTEM_FONTS.bold);
@@ -766,7 +769,6 @@ const getBankShortName = (fullName) => {
   return map[key] || fullName;
 };
 
-/** ✅ Cloudinary se image fetch karo */
 const fetchImageBuffer = async (url) => {
   try {
     const response = await fetch(url);
@@ -931,14 +933,13 @@ export const deleteAdvice = async (req, id) => {
 };
 
 /* ────────────────────────────────────────────
-   PDF GENERATE — with logos + footer at bottom
+   PDF GENERATE
    ──────────────────────────────────────────── */
 export const generateAdvicePDF = async (req, id, res, { inline = false } = {}) => {
   const advice = await Advice.findById(id);
   if (!advice || advice.isDeleted) throw ApiError.notFound('Advice not found');
   await assertScope(req.user, advice.clfId);
 
-  // ✅ Logos fetch
   const LEFT_LOGO_URL =
     'https://res.cloudinary.com/dsjnikk42/image/upload/v1789380290/WhatsApp_Image_2026-09-14_at_1.07.08_PM_nbbmda.jpg';
   const RIGHT_LOGO_URL =
@@ -1001,37 +1002,28 @@ export const generateAdvicePDF = async (req, id, res, { inline = false } = {}) =
 
     let y = 30;
 
-    // ─── TOP STRIP ───
     drawStrip(y);
     y += 18;
 
-    /* ─── HEADER WITH LOGOS ─── */
     const logoSize = 70;
     const logoY = y;
     const titleWidth = pageWidth - marginLeft - marginRight - logoSize * 2 - 20;
     const titleX = marginLeft + logoSize + 10;
 
-    // ✅ Left logo
     if (leftLogoBuf) {
       try {
         doc.image(leftLogoBuf, marginLeft, logoY, { fit: [logoSize, logoSize] });
-      } catch (e) {
-        console.warn('Left logo embed failed:', e.message);
-      }
+      } catch (e) { }
     }
 
-    // ✅ Right logo
     if (rightLogoBuf) {
       try {
         doc.image(rightLogoBuf, pageWidth - marginRight - logoSize, logoY, {
           fit: [logoSize, logoSize],
         });
-      } catch (e) {
-        console.warn('Right logo embed failed:', e.message);
-      }
+      } catch (e) { }
     }
 
-    // ✅ Title between logos
     let ty = logoY + 10;
     doc.font('Devanagari-Bold').fontSize(18).fillColor('black');
     doc.text('सतबरवा आजीविका महिला संकुल स्तरीय', titleX, ty, {
@@ -1061,11 +1053,9 @@ export const generateAdvicePDF = async (req, id, res, { inline = false } = {}) =
 
     y = Math.max(logoY + logoSize, ty + 10) + 6;
 
-    // ─── BOTTOM STRIP ───
     drawStrip(y);
     y += 18;
 
-    // ─── PATRANK / DINANK ───
     doc.font('Devanagari').fontSize(10).fillColor('black');
     const dateStr = new Date(advice.adviceDate).toLocaleDateString('en-IN', {
       day: '2-digit',
@@ -1079,7 +1069,6 @@ export const generateAdvicePDF = async (req, id, res, { inline = false } = {}) =
     });
     y += 18;
 
-    // ─── PAGE 1 CONTENT ───
     if (pageIndex === 0) {
       doc.font('Devanagari-Bold').fontSize(10).text('To', marginLeft, y);
       y += 12;
@@ -1125,7 +1114,6 @@ export const generateAdvicePDF = async (req, id, res, { inline = false } = {}) =
       y += 18;
     }
 
-    // ─── TABLE ───
     if (!isSignatureOnlyPage) {
       const colWidths = {
         sl: 22,
@@ -1235,12 +1223,8 @@ export const generateAdvicePDF = async (req, id, res, { inline = false } = {}) =
       }
     }
 
-    // ─── SIGNATURE + FOOTER (last page) ───
     if (isLastPage) {
-      // ✅ Footer pageHeight - 90 par (aur niche)
       const footerTop = pageHeight - 90;
-
-      // Signature ke liye thoda upar
       const sigY = footerTop - 40;
       const sigWidth = 80;
       const gap = 20;
@@ -1259,7 +1243,6 @@ export const generateAdvicePDF = async (req, id, res, { inline = false } = {}) =
       doc.text('सतबरवा आजीविका महिला संकुल स्तरीय', rightX, sigY - 16, { width: 180, align: 'right' });
       doc.text('प्राथमिक स्वावलम्बी सहकारी समिति लिमिटेड', rightX, sigY - 4, { width: 180, align: 'right' });
 
-      // Footer strip + text
       drawStrip(footerTop);
       let fy = footerTop + 12;
       doc.font('Devanagari').fontSize(7.5).fillColor('black');

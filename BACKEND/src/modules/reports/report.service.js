@@ -455,12 +455,11 @@
 
 
 
-
 import PDFDocument from 'pdfkit';
 import ExcelJS from 'exceljs';
 import fs from 'fs';
-import path from 'path';                                  // ✅ NAYA: path resolve karne ke liye
-import { fileURLToPath } from 'url';                     // ✅ NAYA: ESM me __dirname nikalne ke liye
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { ActionPlan } from '../actionPlans/actionPlan.model.js';
 import { WorkDone } from '../workDone/workDone.model.js';
 import { Attendance } from '../attendance/attendance.model.js';
@@ -469,47 +468,53 @@ import { CLF } from '../clfs/clf.model.js';
 import { ApiError } from '../../utils/ApiError.js';
 
 /* ────────────────────────────────────────────
-   System Devanagari fonts (no download needed)
+   Fonts — Auto Detect Path
    ──────────────────────────────────────────── */
-
-// ✅ ESM me __dirname manually banana padta hai
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ✅ Bundled fonts — ye backend ke andar hi rakhe hain
-// Render (Linux) par Windows fonts nahi milte, isliye apne font bundle kar rahe hain
-// Path: BACKEND/src/assets/fonts/NotoSansDevanagari-Regular.ttf
-const BUNDLED_FONT_REGULAR = path.join(
-  __dirname,
-  '../../assets/fonts/NotoSansDevanagari-Regular.ttf'
-);
-const BUNDLED_FONT_BOLD = path.join(
-  __dirname,
-  '../../assets/fonts/NotoSansDevanagari-Bold.ttf'
-);
+// ✅ Auto-Detect Function: Check karega ki font kahan pada hai
+const getFontPath = (fontName) => {
+  const possiblePaths = [
+    path.join(process.cwd(), 'assets', 'fonts', fontName), // Aapke structure ke liye (assets src ke bahar)
+    path.join(process.cwd(), 'src', 'assets', 'fonts', fontName), // Agar assets src ke andar ho
+    path.join(__dirname, '..', '..', '..', 'assets', 'fonts', fontName), // Local testing ke liye
+  ];
+
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) {
+      console.log(`✅ FONT MIL GAYA: ${p}`); // Render logs mein check karna
+      return p;
+    }
+  }
+  console.log(`❌ FONT NAHI MILA: ${fontName}`);
+  return null;
+};
+
+const BUNDLED_FONT_REGULAR = getFontPath('NotoSansDevanagari-Regular.ttf');
+const BUNDLED_FONT_BOLD = getFontPath('NotoSansDevanagari-Bold.ttf');
 
 const SYSTEM_FONTS = {
   regular: [
-    BUNDLED_FONT_REGULAR,                                  // ✅ Pehle bundled font try karo (har platform par milega)
-    'C:\\Windows\\Fonts\\Nirmala.ttf',                     // Windows fallback
+    BUNDLED_FONT_REGULAR,
+    'C:\\Windows\\Fonts\\Nirmala.ttf',
     'C:\\Windows\\Fonts\\mangal.ttf',
     'C:\\Windows\\Fonts\\arialuni.ttf',
-    '/System/Library/Fonts/Supplemental/Devanagari Sangam MN.ttc', // macOS fallback
+    '/System/Library/Fonts/Supplemental/Devanagari Sangam MN.ttc',
     '/Library/Fonts/Arial Unicode.ttf',
-    '/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf', // Linux fallback
-  ],
+    '/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf',
+  ].filter(Boolean),
   bold: [
-    BUNDLED_FONT_BOLD,                                     // ✅ Pehle bundled bold try karo
+    BUNDLED_FONT_BOLD,
     'C:\\Windows\\Fonts\\NirmalaB.ttf',
     'C:\\Windows\\Fonts\\mangalb.ttf',
     'C:\\Windows\\Fonts\\arialunib.ttf',
     '/System/Library/Fonts/Supplemental/Devanagari Sangam MN Bold.ttc',
     '/Library/Fonts/Arial Unicode Bold.ttf',
     '/usr/share/fonts/truetype/noto/NotoSansDevanagari-Bold.ttf',
-  ],
+  ].filter(Boolean),
 };
 
-// ✅ Har candidate path check karta hai, jo pehla exist kare wahi return karta hai
 const findFont = (candidates) => {
   for (const p of candidates) {
     try {
@@ -521,7 +526,6 @@ const findFont = (candidates) => {
   return null;
 };
 
-// ✅ PDF document me Devanagari fonts register karta hai
 const registerFonts = (doc) => {
   const regular = findFont(SYSTEM_FONTS.regular);
   const bold = findFont(SYSTEM_FONTS.bold);
@@ -529,13 +533,10 @@ const registerFonts = (doc) => {
   if (regular) {
     try {
       doc.registerFont('Devanagari', regular);
-      console.log(`✅ Loaded font: ${regular}`);
     } catch (err) {
-      console.warn(`⚠️ Failed to load ${regular}: ${err.message}`);
       doc.registerFont('Devanagari', 'Helvetica');
     }
   } else {
-    console.warn('⚠️ No Devanagari system font found — Hindi may render incorrectly');
     doc.registerFont('Devanagari', 'Helvetica');
   }
 
@@ -735,18 +736,15 @@ export const workDonePDF = async (req, { employeeId, year, month }) => {
 
 /* ────────────────────────────────────────────
    ATTENDANCE EXCEL — Matrix format
-   ✅ Includes ALL active employees (even with zero records)
    ──────────────────────────────────────────── */
 export const attendanceExcel = async (req, { clfId, from, to }) => {
   const user = req.user;
 
-  // ─── Scope filter for employees ───
   const employeeFilter = {};
   if (user.role === 'CLF') employeeFilter.clfId = user.clfId;
   else if (user.role === 'BPM') employeeFilter.blockId = user.blockId;
   else if (clfId) employeeFilter.clfId = clfId;
 
-  // ─── Fetch ALL active employees (so even zero-attendance ones show up) ───
   const employees = await Employee.find({
     ...employeeFilter,
     status: 'ACTIVE',
@@ -754,7 +752,6 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
     .select('name employeeCode designation')
     .sort({ employeeCode: 1 });
 
-  // ─── Fetch attendance records ───
   const attFilter = { ...employeeFilter };
   if (from || to) {
     attFilter.date = {};
@@ -764,16 +761,13 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
 
   const records = await Attendance.find(attFilter).sort({ date: 1 });
 
-  // ─── Month range ───
   const refDate = from ? new Date(from) : new Date();
   const year = refDate.getFullYear();
   const month = refDate.getMonth() + 1;
   const totalDays = new Date(year, month, 0).getDate();
 
-  // ─── Build matrix ───
   const matrixMap = new Map();
 
-  // Step 1: Seed EVERY active employee — days empty initially
   employees.forEach((emp) => {
     matrixMap.set(String(emp._id), {
       name: emp.name || '—',
@@ -783,11 +777,9 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
     });
   });
 
-  // Step 2: Fill in attendance
   records.forEach((r) => {
     const id = String(r.employeeId);
     if (!matrixMap.has(id)) {
-      // attendance exists for an employee not in active list — still include
       matrixMap.set(id, {
         name: r.employeeId?.name || '—',
         code: r.employeeId?.employeeCode || '—',
@@ -811,7 +803,6 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
     String(a.code).localeCompare(String(b.code))
   );
 
-  // ─── Build workbook ───
   const wb = new ExcelJS.Workbook();
   wb.creator = 'CLF Portal';
   wb.created = new Date();
@@ -820,7 +811,6 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
     views: [{ state: 'frozen', xSplit: 1, ySplit: 1 }],
   });
 
-  // Columns
   ws.columns = [
     { header: 'Employee', key: 'employee', width: 30 },
     ...Array.from({ length: totalDays }, (_, i) => ({
@@ -832,7 +822,6 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
     { header: 'A', key: 'absent', width: 5 },
   ];
 
-  // Header styling
   const headerRow = ws.getRow(1);
   headerRow.height = 22;
   headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -861,7 +850,6 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
     }
   });
 
-  // Body rows
   rows.forEach((row) => {
     let p = 0;
     let a = 0;
@@ -889,28 +877,24 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
         right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
       };
 
-      // Employee label column
       if (colNumber === 1) {
         cell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
         cell.font = { size: 10, color: { argb: 'FF0F172A' } };
         return;
       }
 
-      // P total column
       if (colNumber === totalDays + 2) {
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
         cell.font = { bold: true, color: { argb: 'FF15803D' }, size: 11 };
         return;
       }
 
-      // A total column
       if (colNumber === totalDays + 3) {
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
         cell.font = { bold: true, color: { argb: 'FFB91C1C' }, size: 11 };
         return;
       }
 
-      // Day cells — color coded
       cell.alignment = { horizontal: 'center', vertical: 'middle' };
       const v = cell.value;
       let bg = 'FFFFFFFF';
