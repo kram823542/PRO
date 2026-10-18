@@ -112,6 +112,16 @@ const userSchema = new mongoose.Schema(
       required: true,
       select: false,
     },
+      // ... baaki fields (username, password, role, etc.)
+  
+  profilePhoto: {
+    type: String,
+    default: '', // Base64 image string save hogi
+  },
+  
+  // ... baaki fields 
+
+  
     role: {
       type: String,
       enum: ['SUPER_ADMIN', 'BPM', 'CLF', 'EMPLOYEE'],

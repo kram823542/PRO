@@ -1735,6 +1735,621 @@
 
 
 
+// import { useEffect, useState, useRef } from 'react';
+// import { useLocation, Link } from 'react-router-dom';
+// import { theme } from '../../config/theme.js';
+// import { renderDynamicIcon } from './Sidebar.jsx';
+
+// export default function BottomBar({ menu = [] }) {
+//   const location = useLocation();
+  
+//   // Sliding animation ke liye states
+//   const [sliderStyle, setSliderStyle] = useState({ left: 0, width: 0, opacity: 0 });
+//   const itemRefs = useRef([]);
+
+//   const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+//   const ROLE_MENUS = {
+//     EMPLOYEE: [
+//       { label: 'Dashboard', path: '/employee' },
+//       { label: 'Work', path: '/employee/work' },
+//       { label: 'Leaves', path: '/employee/leaves' },
+//       { label: 'Attendance', path: '/employee/attendance' },
+//     ],
+//     CLF: [
+//       { label: 'Dashboard', path: '/clf' },
+//       { label: 'Employees', path: '/clf/employees' },
+//       { label: 'Leaves', path: '/clf/leaves' },
+//       { label: 'Attendance', path: '/clf/attendance' },
+//     ],
+//     BPM: [
+//       { label: 'Dashboard', path: '/bpm' },
+//       { label: 'CLFs', path: '/bpm/clfs' },
+//       { label: 'Work', path: '/bpm/work' },
+//       { label: 'Attendance', path: '/bpm/attendance' },
+//     ],
+//   };
+
+//   const isEmployee = user.role === 'EMPLOYEE';
+//   const items = isEmployee 
+//     ? ROLE_MENUS.EMPLOYEE 
+//     : (ROLE_MENUS[user.role] ? ROLE_MENUS[user.role] : menu.slice(0, 4));
+
+//   // Active Index Calculate
+//   let currentPath = location.pathname;
+//   if (currentPath.endsWith('/') && currentPath.length > 1) {
+//     currentPath = currentPath.slice(0, -1);
+//   }
+
+//   const profilePath = isEmployee 
+//     ? '/employee/profile' 
+//     : user.role === 'CLF' 
+//     ? '/clf/profile' 
+//     : '/bpm/profile';
+
+//   const isProfileActive = currentPath === profilePath || currentPath.startsWith(profilePath + '/');
+
+//   let activeIndex = -1;
+//   let longestMatch = 0;
+
+//   if (!isProfileActive) {
+//     items.forEach((item, index) => {
+//       let itemPath = item.path || '';
+//       if (itemPath.endsWith('/') && itemPath.length > 1) {
+//         itemPath = itemPath.slice(0, -1);
+//       }
+      
+//       const isExact = currentPath === itemPath;
+//       const isPrefix = currentPath.startsWith(itemPath + '/');
+
+//       if ((isExact || isPrefix) && itemPath.length > longestMatch) {
+//         activeIndex = index;
+//         longestMatch = itemPath.length;
+//       }
+//     });
+//   }
+
+//   // ✅ SLIDING ANIMATION LOGIC
+//   useEffect(() => {
+//     // Agar profile active hai to slider hide kar do
+//     if (isProfileActive || activeIndex === -1) {
+//       setSliderStyle((prev) => ({ ...prev, opacity: 0 }));
+//       return;
+//     }
+
+//     const updateSlider = () => {
+//       const activeEl = itemRefs.current[activeIndex];
+//       if (activeEl) {
+//         setSliderStyle({
+//           left: activeEl.offsetLeft,
+//           width: activeEl.offsetWidth,
+//           opacity: 1,
+//         });
+//       }
+//     };
+
+//     // Thoda delay taaki DOM update ho jaye aur text expand ho sake
+//     setTimeout(updateSlider, 50);
+
+//     // Window resize par bhi adjust karo
+//     window.addEventListener('resize', updateSlider);
+//     return () => window.removeEventListener('resize', updateSlider);
+//   }, [activeIndex, isProfileActive]);
+
+//   return (
+//     <>
+//       <style>{`
+//         .custom-bb-container {
+//           position: fixed;
+//           bottom: 16px;
+//           left: 50%;
+//           transform: translateX(-50%);
+//           width: calc(100% - 24px);
+//           max-width: 440px;
+//           z-index: 1000;
+//           display: flex;
+//           align-items: center;
+//           justify-content: space-between;
+//           gap: 8px;
+//           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+//           pointer-events: none;
+//           box-sizing: border-box;
+//         }
+
+//         .custom-bb-container * {
+//           pointer-events: auto;
+//         }
+
+//         /* Dark Main Capsule */
+//         .custom-bb-main {
+//           flex: 1;
+//           background: ${theme.colors.bbDarkBrown}; 
+//           border-radius: 999px;
+//           padding: 4px 6px;
+//           display: flex;
+//           align-items: center;
+//           justify-content: space-between;
+//           box-shadow: ${theme.shadow.lg};
+//           height: 56px;
+//           box-sizing: border-box;
+//           min-width: 0;
+//           border: 1px solid ${theme.colors.bbIndigo}40;
+//           position: relative; /* Slider ke liye zaroori */
+//         }
+
+//         /* ✅ Floating White Slider Background */
+//         .custom-bb-slider {
+//           position: absolute;
+//           top: 4px;
+//           bottom: 4px;
+//           background: ${theme.colors.surface};
+//           border-radius: 999px;
+//           box-shadow: ${theme.shadow.sm};
+//           transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+//           z-index: 1;
+//           pointer-events: none;
+//         }
+
+//         .custom-bb-item {
+//           position: relative;
+//           z-index: 2; /* Slider ke upar dikhne ke liye */
+//           display: flex;
+//           align-items: center;
+//           justify-content: center;
+//           height: 100%;
+//           text-decoration: none;
+//           border-radius: 999px;
+//           transition: color 0.3s ease;
+//           color: ${theme.colors.bbLightLilac}; 
+//           padding: 0 10px;
+//           min-width: 0;
+//           white-space: nowrap;
+//         }
+
+//         /* Active Item */
+//         .custom-bb-item.active {
+//           color: ${theme.colors.bbDarkBrown};
+//           padding: 0 14px;
+//         }
+
+//         .custom-bb-icon {
+//           display: flex;
+//           align-items: center;
+//           justify-content: center;
+//           flex-shrink: 0;
+//         }
+
+//         .custom-bb-label {
+//           font-size: 13px;
+//           font-weight: 700;
+//           margin-left: 6px;
+//           white-space: nowrap;
+//           overflow: hidden;
+//           text-overflow: ellipsis;
+//         }
+
+//         /* Right Circular Button */
+//         .custom-bb-circle-btn {
+//           width: 56px;
+//           height: 56px;
+//           background: ${theme.colors.bbDarkBrown};
+//           border-radius: 50%;
+//           display: flex;
+//           align-items: center;
+//           justify-content: center;
+//           color: ${theme.colors.bbLightLilac};
+//           text-decoration: none;
+//           box-shadow: ${theme.shadow.lg};
+//           flex-shrink: 0;
+//           transition: all 0.3s ease;
+//           border: 1px solid ${theme.colors.bbIndigo}40;
+//         }
+
+//         .custom-bb-circle-btn.active {
+//           background: ${theme.colors.surface};
+//           color: ${theme.colors.bbDarkBrown};
+//         }
+
+//         @media (max-width: 380px) {
+//           .custom-bb-container {
+//             width: calc(100% - 16px);
+//             bottom: 12px;
+//             gap: 6px;
+//           }
+//           .custom-bb-main {
+//             height: 52px;
+//             padding: 3px 4px;
+//           }
+//           .custom-bb-circle-btn {
+//             width: 52px;
+//             height: 52px;
+//           }
+//           .custom-bb-label {
+//             font-size: 12px;
+//             margin-left: 4px;
+//           }
+//           .custom-bb-item {
+//             padding: 0 8px;
+//           }
+//           .custom-bb-item.active {
+//             padding: 0 10px;
+//           }
+//         }
+
+//         @media (min-width: 768px) {
+//           .custom-bb-container {
+//             display: none !important;
+//           }
+//         }
+//       `}</style>
+
+//       <div className="custom-bb-container">
+//         <nav className="custom-bb-main">
+          
+//           {/* ✅ The Sliding Background */}
+//           <div 
+//             className="custom-bb-slider" 
+//             style={{
+//               left: `${sliderStyle.left}px`,
+//               width: `${sliderStyle.width}px`,
+//               opacity: sliderStyle.opacity
+//             }}
+//           />
+
+//           {items.map((item, index) => {
+//             const isActive = activeIndex === index;
+
+//             return (
+//               <Link
+//                 key={item.path}
+//                 to={item.path}
+//                 ref={(el) => (itemRefs.current[index] = el)} // ✅ Ref store kiya
+//                 className={`custom-bb-item ${isActive ? 'active' : ''}`}
+//               >
+//                 <span className="custom-bb-icon">
+//                   {renderDynamicIcon(item, 20)}
+//                 </span>
+//                 {isActive && (
+//                   <span className="custom-bb-label">{item.label}</span>
+//                 )}
+//               </Link>
+//             );
+//           })}
+//         </nav>
+
+//         <Link
+//           to={profilePath}
+//           className={`custom-bb-circle-btn ${isProfileActive ? 'active' : ''}`}
+//         >
+//           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+//             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+//             <circle cx="12" cy="7" r="4"></circle>
+//           </svg>
+//         </Link>
+//       </div>
+//     </>
+//   );
+// }
+
+
+
+// import { useEffect, useState, useRef } from 'react';
+// import { useLocation, Link } from 'react-router-dom';
+// import { theme } from '../../config/theme.js';
+// import { renderDynamicIcon } from './Sidebar.jsx';
+
+// export default function BottomBar({ menu = [] }) {
+//   const location = useLocation();
+  
+//   // Sliding animation ke liye states
+//   const [sliderStyle, setSliderStyle] = useState({ left: 0, width: 0, opacity: 0 });
+//   const itemRefs = useRef([]);
+
+//   const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+//   const ROLE_MENUS = {
+//     EMPLOYEE: [
+//       { label: 'Dashboard', path: '/employee' },
+//       { label: 'Work', path: '/employee/work' },
+//       { label: 'Leaves', path: '/employee/leaves' },
+//       { label: 'Attendance', path: '/employee/attendance' },
+//     ],
+//     CLF: [
+//       { label: 'Dashboard', path: '/clf' },
+//       { label: 'Employees', path: '/clf/employees' },
+//       { label: 'Leaves', path: '/clf/leaves' },
+//       { label: 'Attendance', path: '/clf/attendance' },
+//     ],
+//     BPM: [
+//       { label: 'Dashboard', path: '/bpm' },
+//       { label: 'CLFs', path: '/bpm/clfs' },
+//       { label: 'Work', path: '/bpm/work' },
+//       { label: 'Attendance', path: '/bpm/attendance' },
+//     ],
+//   };
+
+//   const isEmployee = user.role === 'EMPLOYEE';
+//   const items = isEmployee 
+//     ? ROLE_MENUS.EMPLOYEE 
+//     : (ROLE_MENUS[user.role] ? ROLE_MENUS[user.role] : menu.slice(0, 4));
+
+//   // Active Index Calculate
+//   let currentPath = location.pathname;
+//   if (currentPath.endsWith('/') && currentPath.length > 1) {
+//     currentPath = currentPath.slice(0, -1);
+//   }
+
+//   const profilePath = isEmployee 
+//     ? '/employee/profile' 
+//     : user.role === 'CLF' 
+//     ? '/clf/profile' 
+//     : '/bpm/profile';
+
+//   const isProfileActive = currentPath === profilePath || currentPath.startsWith(profilePath + '/');
+
+//   let activeIndex = -1;
+//   let longestMatch = 0;
+
+//   if (!isProfileActive) {
+//     items.forEach((item, index) => {
+//       let itemPath = item.path || '';
+//       if (itemPath.endsWith('/') && itemPath.length > 1) {
+//         itemPath = itemPath.slice(0, -1);
+//       }
+      
+//       const isExact = currentPath === itemPath;
+//       const isPrefix = currentPath.startsWith(itemPath + '/');
+
+//       if ((isExact || isPrefix) && itemPath.length > longestMatch) {
+//         activeIndex = index;
+//         longestMatch = itemPath.length;
+//       }
+//     });
+//   }
+
+//   // ✅ SLIDING ANIMATION LOGIC
+//   useEffect(() => {
+//     if (isProfileActive || activeIndex === -1) {
+//       setSliderStyle((prev) => ({ ...prev, opacity: 0 }));
+//       return;
+//     }
+
+//     const updateSlider = () => {
+//       const activeEl = itemRefs.current[activeIndex];
+//       if (activeEl) {
+//         setSliderStyle({
+//           left: activeEl.offsetLeft,
+//           width: activeEl.offsetWidth,
+//           opacity: 1,
+//         });
+//       }
+//     };
+
+//     setTimeout(updateSlider, 50);
+//     window.addEventListener('resize', updateSlider);
+//     return () => window.removeEventListener('resize', updateSlider);
+//   }, [activeIndex, isProfileActive]);
+
+//   // User Initial nikalna agar photo nahi hai
+//   const userInitial = (user.name || user.username || '?').charAt(0).toUpperCase();
+
+//   return (
+//     <>
+//       <style>{`
+//         .custom-bb-container {
+//           position: fixed;
+//           bottom: 16px;
+//           left: 50%;
+//           transform: translateX(-50%);
+//           width: calc(100% - 24px);
+//           max-width: 440px;
+//           z-index: 1000;
+//           display: flex;
+//           align-items: center;
+//           justify-content: space-between;
+//           gap: 8px;
+//           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+//           pointer-events: none;
+//           box-sizing: border-box;
+//         }
+
+//         .custom-bb-container * {
+//           pointer-events: auto;
+//         }
+
+//         .custom-bb-main {
+//           flex: 1;
+//           background: ${theme.colors.bbDarkBrown}; 
+//           border-radius: 999px;
+//           padding: 4px 6px;
+//           display: flex;
+//           align-items: center;
+//           justify-content: space-between;
+//           box-shadow: ${theme.shadow.lg};
+//           height: 56px;
+//           box-sizing: border-box;
+//           min-width: 0;
+//           border: 1px solid ${theme.colors.bbIndigo}40;
+//           position: relative; 
+//         }
+
+//         .custom-bb-slider {
+//           position: absolute;
+//           top: 4px;
+//           bottom: 4px;
+//           background: ${theme.colors.surface};
+//           border-radius: 999px;
+//           box-shadow: ${theme.shadow.sm};
+//           transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+//           z-index: 1;
+//           pointer-events: none;
+//         }
+
+//         .custom-bb-item {
+//           position: relative;
+//           z-index: 2;
+//           display: flex;
+//           align-items: center;
+//           justify-content: center;
+//           height: 100%;
+//           text-decoration: none;
+//           border-radius: 999px;
+//           transition: color 0.3s ease;
+//           color: ${theme.colors.bbLightLilac}; 
+//           padding: 0 10px;
+//           min-width: 0;
+//           white-space: nowrap;
+//         }
+
+//         .custom-bb-item.active {
+//           color: ${theme.colors.bbDarkBrown};
+//           padding: 0 14px;
+//         }
+
+//         .custom-bb-icon {
+//           display: flex;
+//           align-items: center;
+//           justify-content: center;
+//           flex-shrink: 0;
+//         }
+
+//         .custom-bb-label {
+//           font-size: 13px;
+//           font-weight: 700;
+//           margin-left: 6px;
+//           white-space: nowrap;
+//           overflow: hidden;
+//           text-overflow: ellipsis;
+//         }
+
+//         /* Profile Circle Button */
+//         .custom-bb-circle-btn {
+//           width: 56px;
+//           height: 56px;
+//           background: ${theme.colors.bbDarkBrown};
+//           border-radius: 50%;
+//           display: flex;
+//           align-items: center;
+//           justify-content: center;
+//           color: ${theme.colors.bbLightLilac};
+//           text-decoration: none;
+//           box-shadow: ${theme.shadow.lg};
+//           flex-shrink: 0;
+//           transition: all 0.3s ease;
+//           border: 2px solid transparent;
+//           overflow: hidden; /* Image ko circle me rakhne ke liye */
+//           position: relative;
+//         }
+
+//         .custom-bb-circle-btn.active {
+//           border-color: ${theme.colors.surface};
+//           box-shadow: 0 0 0 2px ${theme.colors.bbIndigo};
+//         }
+
+//         /* Image style */
+//         .custom-bb-profile-img {
+//           width: 100%;
+//           height: 100%;
+//           object-fit: cover;
+//           border-radius: 50%;
+//         }
+
+//         /* Initial text style */
+//         .custom-bb-initial {
+//           font-size: 20px;
+//           font-weight: 800;
+//           color: ${theme.colors.bbLightLilac};
+//         }
+
+//         @media (max-width: 380px) {
+//           .custom-bb-container {
+//             width: calc(100% - 16px);
+//             bottom: 12px;
+//             gap: 6px;
+//           }
+//           .custom-bb-main {
+//             height: 52px;
+//             padding: 3px 4px;
+//           }
+//           .custom-bb-circle-btn {
+//             width: 52px;
+//             height: 52px;
+//           }
+//           .custom-bb-label {
+//             font-size: 12px;
+//             margin-left: 4px;
+//           }
+//           .custom-bb-item {
+//             padding: 0 8px;
+//           }
+//           .custom-bb-item.active {
+//             padding: 0 10px;
+//           }
+//         }
+
+//         @media (min-width: 768px) {
+//           .custom-bb-container {
+//             display: none !important;
+//           }
+//         }
+//       `}</style>
+
+//       <div className="custom-bb-container">
+//         <nav className="custom-bb-main">
+//           <div 
+//             className="custom-bb-slider" 
+//             style={{
+//               left: `${sliderStyle.left}px`,
+//               width: `${sliderStyle.width}px`,
+//               opacity: sliderStyle.opacity
+//             }}
+//           />
+
+//           {items.map((item, index) => {
+//             const isActive = activeIndex === index;
+
+//             return (
+//               <Link
+//                 key={item.path}
+//                 to={item.path}
+//                 ref={(el) => (itemRefs.current[index] = el)}
+//                 className={`custom-bb-item ${isActive ? 'active' : ''}`}
+//               >
+//                 <span className="custom-bb-icon">
+//                   {renderDynamicIcon(item, 20)}
+//                 </span>
+//                 {isActive && (
+//                   <span className="custom-bb-label">{item.label}</span>
+//                 )}
+//               </Link>
+//             );
+//           })}
+//         </nav>
+
+//         {/* ✅ Profile Button with Image / Initial */}
+//         <Link
+//           to={profilePath}
+//           className={`custom-bb-circle-btn ${isProfileActive ? 'active' : ''}`}
+//           title="Profile"
+//         >
+//           {user.profilePhoto ? (
+//             <img 
+//               src={user.profilePhoto} 
+//               alt="Profile" 
+//               className="custom-bb-profile-img" 
+//             />
+//           ) : (
+//             <span className="custom-bb-initial">{userInitial}</span>
+//           )}
+//         </Link>
+//       </div>
+//     </>
+//   );
+// }
+
+
+
+
 import { useEffect, useState, useRef } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { theme } from '../../config/theme.js';
@@ -1811,7 +2426,6 @@ export default function BottomBar({ menu = [] }) {
 
   // ✅ SLIDING ANIMATION LOGIC
   useEffect(() => {
-    // Agar profile active hai to slider hide kar do
     if (isProfileActive || activeIndex === -1) {
       setSliderStyle((prev) => ({ ...prev, opacity: 0 }));
       return;
@@ -1828,29 +2442,29 @@ export default function BottomBar({ menu = [] }) {
       }
     };
 
-    // Thoda delay taaki DOM update ho jaye aur text expand ho sake
     setTimeout(updateSlider, 50);
-
-    // Window resize par bhi adjust karo
     window.addEventListener('resize', updateSlider);
     return () => window.removeEventListener('resize', updateSlider);
   }, [activeIndex, isProfileActive]);
+
+  // User Initial nikalna agar photo nahi hai
+  const userInitial = (user.name || user.username || '?').charAt(0).toUpperCase();
 
   return (
     <>
       <style>{`
         .custom-bb-container {
           position: fixed;
-          bottom: 16px;
+          bottom: 20px;
           left: 50%;
           transform: translateX(-50%);
-          width: calc(100% - 24px);
+          width: calc(100% - 28px);
           max-width: 440px;
           z-index: 1000;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 8px;
+          gap: 10px;
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
           pointer-events: none;
           box-sizing: border-box;
@@ -1860,56 +2474,59 @@ export default function BottomBar({ menu = [] }) {
           pointer-events: auto;
         }
 
-        /* Dark Main Capsule */
         .custom-bb-main {
           flex: 1;
           background: ${theme.colors.bbDarkBrown}; 
           border-radius: 999px;
-          padding: 4px 6px;
+          padding: 5px 6px;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          box-shadow: ${theme.shadow.lg};
-          height: 56px;
+          gap: 4px;
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+          height: 60px;
           box-sizing: border-box;
           min-width: 0;
-          border: 1px solid ${theme.colors.bbIndigo}40;
-          position: relative; /* Slider ke liye zaroori */
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          position: relative; 
+          backdrop-filter: blur(8px);
         }
 
-        /* ✅ Floating White Slider Background */
         .custom-bb-slider {
           position: absolute;
-          top: 4px;
-          bottom: 4px;
+          top: 5px;
+          bottom: 5px;
           background: ${theme.colors.surface};
           border-radius: 999px;
-          box-shadow: ${theme.shadow.sm};
-          transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          transition: all 0.4s cubic-bezier(0.25, 1, 0.5, 1);
           z-index: 1;
           pointer-events: none;
         }
 
         .custom-bb-item {
           position: relative;
-          z-index: 2; /* Slider ke upar dikhne ke liye */
+          z-index: 2;
           display: flex;
           align-items: center;
           justify-content: center;
           height: 100%;
           text-decoration: none;
           border-radius: 999px;
-          transition: color 0.3s ease;
+          transition: all 0.3s ease;
           color: ${theme.colors.bbLightLilac}; 
-          padding: 0 10px;
+          padding: 0 12px;
           min-width: 0;
           white-space: nowrap;
         }
 
-        /* Active Item */
+        .custom-bb-item:hover {
+          opacity: 0.9;
+        }
+
         .custom-bb-item.active {
           color: ${theme.colors.bbDarkBrown};
-          padding: 0 14px;
+          padding: 0 16px;
         }
 
         .custom-bb-icon {
@@ -1917,6 +2534,11 @@ export default function BottomBar({ menu = [] }) {
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
+          transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .custom-bb-item.active .custom-bb-icon {
+          transform: scale(1.08);
         }
 
         .custom-bb-label {
@@ -1926,12 +2548,23 @@ export default function BottomBar({ menu = [] }) {
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
+          animation: fadeInLabel 0.3s ease-in-out forwards;
         }
 
-        /* Right Circular Button */
+        @keyframes fadeInLabel {
+          from {
+            opacity: 0;
+            transform: translateX(-4px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
         .custom-bb-circle-btn {
-          width: 56px;
-          height: 56px;
+          width: 60px;
+          height: 60px;
           background: ${theme.colors.bbDarkBrown};
           border-radius: 50%;
           display: flex;
@@ -1939,30 +2572,58 @@ export default function BottomBar({ menu = [] }) {
           justify-content: center;
           color: ${theme.colors.bbLightLilac};
           text-decoration: none;
-          box-shadow: ${theme.shadow.lg};
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 
+                      0 0 0 1px rgba(255, 255, 255, 0.1),
+                      0 0 20px rgba(99, 102, 241, 0.25);
           flex-shrink: 0;
-          transition: all 0.3s ease;
-          border: 1px solid ${theme.colors.bbIndigo}40;
+          transition: all 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+          border: 2px solid rgba(255, 255, 255, 0.15);
+          overflow: hidden;
+          position: relative;
+        }
+
+        .custom-bb-circle-btn:hover {
+          transform: translateY(-2px) scale(1.04);
+          box-shadow: 0 14px 30px -4px rgba(0, 0, 0, 0.35), 
+                      0 0 0 1px rgba(255, 255, 255, 0.2),
+                      0 0 25px rgba(99, 102, 241, 0.4);
         }
 
         .custom-bb-circle-btn.active {
-          background: ${theme.colors.surface};
-          color: ${theme.colors.bbDarkBrown};
+          border-color: ${theme.colors.surface};
+          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 
+                      0 0 0 3px ${theme.colors.bbIndigo},
+                      0 0 25px rgba(99, 102, 241, 0.5);
+          transform: scale(1.05);
+        }
+
+        .custom-bb-profile-img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          border-radius: 50%;
+        }
+
+        .custom-bb-initial {
+          font-size: 20px;
+          font-weight: 800;
+          color: ${theme.colors.bbLightLilac};
+          letter-spacing: 0.5px;
         }
 
         @media (max-width: 380px) {
           .custom-bb-container {
             width: calc(100% - 16px);
-            bottom: 12px;
-            gap: 6px;
+            bottom: 14px;
+            gap: 8px;
           }
           .custom-bb-main {
-            height: 52px;
-            padding: 3px 4px;
+            height: 54px;
+            padding: 4px 5px;
           }
           .custom-bb-circle-btn {
-            width: 52px;
-            height: 52px;
+            width: 54px;
+            height: 54px;
           }
           .custom-bb-label {
             font-size: 12px;
@@ -1985,8 +2646,6 @@ export default function BottomBar({ menu = [] }) {
 
       <div className="custom-bb-container">
         <nav className="custom-bb-main">
-          
-          {/* ✅ The Sliding Background */}
           <div 
             className="custom-bb-slider" 
             style={{
@@ -2003,7 +2662,7 @@ export default function BottomBar({ menu = [] }) {
               <Link
                 key={item.path}
                 to={item.path}
-                ref={(el) => (itemRefs.current[index] = el)} // ✅ Ref store kiya
+                ref={(el) => (itemRefs.current[index] = el)}
                 className={`custom-bb-item ${isActive ? 'active' : ''}`}
               >
                 <span className="custom-bb-icon">
@@ -2020,11 +2679,17 @@ export default function BottomBar({ menu = [] }) {
         <Link
           to={profilePath}
           className={`custom-bb-circle-btn ${isProfileActive ? 'active' : ''}`}
+          title="Profile"
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
-          </svg>
+          {user.profilePhoto ? (
+            <img 
+              src={user.profilePhoto} 
+              alt="Profile" 
+              className="custom-bb-profile-img" 
+            />
+          ) : (
+            <span className="custom-bb-initial">{userInitial}</span>
+          )}
         </Link>
       </div>
     </>

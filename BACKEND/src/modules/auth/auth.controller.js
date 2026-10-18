@@ -57,9 +57,64 @@
 // });
 
 
+
+
+
+
+// import { asyncHandler } from '../../utils/asyncHandler.js';
+// import * as authService from './auth.service.js';
+// import { env } from '../../config/env.js';
+
+// const cookieOpts = {
+//   httpOnly: true,
+//   secure: env.IS_PROD,
+//   sameSite: env.IS_PROD ? 'none' : 'lax',
+//   maxAge: 7 * 24 * 60 * 60 * 1000,
+// };
+
+// export const login = asyncHandler(async (req, res) => {
+//   const { user, accessToken, refreshToken } = await authService.login(req, req.body);
+//   res.status(200)
+//     .cookie('accessToken', accessToken, { ...cookieOpts, maxAge: 15 * 60 * 1000 })
+//     .cookie('refreshToken', refreshToken, cookieOpts)
+//     .json({ success: true, data: { user, accessToken, refreshToken } });
+// });
+
+// export const refresh = asyncHandler(async (req, res) => {
+//   const token = req.cookies?.refreshToken || req.body.refreshToken;
+//   const { accessToken } = await authService.refresh(token);
+//   res.status(200)
+//     .cookie('accessToken', accessToken, { ...cookieOpts, maxAge: 15 * 60 * 1000 })
+//     .json({ success: true, data: { accessToken } });
+// });
+
+// export const logout = asyncHandler(async (req, res) => {
+//   res.clearCookie('accessToken').clearCookie('refreshToken').json({ success: true, message: 'Logged out' });
+// });
+
+// export const me = asyncHandler(async (req, res) => {
+//   const profile = await authService.getProfile(req.user);
+//   res.json({ success: true, data: profile });
+// });
+
+// export const changePassword = asyncHandler(async (req, res) => {
+//   await authService.changePassword(req, req.user._id, req.body);
+//   res.json({ success: true, message: 'Password changed' });
+// });
+
+// // ✅ NAYA: Image (Base64) body se accept karega
+// export const updateProfile = asyncHandler(async (req, res) => {
+//   const user = await authService.updateProfile(req, req.user._id, req.body);
+//   res.json({ success: true, data: user });
+// });
+
+
+
+
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import * as authService from './auth.service.js';
 import { env } from '../../config/env.js';
+import cloudinary from '../../config/cloudinary.js'; // ✅ Cloudinary import kiya
 
 const cookieOpts = {
   httpOnly: true,
@@ -70,9 +125,7 @@ const cookieOpts = {
 
 export const login = asyncHandler(async (req, res) => {
   const { user, accessToken, refreshToken } = await authService.login(req, req.body);
-
-  res
-    .status(200)
+  res.status(200)
     .cookie('accessToken', accessToken, { ...cookieOpts, maxAge: 15 * 60 * 1000 })
     .cookie('refreshToken', refreshToken, cookieOpts)
     .json({ success: true, data: { user, accessToken, refreshToken } });
@@ -81,17 +134,13 @@ export const login = asyncHandler(async (req, res) => {
 export const refresh = asyncHandler(async (req, res) => {
   const token = req.cookies?.refreshToken || req.body.refreshToken;
   const { accessToken } = await authService.refresh(token);
-  res
-    .status(200)
+  res.status(200)
     .cookie('accessToken', accessToken, { ...cookieOpts, maxAge: 15 * 60 * 1000 })
     .json({ success: true, data: { accessToken } });
 });
 
 export const logout = asyncHandler(async (req, res) => {
-  res
-    .clearCookie('accessToken')
-    .clearCookie('refreshToken')
-    .json({ success: true, message: 'Logged out' });
+  res.clearCookie('accessToken').clearCookie('refreshToken').json({ success: true, message: 'Logged out' });
 });
 
 export const me = asyncHandler(async (req, res) => {
@@ -104,8 +153,28 @@ export const changePassword = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Password changed' });
 });
 
-
+// ✅ Profile Update with Cloudinary
 export const updateProfile = asyncHandler(async (req, res) => {
-  const user = await authService.updateProfile(req, req.user._id, req.body);
+  const data = { ...req.body };
+
+  // Agar nayi image aayi hai, toh Cloudinary par upload karo
+  if (req.file) {
+    try {
+      const b64 = Buffer.from(req.file.buffer).toString('base64');
+      const dataURI = `data:${req.file.mimetype};base64,${b64}`;
+
+      const result = await cloudinary.uploader.upload(dataURI, {
+        folder: 'clf_profile_photos',
+        resource_type: 'image',
+      });
+
+      data.profilePhoto = result.secure_url; // ✅ Cloudinary URL
+    } catch (err) {
+      console.error('Cloudinary upload failed:', err);
+      return res.status(500).json({ success: false, message: 'Image upload failed' });
+    }
+  }
+
+  const user = await authService.updateProfile(req, req.user._id, data);
   res.json({ success: true, data: user });
 });
