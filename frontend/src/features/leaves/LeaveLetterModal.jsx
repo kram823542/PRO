@@ -1,0 +1,338 @@
+// import { useState } from 'react';
+// import { toast } from 'react-hot-toast';
+// import { downloadLeavePdfApi } from './leaves.api'; // ✅ NAYA Import
+
+// export default function LeaveLetterModal({ leave, onClose, children }) {
+//   const [zoom, setZoom] = useState(1);
+//   const [downloading, setDownloading] = useState(false);
+
+//   if (!leave) return null;
+
+//   const formatDate = (dateStr) => {
+//     return new Date(dateStr).toLocaleDateString('en-GB', {
+//       day: '2-digit', month: 'short', year: 'numeric'
+//     });
+//   };
+
+//   // ✅ NAYA: Backend se PDF download logic
+//   const handleDownload = async () => {
+//     try {
+//       setDownloading(true);
+//       const blob = await downloadLeavePdfApi(leave._id);
+      
+//       const url = window.URL.createObjectURL(new Blob([blob]));
+//       const link = document.createElement('a');
+//       link.href = url;
+//       link.setAttribute('download', `Leave-${leave.employeeId?.employeeCode || 'App'}.pdf`);
+//       document.body.appendChild(link);
+//       link.click();
+//       link.parentNode.removeChild(link);
+//       window.URL.revokeObjectURL(url);
+      
+//       toast.success('PDF Downloaded successfully');
+//     } catch (error) {
+//       toast.error('Failed to download PDF');
+//     } finally {
+//       setDownloading(false);
+//     }
+//   };
+
+//   return (
+//     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      
+//       <div className="bg-white w-full max-w-3xl h-[90vh] rounded-xl shadow-2xl flex flex-col overflow-hidden relative">
+        
+//         {/* Toolbar */}
+//         <div className="flex items-center justify-between p-4 border-b bg-gray-50">
+//           <h2 className="text-lg font-bold text-gray-800">Leave Application (आवेदन पत्र)</h2>
+//           <div className="flex items-center gap-3">
+//             {/* Zoom Controls */}
+//             <button onClick={() => setZoom(z => Math.max(0.5, z - 0.2))} className="p-2 border rounded bg-white hover:bg-gray-100">A-</button>
+//             <button onClick={() => setZoom(1)} className="text-sm font-medium text-gray-600 hover:text-black">Reset</button>
+//             <button onClick={() => setZoom(z => Math.min(2, z + 0.2))} className="p-2 border rounded bg-white hover:bg-gray-100">A+</button>
+            
+//             {/* ✅ NAYA: Download Button */}
+//             <button 
+//               onClick={handleDownload} 
+//               disabled={downloading}
+//               className="ml-4 px-4 py-2 bg-blue-600 text-white rounded font-medium hover:bg-blue-700 flex items-center gap-2 disabled:opacity-50"
+//             >
+//               {downloading ? 'Downloading...' : (
+//                 <>
+//                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+//                   Download PDF
+//                 </>
+//               )}
+//             </button>
+
+//             <button onClick={onClose} className="ml-2 p-2 bg-red-100 text-red-600 rounded hover:bg-red-200 transition">
+//               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+//             </button>
+//           </div>
+//         </div>
+
+//         {/* Scrollable Letter Area (Sirf UI dekhne ke liye) */}
+//         <div className="flex-1 overflow-auto p-8 bg-gray-200">
+//           <div 
+//             className="bg-white mx-auto shadow-md border border-gray-300 p-10 origin-top transition-transform duration-200 ease-out"
+//             style={{ transform: `scale(${zoom})`, width: '210mm', minHeight: '297mm' }}
+//           >
+//             {/* Letterhead */}
+//             <div className="text-center border-b-2 border-gray-800 pb-4 mb-8">
+//               <h1 className="text-2xl font-bold text-gray-900">सतबरवा आजीविका महिला संकुल स्तरीय</h1>
+//               <p className="text-lg font-semibold text-gray-800">प्राथमिक स्वावलम्बी सहकारी समिति लिमिटेड</p>
+//               <p className="text-sm text-gray-600 mt-1">ग्राम- सतबरवा, प्रखंड- सतबरवा, जिला- पलामू (झा0)</p>
+//             </div>
+
+//             <div className="flex justify-between items-start mb-6 text-gray-800">
+//               <div>
+//                 <p className="font-semibold text-lg">प्रति,</p>
+//                 <p>CLF Admin</p>
+//                 <p>सतबरवा CLF</p>
+//               </div>
+//               <div className="text-right">
+//                 <p>दिनांक: {formatDate(leave.createdAt)}</p>
+//               </div>
+//             </div>
+
+//             <div className="mb-6 text-center">
+//               <p className="font-bold text-lg text-gray-900 underline inline-block px-4 py-1">
+//                 विषय: अवकाश (Leave) हेतु आवेदन
+//               </p>
+//             </div>
+
+//             <div className="text-gray-800 leading-loose space-y-4 text-justify" style={{ fontSize: '16px' }}>
+//               <p>महोदय/महोदया,</p>
+//               <p>
+//                 सविनय निवेदन है कि मुझे <strong>{leave.totalDays} दिनों</strong> का अवकाश चाहिए। 
+//                 मुझे दिनांक <strong>{formatDate(leave.startDate)}</strong> से <strong>{formatDate(leave.endDate)}</strong> तक अवकाश की आवश्यकता है
+//                 {leave.leaveType === 'Half Day' && leave.startTime && (
+//                   <span> (समय: {leave.startTime} से {leave.endTime} तक)</span>
+//                 )}।
+//               </p>
+//               <p>
+//                 अवकाश का कारण निम्नलिखित है: <br/>
+//                 <span className="italic text-gray-700 block mt-2 p-4 bg-gray-50 border-l-4 border-gray-300">
+//                   "{leave.reason}"
+//                 </span>
+//               </p>
+//               <p>अतः आपसे निवेदन है कि मेरे इस अवकाश आवेदन को स्वीकृत (Approve) करने की कृपा करें।</p>
+//             </div>
+
+//             <div className="mt-16 text-gray-800 flex justify-between">
+//               <div><p>धन्यवाद,</p></div>
+//               <div className="text-center mt-8">
+//                 <p className="font-semibold text-lg">{leave.employeeId?.name || 'Employee Name'}</p>
+//                 <p className="text-sm text-gray-600">{leave.employeeId?.designation || 'Designation'}</p>
+//                 <p className="text-sm text-gray-600">Emp Code: {leave.employeeId?.employeeCode || 'N/A'}</p>
+//               </div>
+//             </div>
+
+//             {(leave.status !== 'PENDING' || leave.reviewRemarks) && (
+//               <div className="mt-16 pt-6 border-t border-gray-300">
+//                 <div className="flex justify-between items-center">
+//                   <div>
+//                     <p className="text-xs text-gray-500 uppercase font-bold">Status</p>
+//                     <span className={`inline-block mt-1 px-3 py-1 text-sm font-bold rounded ${
+//                       leave.status === 'APPROVED' ? 'bg-green-100 text-green-700' :
+//                       leave.status === 'REJECTED' ? 'bg-red-100 text-red-700' :
+//                       'bg-yellow-100 text-yellow-700'
+//                     }`}>
+//                       {leave.status === 'APPROVED' ? 'स्वीकृत (APPROVED)' : leave.status === 'REJECTED' ? 'अस्वीकृत (REJECTED)' : 'लंबित (PENDING)'}
+//                     </span>
+//                   </div>
+
+//                   {leave.reviewRemarks && (
+//                     <div className="bg-red-50 p-3 rounded max-w-sm border border-red-100">
+//                       <p className="text-xs text-red-500 uppercase font-bold">Admin Remark (टिप्पणी):</p>
+//                       <p className="text-sm text-red-700 mt-1">{leave.reviewRemarks}</p>
+//                     </div>
+//                   )}
+//                 </div>
+//               </div>
+//             )}
+//           </div>
+//         </div>
+        
+//         {/* Approve/Reject Buttons for Admin */}
+//         {children && (
+//           <div className="p-4 border-t bg-gray-50 flex justify-center">
+//             {children}
+//           </div>
+//         )}
+//       </div>
+//     </div>
+//   );
+// }
+
+
+
+
+
+
+import { useState } from 'react';
+import { toast } from 'react-hot-toast';
+import { downloadLeavePdfApi } from './leaves.api';
+import { theme } from '../../config/theme.js';
+
+export default function LeaveLetterModal({ leave, onClose, children }) {
+  const [zoom, setZoom] = useState(1);
+  const [downloading, setDownloading] = useState(false);
+
+  if (!leave) return null;
+
+  const formatDate = (dateStr) => {
+    return new Date(dateStr).toLocaleDateString('en-GB', {
+      day: '2-digit', month: 'short', year: 'numeric'
+    });
+  };
+
+  const handleDownload = async () => {
+    try {
+      setDownloading(true);
+      const blob = await downloadLeavePdfApi(leave._id);
+      
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Leave-${leave.employeeId?.employeeCode || 'App'}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('PDF Downloaded successfully');
+    } catch (error) {
+      toast.error('Failed to download PDF');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
+      
+      <div style={{ background: theme.colors.surface, borderRadius: theme.radius.lg, boxShadow: theme.shadow.lg }} className="w-full max-w-3xl h-[90vh] flex flex-col overflow-hidden relative">
+        
+        {/* Toolbar */}
+        <div style={{ borderBottom: `1px solid ${theme.colors.border}`, background: theme.colors.background }} className="flex items-center justify-between p-4">
+          <h2 style={{ color: theme.colors.text }} className="text-lg font-bold">Leave Application (आवेदन पत्र)</h2>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setZoom(z => Math.max(0.5, z - 0.2))} style={{ borderColor: theme.colors.border, background: theme.colors.surface }} className="p-2 border rounded hover:bg-gray-100">A-</button>
+            <button onClick={() => setZoom(1)} style={{ color: theme.colors.muted }} className="text-sm font-medium hover:opacity-80">Reset</button>
+            <button onClick={() => setZoom(z => Math.min(2, z + 0.2))} style={{ borderColor: theme.colors.border, background: theme.colors.surface }} className="p-2 border rounded hover:bg-gray-100">A+</button>
+            
+            <button 
+              onClick={handleDownload} 
+              disabled={downloading}
+              style={{ background: theme.colors.primary, color: '#fff' }}
+              className="ml-4 px-4 py-2 rounded font-medium hover:opacity-90 flex items-center gap-2 disabled:opacity-50"
+            >
+              {downloading ? 'Downloading...' : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                  Download PDF
+                </>
+              )}
+            </button>
+
+            <button onClick={onClose} style={{ background: `${theme.colors.danger}20`, color: theme.colors.danger }} className="ml-2 p-2 rounded hover:opacity-80 transition">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Scrollable Letter Area */}
+        <div style={{ background: theme.colors.background }} className="flex-1 overflow-auto p-8">
+          <div 
+            style={{ transform: `scale(${zoom})`, background: '#fff', border: `1px solid ${theme.colors.border}`, width: '210mm', minHeight: '297mm', boxShadow: theme.shadow.md }}
+            className="mx-auto p-10 origin-top transition-transform duration-200 ease-out"
+          >
+            {/* Letterhead */}
+            <div style={{ borderBottom: `2px solid ${theme.colors.text}` }} className="text-center pb-4 mb-8">
+              <h1 style={{ color: theme.colors.text }} className="text-2xl font-bold">सतबरवा आजीविका महिला संकुल स्तरीय</h1>
+              <p style={{ color: theme.colors.text }} className="text-lg font-semibold">प्राथमिक स्वावलम्बी सहकारी समिति लिमिटेड</p>
+              <p style={{ color: theme.colors.muted }} className="text-sm mt-1">ग्राम- सतबरवा, प्रखंड- सतबरवा, जिला- पलामू (झा0)</p>
+            </div>
+
+            <div className="flex justify-between items-start mb-6" style={{ color: theme.colors.text }}>
+              <div>
+                <p className="font-semibold text-lg">प्रति,</p>
+                <p>CLF Admin</p>
+                <p>सतबरवा CLF</p>
+              </div>
+              <div className="text-right">
+                <p>दिनांक: {formatDate(leave.createdAt)}</p>
+              </div>
+            </div>
+
+            <div className="mb-6 text-center">
+              <p style={{ color: theme.colors.text, borderBottom: `1px solid ${theme.colors.text}` }} className="font-bold text-lg inline-block px-4 py-1">
+                विषय: अवकाश (Leave) हेतु आवेदन
+              </p>
+            </div>
+
+            <div className="leading-loose space-y-4 text-justify" style={{ fontSize: '16px', color: theme.colors.text }}>
+              <p>महोदय/महोदया,</p>
+              <p>
+                सविनय निवेदन है कि मुझे <strong>{leave.totalDays} दिनों</strong> का अवकाश चाहिए। 
+                मुझे दिनांक <strong>{formatDate(leave.startDate)}</strong> से <strong>{formatDate(leave.endDate)}</strong> तक अवकाश की आवश्यकता है
+                {leave.leaveType === 'Half Day' && leave.startTime && (
+                  <span> (समय: {leave.startTime} से {leave.endTime} तक)</span>
+                )}।
+              </p>
+              <p>
+                अवकाश का कारण निम्नलिखित है: <br/>
+                <span style={{ color: theme.colors.muted, borderLeft: `4px solid ${theme.colors.border}` }} className="italic block mt-2 p-4 bg-gray-50">
+                  "{leave.reason}"
+                </span>
+              </p>
+              <p>अतः आपसे निवेदन है कि मेरे इस अवकाश आवेदन को स्वीकृत (Approve) करने की कृपा करें।</p>
+            </div>
+
+            <div className="mt-16 flex justify-between" style={{ color: theme.colors.text }}>
+              <div><p>धन्यवाद,</p></div>
+              <div className="text-center mt-8">
+                <p className="font-semibold text-lg">{leave.employeeId?.name || 'Employee Name'}</p>
+                <p style={{ color: theme.colors.muted }} className="text-sm">{leave.employeeId?.designation || 'Designation'}</p>
+                <p style={{ color: theme.colors.muted }} className="text-sm">Emp Code: {leave.employeeId?.employeeCode || 'N/A'}</p>
+              </div>
+            </div>
+
+            {(leave.status !== 'PENDING' || leave.reviewRemarks) && (
+              <div style={{ borderTop: `1px solid ${theme.colors.border}` }} className="mt-16 pt-6">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p style={{ color: theme.colors.muted }} className="text-xs uppercase font-bold">Status</p>
+                    <span 
+                      style={{ 
+                        background: leave.status === 'APPROVED' ? `${theme.colors.success}20` : leave.status === 'REJECTED' ? `${theme.colors.danger}20` : `${theme.colors.warning}20`,
+                        color: leave.status === 'APPROVED' ? theme.colors.success : leave.status === 'REJECTED' ? theme.colors.danger : theme.colors.warning
+                      }} 
+                      className="inline-block mt-1 px-3 py-1 text-sm font-bold rounded"
+                    >
+                      {leave.status === 'APPROVED' ? 'स्वीकृत (APPROVED)' : leave.status === 'REJECTED' ? 'अस्वीकृत (REJECTED)' : 'लंबित (PENDING)'}
+                    </span>
+                  </div>
+
+                  {leave.reviewRemarks && (
+                    <div style={{ background: `${theme.colors.danger}10`, border: `1px solid ${theme.colors.danger}30` }} className="p-3 rounded max-w-sm">
+                      <p style={{ color: theme.colors.danger }} className="text-xs uppercase font-bold">Admin Remark (टिप्पणी):</p>
+                      <p style={{ color: theme.colors.danger }} className="text-sm mt-1">{leave.reviewRemarks}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {children && (
+          <div style={{ borderTop: `1px solid ${theme.colors.border}`, background: theme.colors.background }} className="p-4 flex justify-center">
+            {children}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
