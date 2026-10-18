@@ -737,6 +737,9 @@ export const workDonePDF = async (req, { employeeId, year, month }) => {
 /* ────────────────────────────────────────────
    ATTENDANCE EXCEL — Matrix format
    ──────────────────────────────────────────── */
+/* ────────────────────────────────────────────
+   ATTENDANCE EXCEL — Matrix format (With L Count)
+   ──────────────────────────────────────────── */
 export const attendanceExcel = async (req, { clfId, from, to }) => {
   const user = req.user;
 
@@ -768,6 +771,7 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
 
   const matrixMap = new Map();
 
+  // 1. Sabhi employees ko list me daalo
   employees.forEach((emp) => {
     matrixMap.set(String(emp._id), {
       name: emp.name || '—',
@@ -777,6 +781,7 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
     });
   });
 
+  // 2. Attendance data fill karo
   records.forEach((r) => {
     const id = String(r.employeeId);
     if (!matrixMap.has(id)) {
@@ -789,11 +794,13 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
     }
 
     const day = Number(r.date.split('-')[2]);
+    
+    // ✅ Status Label mapping (Including LEAVE as 'L')
     const statusLabel =
       r.status === 'PRESENT' ? 'P'
       : r.status === 'ABSENT' ? 'A'
       : r.status === 'HALF_DAY' ? 'H'
-      : r.status === 'LEAVE' ? 'L'
+      : r.status === 'LEAVE' ? 'L' 
       : '';
 
     matrixMap.get(id).days[day] = statusLabel;
@@ -811,6 +818,7 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
     views: [{ state: 'frozen', xSplit: 1, ySplit: 1 }],
   });
 
+  // ✅ Excel Columns setup
   ws.columns = [
     { header: 'Employee', key: 'employee', width: 30 },
     ...Array.from({ length: totalDays }, (_, i) => ({
@@ -820,8 +828,10 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
     })),
     { header: 'P', key: 'present', width: 5 },
     { header: 'A', key: 'absent', width: 5 },
+    { header: 'L', key: 'leave', width: 5 }, // ✅ L Column add kiya
   ];
 
+  // ✅ Header Styling
   const headerRow = ws.getRow(1);
   headerRow.height = 22;
   headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -842,17 +852,22 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
       cell.font = { bold: true, color: { argb: 'FF334155' }, size: 11 };
       cell.alignment = { horizontal: 'left', vertical: 'middle' };
     } else if (colNumber === totalDays + 2) {
-      cell.font = { bold: true, color: { argb: 'FF15803D' }, size: 11 };
+      cell.font = { bold: true, color: { argb: 'FF15803D' }, size: 11 }; // P Header Green
     } else if (colNumber === totalDays + 3) {
-      cell.font = { bold: true, color: { argb: 'FFB91C1C' }, size: 11 };
+      cell.font = { bold: true, color: { argb: 'FFB91C1C' }, size: 11 }; // A Header Red
+    } else if (colNumber === totalDays + 4) {
+      cell.font = { bold: true, color: { argb: 'FF1D4ED8' }, size: 11 }; // L Header Blue
     } else {
       cell.font = { bold: true, color: { argb: 'FF334155' }, size: 10 };
     }
   });
 
+  // ✅ Rows fill karo aur Count nikalo
   rows.forEach((row) => {
     let p = 0;
     let a = 0;
+    let l = 0; // ✅ L count variable
+
     const values = {
       employee: `${row.name}\n${row.code} • ${row.designation}`,
     };
@@ -860,11 +875,15 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
     for (let d = 1; d <= totalDays; d++) {
       const status = row.days[d] || '';
       values[`d${d}`] = status;
+      
       if (status === 'P') p++;
       else if (status === 'A') a++;
+      else if (status === 'L') l++; // ✅ L count calculate kiya
     }
+    
     values.present = p;
     values.absent = a;
+    values.leave = l; // ✅ Excel me save kiya
 
     const excelRow = ws.addRow(values);
     excelRow.height = 30;
@@ -895,6 +914,13 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
         return;
       }
 
+      // ✅ L column styling
+      if (colNumber === totalDays + 4) {
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        cell.font = { bold: true, color: { argb: 'FF1D4ED8' }, size: 11 };
+        return;
+      }
+
       cell.alignment = { horizontal: 'center', vertical: 'middle' };
       const v = cell.value;
       let bg = 'FFFFFFFF';
@@ -902,7 +928,7 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
       if (v === 'P') { bg = 'FFDCFCE7'; fg = 'FF15803D'; }
       else if (v === 'A') { bg = 'FFFEE2E2'; fg = 'FFB91C1C'; }
       else if (v === 'H') { bg = 'FFFEF3C7'; fg = 'FFB45309'; }
-      else if (v === 'L') { bg = 'FFDBEAFE'; fg = 'FF1D4ED8'; }
+      else if (v === 'L') { bg = 'FFDBEAFE'; fg = 'FF1D4ED8'; } // ✅ Leave cell Blue
 
       cell.fill = {
         type: 'pattern',

@@ -835,6 +835,348 @@
 // };
 
 
+
+
+
+// import mongoose from 'mongoose';
+// import { Employee } from './employee.model.js';
+// import { CLF } from '../clfs/clf.model.js';
+// import { User } from '../users/user.model.js';
+// import { ApiError } from '../../utils/ApiError.js';
+// import { encrypt, decrypt, generatePassword } from '../../utils/security.js';
+// import { createAudit } from '../../middlewares/audit.middleware.js';
+
+// /** CLF creates employee in own CLF */
+// export const createEmployee = async (req, data) => {
+//   const user = req.user;
+//   const clfId = user.role === 'CLF' ? user.clfId : data.clfId;
+//   if (!clfId) throw ApiError.badRequest('CLF is required');
+
+//   const clf = await CLF.findById(clfId);
+//   if (!clf) throw ApiError.notFound('CLF not found');
+
+//   if (user.role === 'CLF' && String(user.clfId) !== String(clf._id)) {
+//     throw ApiError.forbidden('Access denied');
+//   }
+//   if (user.role === 'BPM' && String(user.blockId) !== String(clf.blockId)) {
+//     throw ApiError.forbidden('Block mismatch');
+//   }
+
+//   const empCode = data.employeeCode?.toUpperCase();
+//   const exists = await Employee.findOne({ employeeCode: empCode });
+//   if (exists) throw ApiError.conflict('Employee code already exists');
+
+//   const session = await mongoose.startSession();
+//   let result;
+//   try {
+//     await session.withTransaction(async () => {
+//       const tempPassword = generatePassword(10);
+//       const username = empCode.toLowerCase();
+
+//       const empUser = await User.create(
+//         [
+//           {
+//             username,
+//             password: tempPassword,
+//             role: 'EMPLOYEE',
+//             name: data.name,
+//             mobile: data.mobile,
+//             blockId: clf.blockId,
+//             clfId: clf._id,
+//             createdBy: user._id,
+//             mustChangePassword: true,
+//           },
+//         ],
+//         { session }
+//       );
+
+//       const employee = await Employee.create(
+//         [
+//           {
+//             employeeCode: empCode,
+//             name: data.name,
+//             mobile: data.mobile,
+//             designation: data.designation,
+//             joiningDate: data.joiningDate,
+//             aadhaarNumber: data.aadhaarNumber ? encrypt(data.aadhaarNumber) : undefined,
+//             bankDetails: {
+//               bankName: data.bankDetails?.bankName,
+//               accountNumber: data.bankDetails?.accountNumber
+//                 ? encrypt(data.bankDetails.accountNumber)
+//                 : undefined,
+//               branch: data.bankDetails?.branch,
+//               ifsc: data.bankDetails?.ifsc?.toUpperCase(),
+//             },
+//             workLocation: { panchayat: data.workLocation.panchayat },
+//             profilePhoto: data.profilePhoto,
+//             clfId: clf._id,
+//             blockId: clf.blockId,
+//             userId: empUser[0]._id,
+//             createdBy: user._id,
+//           },
+//         ],
+//         { session }
+//       );
+
+//       await User.findByIdAndUpdate(
+//         empUser[0]._id,
+//         { employeeId: employee[0]._id },
+//         { session }
+//       );
+
+//       result = { employee: employee[0], login: { username, tempPassword } };
+//     });
+
+//     await createAudit({
+//       req,
+//       action: 'EMPLOYEE_CREATED',
+//       targetType: 'Employee',
+//       targetId: result.employee._id,
+//       metadata: { employeeCode: empCode, clfId },
+//     });
+
+//     return result;
+//   } finally {
+//     await session.endSession();
+//   }
+// };
+
+// /** ✅ Decrypt Aadhaar/Account for authorized roles */
+// export const formatEmployee = (emp, { revealSensitive = false } = {}) => {
+//   const obj = emp.toObject ? emp.toObject() : emp;
+
+//   let aadhaarOut = null;
+//   if (obj.aadhaarNumber) {
+//     if (revealSensitive) {
+//       aadhaarOut = decrypt(obj.aadhaarNumber) || 'XXXX-XXXX-XXXX';
+//     } else {
+//       aadhaarOut = 'XXXX-XXXX-XXXX';
+//     }
+//   }
+
+//   let accountOut = null;
+//   if (obj.bankDetails?.accountNumber) {
+//     if (revealSensitive) {
+//       accountOut = decrypt(obj.bankDetails.accountNumber) || 'XXXXXXXX';
+//     } else {
+//       accountOut = 'XXXXXXXX';
+//     }
+//   }
+
+//   return {
+//     ...obj,
+//     aadhaarNumber: aadhaarOut,
+//     bankDetails: {
+//       ...obj.bankDetails,
+//       accountNumber: accountOut,
+//     },
+//   };
+// };
+
+// /** ✅ Scope list — CLF/BPM/SUPER_ADMIN ko full decrypted data */
+// export const listEmployees = async (req, query) => {
+//   const user = req.user;
+//   const filter = {};
+
+//   if (user.role === 'CLF') filter.clfId = user.clfId;
+//   else if (user.role === 'BPM') filter.blockId = user.blockId;
+//   else if (user.role === 'SUPER_ADMIN' && query.clfId) filter.clfId = query.clfId;
+
+//   if (query.status) filter.status = query.status;
+//   if (query.search) {
+//     filter.$or = [
+//       { name: new RegExp(query.search, 'i') },
+//       { employeeCode: new RegExp(query.search, 'i') },
+//       { mobile: new RegExp(query.search, 'i') },
+//     ];
+//   }
+
+//   const page = Math.max(1, parseInt(query.page) || 1);
+//   const limit = Math.min(100, parseInt(query.limit) || 20);
+
+//   // ✅ ADDED: .select() — sensitive fields fetch karo
+//   const [employees, total] = await Promise.all([
+//     Employee.find(filter)
+//       .select('+aadhaarNumber +bankDetails.accountNumber')
+//       .populate('clfId', 'name code')
+//       .sort({ createdAt: -1 })
+//       .skip((page - 1) * limit)
+//       .limit(limit),
+//     Employee.countDocuments(filter),
+//   ]);
+
+//   if (user.role === 'EMPLOYEE') {
+//     return {
+//       employees: employees.filter((e) => String(e.userId) === String(user._id)),
+//       pagination: { page, limit, total: 1, pages: 1 },
+//     };
+//   }
+
+//   // ✅ CHANGED: revealSensitive based on role (pehle false hardcoded tha)
+//   const revealSensitive = ['CLF', 'BPM', 'SUPER_ADMIN'].includes(user.role);
+
+//   return {
+//     employees: employees.map((e) => formatEmployee(e, { revealSensitive })),
+//     pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+//   };
+// };
+
+// /** ✅ Get employee with access scope + sensitive fields (decrypted) */
+// /** ✅ Get employee with access scope + sensitive fields (decrypted for self too) */
+// export const getEmployee = async (req, id) => {
+//   const emp = await Employee.findById(id)
+//     .select('+aadhaarNumber +bankDetails.accountNumber')
+//     .populate('clfId', 'name code blockId');
+
+//   if (!emp) throw ApiError.notFound('Employee not found');
+
+//   assertEmployeeAccess(req.user, emp);
+
+//   // ✅ 'EMPLOYEE' bhi include karo — taaki khud ka Aadhaar/Account khud dekh sake
+//   const revealSensitive = ['CLF', 'BPM', 'SUPER_ADMIN', 'EMPLOYEE'].includes(
+//     req.user.role
+//   );
+//   return formatEmployee(emp, { revealSensitive });
+// };
+
+// export const assertEmployeeAccess = (user, emp) => {
+//   if (user.role === 'SUPER_ADMIN') return;
+
+//   const empClfId = emp.clfId?._id ? String(emp.clfId._id) : String(emp.clfId);
+//   const empBlockId = emp.blockId?._id ? String(emp.blockId._id) : String(emp.blockId);
+
+//   if (user.role === 'BPM' && String(user.blockId) === empBlockId) return;
+//   if (user.role === 'CLF' && String(user.clfId) === empClfId) return;
+//   if (user.role === 'EMPLOYEE' && String(user.employeeId) === String(emp._id)) return;
+
+//   throw ApiError.forbidden('Access denied');
+// };
+
+// export const updateEmployee = async (req, id, data) => {
+//   const emp = await Employee.findById(id).select('+aadhaarNumber +bankDetails.accountNumber');
+//   if (!emp) throw ApiError.notFound('Employee not found');
+
+//   if (req.user.role !== 'CLF' || String(req.user.clfId) !== String(emp.clfId)) {
+//     if (req.user.role !== 'SUPER_ADMIN') throw ApiError.forbidden('Access denied');
+//   }
+
+//   const updatable = ['name', 'mobile', 'designation', 'joiningDate', 'profilePhoto'];
+//   updatable.forEach((k) => {
+//     if (data[k] !== undefined) emp[k] = data[k];
+//   });
+//   if (data.workLocation?.panchayat) {
+//     emp.workLocation.panchayat = data.workLocation.panchayat;
+//   }
+//   if (data.bankDetails) {
+//     if (data.bankDetails.bankName) emp.bankDetails.bankName = data.bankDetails.bankName;
+//     if (data.bankDetails.accountNumber)
+//       emp.bankDetails.accountNumber = encrypt(data.bankDetails.accountNumber);
+//     if (data.bankDetails.branch) emp.bankDetails.branch = data.bankDetails.branch;
+//     if (data.bankDetails.ifsc) emp.bankDetails.ifsc = data.bankDetails.ifsc.toUpperCase();
+//   }
+//   if (data.aadhaarNumber) emp.aadhaarNumber = encrypt(data.aadhaarNumber);
+
+//   await emp.save();
+//   await createAudit({ req, action: 'EMPLOYEE_UPDATED', targetType: 'Employee', targetId: emp._id });
+//   return formatEmployee(emp, { revealSensitive: true });
+// };
+
+// export const setEmployeeStatus = async (req, id, status) => {
+//   const emp = await Employee.findById(id);
+//   if (!emp) throw ApiError.notFound('Employee not found');
+//   if (req.user.role !== 'CLF' || String(req.user.clfId) !== String(emp.clfId)) {
+//     if (req.user.role !== 'SUPER_ADMIN') throw ApiError.forbidden();
+//   }
+//   emp.status = status;
+//   await emp.save();
+//   await User.findByIdAndUpdate(emp.userId, {
+//     status: status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE',
+//   });
+//   await createAudit({ req, action: `EMPLOYEE_${status}`, targetType: 'Employee', targetId: id });
+//   return emp;
+// };
+
+// /** Reset employee's user password → admin provides the new password */
+// export const resetEmployeePassword = async (req, id, newPassword) => {
+//   if (!newPassword || newPassword.length < 8) {
+//     throw ApiError.badRequest('Password must be at least 8 characters');
+//   }
+//   if (!/(?=.*[A-Za-z])(?=.*\d)/.test(newPassword)) {
+//     throw ApiError.badRequest('Password must contain letters and numbers');
+//   }
+
+//   const emp = await Employee.findById(id);
+//   if (!emp) throw ApiError.notFound('Employee not found');
+
+//   const user = req.user;
+//   if (user.role === 'CLF' && String(user.clfId) !== String(emp.clfId)) {
+//     throw ApiError.forbidden('Access denied');
+//   }
+//   if (user.role === 'BPM' && String(user.blockId) !== String(emp.blockId)) {
+//     throw ApiError.forbidden('Access denied');
+//   }
+//   if (!['CLF', 'SUPER_ADMIN'].includes(user.role)) {
+//     throw ApiError.forbidden('Only CLF or Super Admin can reset employee password');
+//   }
+
+//   const empUser = await User.findById(emp.userId);
+//   if (!empUser) throw ApiError.notFound('Employee user account not found');
+
+//   empUser.password = newPassword;
+//   empUser.mustChangePassword = true;
+//   empUser.loginAttempts = 0;
+//   empUser.lockUntil = null;
+//   await empUser.save();
+
+//   await createAudit({
+//     req,
+//     action: 'EMPLOYEE_PASSWORD_RESET',
+//     targetType: 'Employee',
+//     targetId: emp._id,
+//   });
+
+//   return {
+//     username: empUser.username,
+//     resetBy: user.role,
+//   };
+// };
+
+// /** ✅ Permanently delete employee + linked user account */
+// export const deleteEmployee = async (req, id) => {
+//   const emp = await Employee.findById(id);
+//   if (!emp) throw ApiError.notFound('Employee not found');
+
+//   const user = req.user;
+//   if (user.role === 'CLF' && String(user.clfId) !== String(emp.clfId)) {
+//     throw ApiError.forbidden('Access denied');
+//   }
+//   if (user.role === 'BPM' && String(user.blockId) !== String(emp.blockId)) {
+//     throw ApiError.forbidden('Access denied');
+//   }
+//   if (!['CLF', 'SUPER_ADMIN'].includes(user.role)) {
+//     throw ApiError.forbidden('Only CLF or Super Admin can delete employee');
+//   }
+
+//   if (emp.userId) {
+//     await User.findByIdAndDelete(emp.userId);
+//   }
+
+//   await Employee.findByIdAndDelete(id);
+
+//   await createAudit({
+//     req,
+//     action: 'EMPLOYEE_DELETED',
+//     targetType: 'Employee',
+//     targetId: emp._id,
+//     metadata: { employeeCode: emp.employeeCode, name: emp.name },
+//   });
+
+//   return { deleted: true, employeeCode: emp.employeeCode };
+// };
+
+
+
+
 import mongoose from 'mongoose';
 import { Employee } from './employee.model.js';
 import { CLF } from '../clfs/clf.model.js';
@@ -882,6 +1224,7 @@ export const createEmployee = async (req, data) => {
             clfId: clf._id,
             createdBy: user._id,
             mustChangePassword: true,
+            profilePhoto: data.profilePhoto || '', // ✅ NAYA: Creation time par bhi photo save ho sake
           },
         ],
         { session }
@@ -991,11 +1334,12 @@ export const listEmployees = async (req, query) => {
   const page = Math.max(1, parseInt(query.page) || 1);
   const limit = Math.min(100, parseInt(query.limit) || 20);
 
-  // ✅ ADDED: .select() — sensitive fields fetch karo
+  // ✅ NAYA: .populate('userId', 'profilePhoto') — Isse DP fetch hogi
   const [employees, total] = await Promise.all([
     Employee.find(filter)
       .select('+aadhaarNumber +bankDetails.accountNumber')
       .populate('clfId', 'name code')
+      .populate('userId', 'profilePhoto') // ✅ Yahan DP fetch ho rahi hai
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit),
@@ -1004,12 +1348,11 @@ export const listEmployees = async (req, query) => {
 
   if (user.role === 'EMPLOYEE') {
     return {
-      employees: employees.filter((e) => String(e.userId) === String(user._id)),
+      employees: employees.filter((e) => String(e.userId?._id) === String(user._id)), // ✅ userId object ho gaya hai ab
       pagination: { page, limit, total: 1, pages: 1 },
     };
   }
 
-  // ✅ CHANGED: revealSensitive based on role (pehle false hardcoded tha)
   const revealSensitive = ['CLF', 'BPM', 'SUPER_ADMIN'].includes(user.role);
 
   return {
@@ -1019,17 +1362,16 @@ export const listEmployees = async (req, query) => {
 };
 
 /** ✅ Get employee with access scope + sensitive fields (decrypted) */
-/** ✅ Get employee with access scope + sensitive fields (decrypted for self too) */
 export const getEmployee = async (req, id) => {
   const emp = await Employee.findById(id)
     .select('+aadhaarNumber +bankDetails.accountNumber')
-    .populate('clfId', 'name code blockId');
+    .populate('clfId', 'name code blockId')
+    .populate('userId', 'profilePhoto'); // ✅ Yahan bhi DP fetch
 
   if (!emp) throw ApiError.notFound('Employee not found');
 
   assertEmployeeAccess(req.user, emp);
 
-  // ✅ 'EMPLOYEE' bhi include karo — taaki khud ka Aadhaar/Account khud dekh sake
   const revealSensitive = ['CLF', 'BPM', 'SUPER_ADMIN', 'EMPLOYEE'].includes(
     req.user.role
   );
@@ -1093,7 +1435,7 @@ export const setEmployeeStatus = async (req, id, status) => {
   return emp;
 };
 
-/** Reset employee's user password → admin provides the new password */
+/** Reset employee's user password */
 export const resetEmployeePassword = async (req, id, newPassword) => {
   if (!newPassword || newPassword.length < 8) {
     throw ApiError.badRequest('Password must be at least 8 characters');
