@@ -1,3 +1,5 @@
+
+
 // import PDFDocument from 'pdfkit';
 // import fs from 'fs';
 // import mongoose from 'mongoose';
@@ -8,7 +10,7 @@
 // import { getISTDateString } from '../../utils/security.js';
 
 // /* ────────────────────────────────────────────
-//    Fonts — Work Done PDF wale same SYSTEM_FONTS
+//    Fonts
 //    ──────────────────────────────────────────── */
 // const SYSTEM_FONTS = {
 //   regular: [
@@ -107,14 +109,25 @@
 //   return map[key] || fullName;
 // };
 
-// /** ✅ Next advice number generate karo — SAT/CLF/2026/001 */
+// /** ✅ Cloudinary se image fetch karo */
+// const fetchImageBuffer = async (url) => {
+//   try {
+//     const response = await fetch(url);
+//     if (!response.ok) throw new Error(`HTTP ${response.status}`);
+//     const arrayBuffer = await response.arrayBuffer();
+//     return Buffer.from(arrayBuffer);
+//   } catch (err) {
+//     console.warn(`⚠️ Logo fetch failed (${url}):`, err.message);
+//     return null;
+//   }
+// };
+
 // const generateAdviceNumber = async (clfId) => {
 //   const year = new Date().getFullYear();
 //   const count = await Advice.countDocuments({ clfId, adviceNumber: { $regex: `/${year}/` } });
 //   return `SAT/CLF/${year}/${String(count + 1).padStart(3, '0')}`;
 // };
 
-// /** ✅ Common: Scope check */
 // const assertScope = async (user, clfId) => {
 //   const clf = await CLF.findById(clfId);
 //   if (!clf) throw ApiError.notFound('CLF not found');
@@ -126,11 +139,10 @@
 // };
 
 // /* ────────────────────────────────────────────
-//    CREATE — Advice store + PDF return
+//    CREATE
 //    ──────────────────────────────────────────── */
 // export const createAdvice = async (req, data) => {
 //   const user = req.user;
-
 //   const clfId = user.role === 'CLF' ? user.clfId : data.clfId;
 //   if (!clfId) throw ApiError.badRequest('CLF is required');
 
@@ -140,7 +152,6 @@
 //     throw ApiError.badRequest('At least one employee required');
 //   }
 
-//   // ✅ Validate each row
 //   const cleaned = data.employees.map((e, i) => {
 //     if (!e.name || !e.name.trim()) {
 //       throw ApiError.badRequest(`Row ${i + 1}: name is required`);
@@ -162,11 +173,8 @@
 //   });
 
 //   const totalAmount = cleaned.reduce((s, e) => s + e.amount, 0);
-
-//   // ✅ Advice number
 //   const adviceNumber = await generateAdviceNumber(clfId);
 
-//   // ✅ Save to DB
 //   const advice = await Advice.create({
 //     adviceType: data.adviceType === 'EXPENSE' ? 'EXPENSE' : 'SALARY',
 //     adviceNumber,
@@ -188,19 +196,14 @@
 //     action: 'ADVICE_CREATED',
 //     targetType: 'Advice',
 //     targetId: advice._id,
-//     metadata: {
-//       adviceNumber,
-//       totalAmount,
-//       rows: cleaned.length,
-//       adviceType: advice.adviceType,
-//     },
+//     metadata: { adviceNumber, totalAmount, rows: cleaned.length, adviceType: advice.adviceType },
 //   });
 
 //   return advice;
 // };
 
 // /* ────────────────────────────────────────────
-//    LIST — CLF/BPM apni advices dekhe
+//    LIST
 //    ──────────────────────────────────────────── */
 // export const listAdvices = async (req, query) => {
 //   const user = req.user;
@@ -216,11 +219,7 @@
 //   const limit = Math.min(100, parseInt(query.limit) || 20);
 
 //   const [items, total] = await Promise.all([
-//     Advice.find(filter)
-//       .sort({ createdAt: -1 })
-//       .skip((page - 1) * limit)
-//       .limit(limit)
-//       .lean(),
+//     Advice.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
 //     Advice.countDocuments(filter),
 //   ]);
 
@@ -241,7 +240,7 @@
 // };
 
 // /* ────────────────────────────────────────────
-//    DELETE — hard delete
+//    DELETE
 //    ──────────────────────────────────────────── */
 // export const deleteAdvice = async (req, id) => {
 //   const advice = await Advice.findById(id);
@@ -258,7 +257,6 @@
 //     throw ApiError.forbidden('Not allowed to delete');
 //   }
 
-//   // ✅ Soft delete
 //   advice.isDeleted = true;
 //   advice.deletedAt = new Date();
 //   advice.deletedBy = user._id;
@@ -276,14 +274,24 @@
 // };
 
 // /* ────────────────────────────────────────────
-//    PDF GENERATE — pdfkit se
+//    PDF GENERATE — with logos + footer at bottom
 //    ──────────────────────────────────────────── */
-// export const generateAdvicePDF = async (req, id, res) => {
+// export const generateAdvicePDF = async (req, id, res, { inline = false } = {}) => {
 //   const advice = await Advice.findById(id);
 //   if (!advice || advice.isDeleted) throw ApiError.notFound('Advice not found');
 //   await assertScope(req.user, advice.clfId);
 
-//   // ✅ PDF ka page setup
+//   // ✅ Logos fetch
+//   const LEFT_LOGO_URL =
+//     'https://res.cloudinary.com/dsjnikk42/image/upload/v1789380290/WhatsApp_Image_2026-09-14_at_1.07.08_PM_nbbmda.jpg';
+//   const RIGHT_LOGO_URL =
+//     'https://res.cloudinary.com/dsjnikk42/image/upload/v1789380471/WhatsApp_Image_2026-09-14_at_1.07.10_PM_owpahi.jpg';
+
+//   const [leftLogoBuf, rightLogoBuf] = await Promise.all([
+//     fetchImageBuffer(LEFT_LOGO_URL),
+//     fetchImageBuffer(RIGHT_LOGO_URL),
+//   ]);
+
 //   const doc = new PDFDocument({
 //     size: 'A4',
 //     margin: 0,
@@ -292,7 +300,7 @@
 //   });
 //   registerFonts(doc);
 
-//   const pageWidth = 595.28;  // A4 in points
+//   const pageWidth = 595.28;
 //   const pageHeight = 841.89;
 //   const marginLeft = 30;
 //   const marginRight = 30;
@@ -301,7 +309,6 @@
 //   const employees = advice.employees;
 //   const totalAmount = advice.totalAmount;
 
-//   /* ─── Chunking (page distribution) ─── */
 //   const PAGE_1_MAX = 5;
 //   const PAGE_NEXT_MAX = 11;
 //   const SIGNATURE_FITS_THRESHOLD = 4;
@@ -320,7 +327,6 @@
 //   const lastChunk = chunks[chunks.length - 1];
 //   if (lastChunk.length > SIGNATURE_FITS_THRESHOLD) chunks.push([]);
 
-//   /* ─── Header strip helper ─── */
 //   const drawStrip = (y) => {
 //     const h = 8;
 //     const w1 = contentWidth * 0.3;
@@ -330,7 +336,6 @@
 //     doc.fillColor('black');
 //   };
 
-//   /* ─── Render each page ─── */
 //   chunks.forEach((chunk, pageIndex) => {
 //     doc.addPage({ size: 'A4', margin: 0 });
 
@@ -343,32 +348,61 @@
 //     drawStrip(y);
 //     y += 18;
 
-//     // ─── LOGO + CLF TITLE ───
-//     // (Logos ko skip kar rahe hain — external URL fetch karna complex hai)
-//     // बस text title center me
-//     doc.font('Devanagari-Bold').fontSize(20).fillColor('black');
-//     doc.text('सतबरवा आजीविका महिला संकुल स्तरीय', 0, y, {
-//       width: pageWidth,
+//     /* ─── HEADER WITH LOGOS ─── */
+//     const logoSize = 70;
+//     const logoY = y;
+//     const titleWidth = pageWidth - marginLeft - marginRight - logoSize * 2 - 20;
+//     const titleX = marginLeft + logoSize + 10;
+
+//     // ✅ Left logo
+//     if (leftLogoBuf) {
+//       try {
+//         doc.image(leftLogoBuf, marginLeft, logoY, { fit: [logoSize, logoSize] });
+//       } catch (e) {
+//         console.warn('Left logo embed failed:', e.message);
+//       }
+//     }
+
+//     // ✅ Right logo
+//     if (rightLogoBuf) {
+//       try {
+//         doc.image(rightLogoBuf, pageWidth - marginRight - logoSize, logoY, {
+//           fit: [logoSize, logoSize],
+//         });
+//       } catch (e) {
+//         console.warn('Right logo embed failed:', e.message);
+//       }
+//     }
+
+//     // ✅ Title between logos
+//     let ty = logoY + 10;
+//     doc.font('Devanagari-Bold').fontSize(18).fillColor('black');
+//     doc.text('सतबरवा आजीविका महिला संकुल स्तरीय', titleX, ty, {
+//       width: titleWidth,
 //       align: 'center',
 //     });
-//     y += 24;
-//     doc.font('Devanagari-Bold').fontSize(15);
-//     doc.text('प्राथमिक स्वावलम्बी सहकारी समिति लिमिटेड', 0, y, {
-//       width: pageWidth,
+//     ty += 22;
+
+//     doc.font('Devanagari-Bold').fontSize(13);
+//     doc.text('प्राथमिक स्वावलम्बी सहकारी समिति लिमिटेड', titleX, ty, {
+//       width: titleWidth,
 //       align: 'center',
 //     });
-//     y += 22;
-//     doc.font('Devanagari').fontSize(9);
-//     doc.text('ग्राम- सतबरवा, कलस्टर- सतबरवा, प्रखंड- सतबरवा, जिला- पलामू (झा0)', 0, y, {
-//       width: pageWidth,
+//     ty += 18;
+
+//     doc.font('Devanagari').fontSize(8.5);
+//     doc.text('ग्राम- सतबरवा, कलस्टर- सतबरवा, प्रखंड- सतबरवा, जिला- पलामू (झा0)', titleX, ty, {
+//       width: titleWidth,
 //       align: 'center',
 //     });
-//     y += 13;
-//     doc.text('निबंधन संख्या :- 02-JKD-01-04-01-0TH-001-2023', 0, y, {
-//       width: pageWidth,
+//     ty += 11;
+
+//     doc.text('निबंधन संख्या :- 02-JKD-01-04-01-0TH-001-2023', titleX, ty, {
+//       width: titleWidth,
 //       align: 'center',
 //     });
-//     y += 20;
+
+//     y = Math.max(logoY + logoSize, ty + 10) + 6;
 
 //     // ─── BOTTOM STRIP ───
 //     drawStrip(y);
@@ -388,7 +422,7 @@
 //     });
 //     y += 18;
 
-//     // ─── PAGE 1: FULL HEADER CONTENT ───
+//     // ─── PAGE 1 CONTENT ───
 //     if (pageIndex === 0) {
 //       doc.font('Devanagari-Bold').fontSize(10).text('To', marginLeft, y);
 //       y += 12;
@@ -404,9 +438,7 @@
 //       doc
 //         .font('Devanagari-Bold')
 //         .fontSize(11)
-//         .text('Subject: Bank Advice for transfer', marginLeft, y, {
-//           underline: true,
-//         });
+//         .text('Subject: Bank Advice for transfer', marginLeft, y, { underline: true });
 //       y += 18;
 //       doc.font('Devanagari').fontSize(10);
 //       doc.text(
@@ -428,7 +460,6 @@
 //       );
 //       y = doc.y + 12;
 //     } else {
-//       // subsequent pages: sirf page number
 //       doc.font('Devanagari').fontSize(10);
 //       doc.text(`(Page ${pageIndex + 1} of ${chunks.length})`, 0, y, {
 //         width: pageWidth,
@@ -450,19 +481,12 @@
 //         amount: 68,
 //       };
 //       const totalTableWidth =
-//         colWidths.sl +
-//         colWidths.name +
-//         colWidths.month +
-//         colWidths.bankAccountNumber +
-//         colWidths.bank +
-//         colWidths.branch +
-//         colWidths.ifsc +
-//         colWidths.amount;
+//         colWidths.sl + colWidths.name + colWidths.month + colWidths.bankAccountNumber +
+//         colWidths.bank + colWidths.branch + colWidths.ifsc + colWidths.amount;
 
 //       const startX = marginLeft + (contentWidth - totalTableWidth) / 2;
 //       const rowHeight = 20;
 
-//       // Header row
 //       let x = startX;
 //       const headers = [
 //         { w: colWidths.sl, label: 'Sl.' },
@@ -475,7 +499,6 @@
 //         { w: colWidths.amount, label: 'Amount' },
 //       ];
 
-//       // Header background
 //       doc.rect(startX, y, totalTableWidth, rowHeight).fill('#F3F4F6');
 //       doc.fillColor('black');
 //       doc.font('Devanagari-Bold').fontSize(8);
@@ -490,7 +513,6 @@
 //       });
 //       y += rowHeight;
 
-//       // Body rows
 //       doc.font('Devanagari').fontSize(8);
 //       chunk.forEach((emp) => {
 //         x = startX;
@@ -502,11 +524,7 @@
 //           { w: colWidths.bank, value: getBankShortName(emp.bankName), align: 'left' },
 //           { w: colWidths.branch, value: emp.branch || '-', align: 'left' },
 //           { w: colWidths.ifsc, value: emp.ifscCode || '-', align: 'left' },
-//           {
-//             w: colWidths.amount,
-//             value: emp.amount.toLocaleString('en-IN'),
-//             align: 'right',
-//           },
+//           { w: colWidths.amount, value: emp.amount.toLocaleString('en-IN'), align: 'right' },
 //         ];
 //         rowValues.forEach((v) => {
 //           doc.rect(x, y, v.w, rowHeight).stroke();
@@ -521,21 +539,28 @@
 //         y += rowHeight;
 //       });
 
-//       // TOTAL row on last page
 //       if (isLastPage && chunk.length > 0) {
 //         x = startX;
 //         const totalRowValues = [
-//           { w: colWidths.sl + colWidths.name + colWidths.month + colWidths.bankAccountNumber + colWidths.bank + colWidths.branch + colWidths.ifsc, value: 'TOTAL', align: 'right', bold: true },
-//           { w: colWidths.amount, value: `${totalAmount.toLocaleString('en-IN')}.00`, align: 'right', bold: true },
+//           {
+//             w: colWidths.sl + colWidths.name + colWidths.month + colWidths.bankAccountNumber +
+//                colWidths.bank + colWidths.branch + colWidths.ifsc,
+//             value: 'TOTAL',
+//             align: 'right',
+//             bold: true,
+//           },
+//           {
+//             w: colWidths.amount,
+//             value: `${totalAmount.toLocaleString('en-IN')}.00`,
+//             align: 'right',
+//             bold: true,
+//           },
 //         ];
 //         totalRowValues.forEach((v) => {
 //           doc.rect(x, y, v.w, rowHeight).fillAndStroke('#F9FAFB', 'black');
 //           doc.fillColor('black');
 //           doc.font(v.bold ? 'Devanagari-Bold' : 'Devanagari').fontSize(9);
-//           doc.text(v.value, x + 3, y + 6, {
-//             width: v.w - 6,
-//             align: v.align,
-//           });
+//           doc.text(v.value, x + 3, y + 6, { width: v.w - 6, align: v.align });
 //           x += v.w;
 //         });
 //         y += rowHeight + 10;
@@ -553,39 +578,33 @@
 //       }
 //     }
 
-//     // ─── SIGNATURE + FOOTER on last page ───
+//     // ─── SIGNATURE + FOOTER (last page) ───
 //     if (isLastPage) {
-//       const footerTop = pageHeight - 110;
+//       // ✅ Footer pageHeight - 90 par (aur niche)
+//       const footerTop = pageHeight - 90;
 
-//       // Signature row
+//       // Signature ke liye thoda upar
 //       const sigY = footerTop - 40;
 //       const sigWidth = 80;
 //       const gap = 20;
 //       const sigLabels = ['अध्यक्ष', 'सचिव', 'कोषाध्यक्ष'];
 
-//       doc.font('Devanagari-Bold').fontSize(10);
+//       doc.font('Devanagari-Bold').fontSize(10).fillColor('black');
 //       sigLabels.forEach((label, i) => {
 //         const sx = marginLeft + i * (sigWidth + gap);
 //         doc.moveTo(sx, sigY).lineTo(sx + sigWidth, sigY).stroke();
 //         doc.text(label, sx, sigY + 4, { width: sigWidth, align: 'center' });
 //       });
 
-//       // Thanking You block
 //       doc.font('Devanagari-Bold').fontSize(9);
 //       const rightX = marginLeft + contentWidth - 180;
 //       doc.text('Thanking You.', rightX, sigY - 30, { width: 180, align: 'right' });
-//       doc.text('सतबरवा आजीविका महिला संकुल स्तरीय', rightX, sigY - 16, {
-//         width: 180,
-//         align: 'right',
-//       });
-//       doc.text('प्राथमिक स्वावलम्बी सहकारी समिति लिमिटेड', rightX, sigY - 4, {
-//         width: 180,
-//         align: 'right',
-//       });
+//       doc.text('सतबरवा आजीविका महिला संकुल स्तरीय', rightX, sigY - 16, { width: 180, align: 'right' });
+//       doc.text('प्राथमिक स्वावलम्बी सहकारी समिति लिमिटेड', rightX, sigY - 4, { width: 180, align: 'right' });
 
-//       // Footer strip
+//       // Footer strip + text
 //       drawStrip(footerTop);
-//       let fy = footerTop + 14;
+//       let fy = footerTop + 12;
 //       doc.font('Devanagari').fontSize(7.5).fillColor('black');
 //       const footerLines = [
 //         'प्रखंड कार्यालय :- प्रखंड मिशन प्रबंधन इकाई, राँची रोड, सतबरवा पलामू 822126',
@@ -600,19 +619,25 @@
 //     }
 //   });
 
-//   /* ─── Stream PDF to response ─── */
 //   const filename = `Advice-${advice.adviceNumber.replace(/\//g, '-')}.pdf`;
+//   const disposition = inline ? 'inline' : 'attachment';
 
 //   res.setHeader('Content-Type', 'application/pdf');
-//   res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+//   res.setHeader('Content-Disposition', `${disposition}; filename="${filename}"`);
 
 //   doc.pipe(res);
 //   doc.end();
 // };
 
 
+
+
+
+
 import PDFDocument from 'pdfkit';
 import fs from 'fs';
+import path from 'path';                                  // ✅ NAYA: path resolve karne ke liye
+import { fileURLToPath } from 'url';                     // ✅ NAYA: ESM me __dirname nikalne ke liye
 import mongoose from 'mongoose';
 import { Advice } from './advice.model.js';
 import { CLF } from '../clfs/clf.model.js';
@@ -623,16 +648,35 @@ import { getISTDateString } from '../../utils/security.js';
 /* ────────────────────────────────────────────
    Fonts
    ──────────────────────────────────────────── */
+
+// ✅ ESM me __dirname manually banana padta hai
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// ✅ Bundled fonts — ye backend ke andar hi rakhe hain
+// Render (Linux) par Windows fonts nahi milte, isliye apne font bundle kar rahe hain
+// Path: BACKEND/src/assets/fonts/NotoSansDevanagari-Regular.ttf
+const BUNDLED_FONT_REGULAR = path.join(
+  __dirname,
+  '../../assets/fonts/NotoSansDevanagari-Regular.ttf'
+);
+const BUNDLED_FONT_BOLD = path.join(
+  __dirname,
+  '../../assets/fonts/NotoSansDevanagari-Bold.ttf'
+);
+
 const SYSTEM_FONTS = {
   regular: [
-    'C:\\Windows\\Fonts\\Nirmala.ttf',
+    BUNDLED_FONT_REGULAR,                                  // ✅ Pehle bundled font try karo (har platform par milega)
+    'C:\\Windows\\Fonts\\Nirmala.ttf',                     // Windows fallback
     'C:\\Windows\\Fonts\\mangal.ttf',
     'C:\\Windows\\Fonts\\arialuni.ttf',
-    '/System/Library/Fonts/Supplemental/Devanagari Sangam MN.ttc',
+    '/System/Library/Fonts/Supplemental/Devanagari Sangam MN.ttc', // macOS fallback
     '/Library/Fonts/Arial Unicode.ttf',
-    '/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf',
+    '/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf', // Linux fallback
   ],
   bold: [
+    BUNDLED_FONT_BOLD,                                     // ✅ Pehle bundled bold try karo
     'C:\\Windows\\Fonts\\NirmalaB.ttf',
     'C:\\Windows\\Fonts\\mangalb.ttf',
     'C:\\Windows\\Fonts\\arialunib.ttf',
@@ -642,6 +686,7 @@ const SYSTEM_FONTS = {
   ],
 };
 
+// ✅ Har candidate path check karta hai, jo pehla exist kare wahi return karta hai
 const findFont = (candidates) => {
   for (const p of candidates) {
     try {
@@ -653,6 +698,7 @@ const findFont = (candidates) => {
   return null;
 };
 
+// ✅ PDF document me Devanagari fonts register karta hai
 const registerFonts = (doc) => {
   const regular = findFont(SYSTEM_FONTS.regular);
   const bold = findFont(SYSTEM_FONTS.bold);
