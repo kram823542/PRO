@@ -24,6 +24,7 @@ export const createCLF = async (req, data) => {
           {
             ...data,
             code: data.code.toUpperCase(),
+            loginId: data.code.toLowerCase(), // ✅ Save loginId on creation
             blockId,
             bpmId: user.role === 'BPM' ? user._id : data.bpmId,
             createdBy: user._id,
@@ -129,7 +130,6 @@ export const getBPMDashboard = async (req) => {
   const [totalCLFs, totalEmployees, todayActionPlans] = await Promise.all([
     CLF.countDocuments({ blockId, status: 'ACTIVE' }),
     Employee.countDocuments({ blockId, status: 'ACTIVE' }),
-    // dynamic imports to avoid circular deps
     (await import('../actionPlans/actionPlan.model.js')).ActionPlan.countDocuments({
       blockId,
       date: today,
@@ -139,14 +139,72 @@ export const getBPMDashboard = async (req) => {
   return { totalCLFs, totalEmployees, todayActionPlans, date: today };
 };
 
+/** ✅ CLF apne BOD members aur Core members update kare */
+export const updateBodDetails = async (req, id, data) => {
+  const clf = await CLF.findById(id);
+  if (!clf) throw ApiError.notFound('CLF not found');
 
-/** Reset CLF user's password → admin provides new password */
-export const resetCLFPassword = async (req, id, newPassword) => {
-  if (!newPassword || newPassword.length < 8) {
-    throw ApiError.badRequest('Password must be at least 8 characters');
+  if (req.user.role === 'CLF' && String(req.user.clfId) !== String(clf._id)) {
+    throw ApiError.forbidden('Access denied');
   }
-  if (!/(?=.*[A-Za-z])(?=.*\d)/.test(newPassword)) {
-    throw ApiError.badRequest('Password must contain letters and numbers');
+  if (!['CLF', 'SUPER_ADMIN'].includes(req.user.role)) {
+    throw ApiError.forbidden('Only CLF or Super Admin can update details');
+  }
+
+  let existingCore = clf.coreMembers || {};
+  
+  if (!existingCore.president && clf.president) {
+    existingCore.president = { name: clf.president, mobile: '', address: '', bankDetails: {} };
+  }
+  if (!existingCore.secretary && clf.secretary) {
+    existingCore.secretary = { name: clf.secretary, mobile: '', address: '', bankDetails: {} };
+  }
+  if (!existingCore.treasurer && clf.treasurer) {
+    existingCore.treasurer = { name: clf.treasurer, mobile: '', address: '', bankDetails: {} };
+  }
+
+  if (data.coreMembers) {
+    clf.coreMembers = {
+      president: { ...existingCore.president, ...data.coreMembers.president },
+      secretary: { ...existingCore.secretary, ...data.coreMembers.secretary },
+      treasurer: { ...existingCore.treasurer, ...data.coreMembers.treasurer },
+    };
+  }
+
+  if (data.bodMembers !== undefined) {
+    clf.bodMembers = data.bodMembers;
+  }
+
+  await clf.save();
+
+  await createAudit({
+    req,
+    action: 'CLF_BOD_UPDATED',
+    targetType: 'CLF',
+    targetId: clf._id,
+  });
+
+  return clf;
+};
+
+/** ✅ FINAL: Reset CLF user's Login ID AND Password */
+export const resetCLFPassword = async (req, id, rawData) => {
+  // Safe extract: Agar frontend ne nested bheja hai toh handle karo
+  let data = rawData;
+  if (rawData && rawData.newPassword && typeof rawData.newPassword === 'object') {
+    data = rawData.newPassword;
+  }
+
+  const { username, password } = data;
+
+  // Password Validation
+  if (password && password.trim() !== '') {
+    if (password.length < 8) {
+      throw ApiError.badRequest('Password must be at least 8 characters');
+    }
+    if (!/(?=.*[A-Za-z])(?=.*\d)/.test(password)) {
+      throw ApiError.badRequest('Password must contain letters and numbers');
+    }
   }
 
   const clf = await CLF.findById(id);
@@ -163,21 +221,46 @@ export const resetCLFPassword = async (req, id, newPassword) => {
   const clfUser = await User.findOne({ clfId: clf._id, role: 'CLF' });
   if (!clfUser) throw ApiError.notFound('CLF user account not found');
 
-  clfUser.password = newPassword;
-  clfUser.mustChangePassword = true;
+  // ✅ 1. Username Update (User + CLF dono me)
+  if (username && username.trim() !== '') {
+    const newUsername = username.trim().toLowerCase();
+    
+    if (newUsername !== clfUser.username) {
+      // Check if username is taken by someone else
+      const existing = await User.findOne({ username: newUsername });
+      if (existing && String(existing._id) !== String(clfUser._id)) {
+        throw ApiError.conflict('This Login ID is already taken by another user');
+      }
+      
+      clfUser.username = newUsername;
+      clf.loginId = newUsername; 
+    }
+  }
+
+  // ✅ 2. Password Update
+  if (password && password.trim() !== '') {
+    clfUser.password = password;
+    clfUser.mustChangePassword = true;
+  }
+
+  // ✅ 3. Reset Lock & Attempts (Important)
   clfUser.loginAttempts = 0;
   clfUser.lockUntil = null;
+
+  // ✅ 4. Save
   await clfUser.save();
+  await clf.save();
 
   await createAudit({
     req,
-    action: 'CLF_PASSWORD_RESET',
+    action: 'CLF_CREDENTIALS_UPDATED',
     targetType: 'CLF',
     targetId: clf._id,
   });
 
   return {
     username: clfUser.username,
+    loginId: clf.loginId,
     resetBy: user.role,
   };
 };

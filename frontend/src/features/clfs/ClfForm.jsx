@@ -11,6 +11,7 @@ export default function ClfForm({ onCreated }) {
     location: '',
     president: '',
     secretary: '',
+    treasurer: '', // ✅ NAYA
     contact: '',
     email: '',
     address: '',
@@ -42,6 +43,7 @@ export default function ClfForm({ onCreated }) {
       <Input label="Location" name="location" value={form.location} onChange={handleChange} />
       <Input label="President" name="president" value={form.president} onChange={handleChange} />
       <Input label="Secretary" name="secretary" value={form.secretary} onChange={handleChange} />
+      <Input label="Treasurer (कोषाध्यक्ष)" name="treasurer" value={form.treasurer} onChange={handleChange} /> {/* ✅ NAYA */}
       <Input label="Contact" name="contact" value={form.contact} onChange={handleChange} />
       <Input label="Email" name="email" type="email" value={form.email} onChange={handleChange} />
       <Input label="Address" name="address" value={form.address} onChange={handleChange} />

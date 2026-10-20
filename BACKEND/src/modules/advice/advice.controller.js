@@ -28,3 +28,12 @@ export const downloadPDF = asyncHandler(async (req, res) => {
   const inline = req.query.mode === 'print';
   await service.generateAdvicePDF(req, req.params.id, res, { inline });
 });
+
+
+
+// ✅ NAYA: CLF Members fetch karne ka controller
+export const getClfMembers = asyncHandler(async (req, res) => {
+  const { clfId } = req.params;
+  const members = await service.getClfMembersForAdvice(clfId);
+  res.json({ success: true, data: members });
+});

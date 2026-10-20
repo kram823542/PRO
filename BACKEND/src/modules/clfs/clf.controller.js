@@ -21,12 +21,17 @@ export const bpmDashboard = asyncHandler(async (req, res) => {
   res.json({ success: true, data });
 });
 
-
+// ✅ FIX: Yahan req.body pass karo, galti se bhi req.body.newPassword mat likhna
 export const resetPassword = asyncHandler(async (req, res) => {
   const result = await service.resetCLFPassword(
     req,
     req.params.id,
-    req.body.newPassword
+    req.body // ✅ Yahan direct req.body bhej rahe hain
   );
   res.json({ success: true, data: result });
+});
+
+export const updateBod = asyncHandler(async (req, res) => {
+  const clf = await service.updateBodDetails(req, req.params.id, req.body);
+  res.json({ success: true, data: clf });
 });

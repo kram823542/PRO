@@ -41,7 +41,7 @@
 
 export const theme = {
   colors: {
-    primary: '#0F5257',       // Deep Forest Teal (Trustworthy, rich & premium)
+    primary: '#16081b',       // Deep Forest Teal (Trustworthy, rich & premium)
     secondary: '#0B6E4F',     // Emerald Mint (Actionable & dynamic)
     accent: '#D4A373',        // Warm Champagne Gold (Subtle accent/badges)
 

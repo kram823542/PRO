@@ -1,12 +1,7 @@
 import mongoose from 'mongoose';
 
-/**
- * Advice schema — har generated advice yahan store hoti hai.
- * Employees array me har row ka data (Sl/Name/Month/Bank A/c/Bank/Branch/IFSC/Amount)
- */
 const adviceSchema = new mongoose.Schema(
   {
-    // ✅ Advice meta
     adviceType: {
       type: String,
       enum: ['SALARY', 'EXPENSE'],
@@ -15,12 +10,11 @@ const adviceSchema = new mongoose.Schema(
     },
     adviceNumber: {
       type: String,
-      unique: true,
+      required: true,
       index: true,
-    }, // e.g. SAT/CLF/2026/001
-    adviceDate: { type: String, required: true }, // YYYY-MM-DD
+    }, 
+    adviceDate: { type: String, required: true },
 
-    // ✅ Owner (kis role ne banayi)
     createdByRole: {
       type: String,
       enum: ['CLF', 'BPM', 'SUPER_ADMIN'],
@@ -34,7 +28,6 @@ const adviceSchema = new mongoose.Schema(
     },
     createdByName: { type: String },
 
-    // ✅ Scope
     clfId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'CLF',
@@ -47,16 +40,14 @@ const adviceSchema = new mongoose.Schema(
       required: true,
     },
 
-    // ✅ Bank header info
     bankName: { type: String, default: '' },
     branch: { type: String, default: '' },
 
-    // ✅ Employees list — Sl. Name Month Bank A/c Bank Branch IFSC Amount
     employees: [
       {
         sl: { type: Number },
         name: { type: String, required: true },
-        month: { type: String }, // Salary month या Expense reason
+        month: { type: String },
         bankAccountNumber: { type: String, default: '' },
         bankName: { type: String, default: '' },
         branch: { type: String, default: '' },
@@ -65,17 +56,18 @@ const adviceSchema = new mongoose.Schema(
       },
     ],
 
-    // ✅ Total
     totalAmount: { type: Number, required: true, min: 0 },
     totalRows: { type: Number, required: true },
 
-    // ✅ Soft-delete
     isDeleted: { type: Boolean, default: false, index: true },
     deletedAt: { type: Date, default: null },
     deletedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true, versionKey: false }
 );
+
+// ✅ FIX: Per CLF unique advice number
+adviceSchema.index({ clfId: 1, adviceNumber: 1 }, { unique: true });
 
 adviceSchema.index({ clfId: 1, isDeleted: 1, createdAt: -1 });
 adviceSchema.index({ adviceType: 1, createdAt: -1 });

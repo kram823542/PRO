@@ -24,10 +24,7 @@ export const submitWorkDone = async (req, { description }, fileBuffer) => {
   if (!employee) throw ApiError.notFound('Employee not found');
 
   const date = getISTDateString();
-
-  // If a rejected record exists for today, update it (with version bump) instead of blocking
   let doc = await WorkDone.findOne({ employeeId: employee._id, date });
-
   const upload = await uploadBuffer(fileBuffer, `clf-portal/workdone/${employee._id}`);
 
   if (doc && doc.status === 'PENDING') {
@@ -96,6 +93,7 @@ export const listWorkDone = async (req, query) => {
   const [items, total] = await Promise.all([
     WorkDone.find(filter)
       .populate('employeeId', 'name employeeCode designation workLocation')
+      .populate('clfId', 'name code') // ✅ NAYA: CLF Name fetch
       .sort({ date: -1, createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit),
@@ -121,7 +119,6 @@ export const approveWorkDone = async (req, id) => {
       doc.approvedAt = new Date();
       await doc.save({ session });
 
-      // Upsert attendance (unique per employee+date)
       await Attendance.findOneAndUpdate(
         { employeeId: doc.employeeId, date: doc.date },
         {
@@ -169,6 +166,6 @@ export const pendingApprovals = async (req) => {
   if (req.user.role !== 'CLF') throw ApiError.forbidden();
   return WorkDone.find({ clfId: req.user.clfId, status: 'PENDING' })
     .populate('employeeId', 'name employeeCode designation workLocation')
+    .populate('clfId', 'name code') // ✅ NAYA: CLF Name fetch
     .sort({ submittedAt: 1 });
 };
-

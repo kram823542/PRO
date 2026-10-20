@@ -13,42 +13,138 @@ export default function Button({
   const variants = {
     primary: { bg: theme.colors.primary, color: '#fff', border: 'none' },
     secondary: { bg: theme.colors.secondary, color: '#fff', border: 'none' },
-    outline: { bg: 'transparent', color: theme.colors.primary, border: `1px solid ${theme.colors.primary}` },
+    outline: { bg: 'transparent', color: theme.colors.primary, border: `1.5px solid ${theme.colors.primary}` },
     danger: { bg: theme.colors.danger, color: '#fff', border: 'none' },
     success: { bg: theme.colors.success, color: '#fff', border: 'none' },
     ghost: { bg: 'transparent', color: theme.colors.text, border: `1px solid ${theme.colors.border}` },
   };
+
   const sizes = {
-    sm: { padding: '6px 12px', fontSize: 13 },
-    md: { padding: '10px 16px', fontSize: 14 },
-    lg: { padding: '14px 22px', fontSize: 15 },
+    sm: { height: '36px', padding: '0 18px', fontSize: 13 },
+    md: { height: '44px', padding: '0 24px', fontSize: 14 },
+    lg: { height: '50px', padding: '0 30px', fontSize: 15 },
   };
+
   const v = variants[variant] || variants.primary;
   const s = sizes[size] || sizes.md;
 
   return (
-    <button
-      type={type}
-      disabled={disabled || loading}
-      onClick={onClick}
-      style={{
-        background: v.bg,
-        color: v.color,
-        border: v.border,
-        borderRadius: theme.radius.md,
-        fontWeight: 600,
-        cursor: disabled || loading ? 'not-allowed' : 'pointer',
-        opacity: disabled || loading ? 0.6 : 1,
-        transition: 'all 0.15s ease',
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        ...s,
-        ...style,
-      }}
-    >
-      {loading ? 'Loading...' : children}
-    </button>
+    <>
+      <button
+        type={type}
+        disabled={disabled || loading}
+        onClick={onClick}
+        className={`pill-slide-btn btn-variant-${variant}`}
+        style={{
+          background: v.bg,
+          color: v.color,
+          border: v.border,
+          borderRadius: '9999px', // Perfect Pill Shape
+          fontWeight: 600,
+          cursor: disabled || loading ? 'not-allowed' : 'pointer',
+          opacity: disabled || loading ? 0.7 : 1,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 10,
+          boxShadow: disabled || loading ? 'none' : '0 4px 14px rgba(0, 0, 0, 0.1)',
+          letterSpacing: '0.01em',
+          position: 'relative',
+          overflow: 'hidden',
+          zIndex: 1,
+          boxSizing: 'border-box',
+          ...s,
+          ...style,
+        }}
+      >
+        {/* Left-to-Right Hover Overlay Background */}
+        <span className="hover-slide-overlay" />
+
+        {/* Content Container */}
+        <span style={{ position: 'relative', zIndex: 2, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          {loading ? (
+            <>
+              <span className="btn-spinner" />
+              <span>Loading...</span>
+            </>
+          ) : (
+            children
+          )}
+        </span>
+      </button>
+
+      {/* Slide & Click Animations CSS */}
+      <style>{`
+        .pill-slide-btn {
+          border-radius: 9999px !important;
+          transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1),
+                      box-shadow 0.25s ease,
+                      color 0.25s ease;
+        }
+
+        /* Hover Effect: Left-to-Right Slide Overlay */
+        .hover-slide-overlay {
+          position: absolute;
+          top: 0;
+          left: -100%;
+          width: 100%;
+          height: 100%;
+          border-radius: 9999px;
+          background: linear-gradient(
+            90deg,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 0.25) 50%,
+            rgba(255, 255, 255, 0) 100%
+          );
+          transition: left 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+          z-index: 1;
+          pointer-events: none;
+        }
+
+        .pill-slide-btn:not(:disabled):hover .hover-slide-overlay {
+          left: 100%; /* Left to Right Sweep Animation */
+        }
+
+        /* Hover Lift Effect */
+        .pill-slide-btn:not(:disabled):hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 22px -4px ${theme.colors.primary || '#0f172a'}50;
+        }
+
+        /* Click / Active Effect: Right-to-Left Push & Compression */
+        .pill-slide-btn:not(:disabled):active {
+          transform: translateX(-4px) scale(0.97); /* Right-to-Left Shift Effect */
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+          transition: transform 0.1s ease-out;
+        }
+
+        /* Outline Variant Hover Color */
+        .btn-variant-outline .hover-slide-overlay {
+          background: ${theme.colors.primary}20;
+        }
+
+        /* Animated Spinner Icon */
+        .btn-spinner {
+          width: 16px;
+          height: 16px;
+          border: 2px solid rgba(255, 255, 255, 0.35);
+          border-top-color: #ffffff;
+          border-radius: 50%;
+          animation: btnSpin 0.7s linear infinite;
+        }
+
+        .btn-variant-outline .btn-spinner,
+        .btn-variant-ghost .btn-spinner {
+          border-color: ${theme.colors.primary}35;
+          border-top-color: ${theme.colors.primary};
+        }
+
+        @keyframes btnSpin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+      `}</style>
+    </>
   );
 }

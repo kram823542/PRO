@@ -64,6 +64,7 @@ export const listActionPlans = async (req, query) => {
   const [plans, total] = await Promise.all([
     ActionPlan.find(filter)
       .populate('employeeId', 'name employeeCode designation')
+      .populate('clfId', 'name code') // ✅ NAYA: CLF Name fetch
       .sort({ date: -1 })
       .skip((page - 1) * limit)
       .limit(limit),

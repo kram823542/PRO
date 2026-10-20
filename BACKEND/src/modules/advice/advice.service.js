@@ -1,7 +1,7 @@
-
-
 // import PDFDocument from 'pdfkit';
 // import fs from 'fs';
+// import path from 'path';
+// import { fileURLToPath } from 'url';
 // import mongoose from 'mongoose';
 // import { Advice } from './advice.model.js';
 // import { CLF } from '../clfs/clf.model.js';
@@ -10,25 +10,51 @@
 // import { getISTDateString } from '../../utils/security.js';
 
 // /* ────────────────────────────────────────────
-//    Fonts
+//    Fonts — Auto Detect Path
 //    ──────────────────────────────────────────── */
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = path.dirname(__filename);
+
+// // ✅ Auto-Detect Function: Check karega ki font kahan pada hai
+// const getFontPath = (fontName) => {
+//   const possiblePaths = [
+//     path.join(process.cwd(), 'assets', 'fonts', fontName), // Aapke structure ke liye (assets src ke bahar)
+//     path.join(process.cwd(), 'src', 'assets', 'fonts', fontName), // Agar assets src ke andar ho
+//     path.join(__dirname, '..', '..', '..', 'assets', 'fonts', fontName), // Local testing ke liye
+//   ];
+
+//   for (const p of possiblePaths) {
+//     if (fs.existsSync(p)) {
+//       console.log(`✅ FONT MIL GAYA: ${p}`); // Render logs mein check karna
+//       return p;
+//     }
+//   }
+//   console.log(`❌ FONT NAHI MILA: ${fontName}`);
+//   return null;
+// };
+
+// const BUNDLED_FONT_REGULAR = getFontPath('NotoSansDevanagari-Regular.ttf');
+// const BUNDLED_FONT_BOLD = getFontPath('NotoSansDevanagari-Bold.ttf');
+
 // const SYSTEM_FONTS = {
 //   regular: [
+//     BUNDLED_FONT_REGULAR,
 //     'C:\\Windows\\Fonts\\Nirmala.ttf',
 //     'C:\\Windows\\Fonts\\mangal.ttf',
 //     'C:\\Windows\\Fonts\\arialuni.ttf',
 //     '/System/Library/Fonts/Supplemental/Devanagari Sangam MN.ttc',
 //     '/Library/Fonts/Arial Unicode.ttf',
 //     '/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf',
-//   ],
+//   ].filter(Boolean), // null values hata do
 //   bold: [
+//     BUNDLED_FONT_BOLD,
 //     'C:\\Windows\\Fonts\\NirmalaB.ttf',
 //     'C:\\Windows\\Fonts\\mangalb.ttf',
 //     'C:\\Windows\\Fonts\\arialunib.ttf',
 //     '/System/Library/Fonts/Supplemental/Devanagari Sangam MN Bold.ttc',
 //     '/Library/Fonts/Arial Unicode Bold.ttf',
 //     '/usr/share/fonts/truetype/noto/NotoSansDevanagari-Bold.ttf',
-//   ],
+//   ].filter(Boolean),
 // };
 
 // const findFont = (candidates) => {
@@ -109,7 +135,6 @@
 //   return map[key] || fullName;
 // };
 
-// /** ✅ Cloudinary se image fetch karo */
 // const fetchImageBuffer = async (url) => {
 //   try {
 //     const response = await fetch(url);
@@ -274,14 +299,13 @@
 // };
 
 // /* ────────────────────────────────────────────
-//    PDF GENERATE — with logos + footer at bottom
+//    PDF GENERATE
 //    ──────────────────────────────────────────── */
 // export const generateAdvicePDF = async (req, id, res, { inline = false } = {}) => {
 //   const advice = await Advice.findById(id);
 //   if (!advice || advice.isDeleted) throw ApiError.notFound('Advice not found');
 //   await assertScope(req.user, advice.clfId);
 
-//   // ✅ Logos fetch
 //   const LEFT_LOGO_URL =
 //     'https://res.cloudinary.com/dsjnikk42/image/upload/v1789380290/WhatsApp_Image_2026-09-14_at_1.07.08_PM_nbbmda.jpg';
 //   const RIGHT_LOGO_URL =
@@ -344,37 +368,28 @@
 
 //     let y = 30;
 
-//     // ─── TOP STRIP ───
 //     drawStrip(y);
 //     y += 18;
 
-//     /* ─── HEADER WITH LOGOS ─── */
 //     const logoSize = 70;
 //     const logoY = y;
 //     const titleWidth = pageWidth - marginLeft - marginRight - logoSize * 2 - 20;
 //     const titleX = marginLeft + logoSize + 10;
 
-//     // ✅ Left logo
 //     if (leftLogoBuf) {
 //       try {
 //         doc.image(leftLogoBuf, marginLeft, logoY, { fit: [logoSize, logoSize] });
-//       } catch (e) {
-//         console.warn('Left logo embed failed:', e.message);
-//       }
+//       } catch (e) { }
 //     }
 
-//     // ✅ Right logo
 //     if (rightLogoBuf) {
 //       try {
 //         doc.image(rightLogoBuf, pageWidth - marginRight - logoSize, logoY, {
 //           fit: [logoSize, logoSize],
 //         });
-//       } catch (e) {
-//         console.warn('Right logo embed failed:', e.message);
-//       }
+//       } catch (e) { }
 //     }
 
-//     // ✅ Title between logos
 //     let ty = logoY + 10;
 //     doc.font('Devanagari-Bold').fontSize(18).fillColor('black');
 //     doc.text('सतबरवा आजीविका महिला संकुल स्तरीय', titleX, ty, {
@@ -404,11 +419,9 @@
 
 //     y = Math.max(logoY + logoSize, ty + 10) + 6;
 
-//     // ─── BOTTOM STRIP ───
 //     drawStrip(y);
 //     y += 18;
 
-//     // ─── PATRANK / DINANK ───
 //     doc.font('Devanagari').fontSize(10).fillColor('black');
 //     const dateStr = new Date(advice.adviceDate).toLocaleDateString('en-IN', {
 //       day: '2-digit',
@@ -422,7 +435,6 @@
 //     });
 //     y += 18;
 
-//     // ─── PAGE 1 CONTENT ───
 //     if (pageIndex === 0) {
 //       doc.font('Devanagari-Bold').fontSize(10).text('To', marginLeft, y);
 //       y += 12;
@@ -468,7 +480,6 @@
 //       y += 18;
 //     }
 
-//     // ─── TABLE ───
 //     if (!isSignatureOnlyPage) {
 //       const colWidths = {
 //         sl: 22,
@@ -578,12 +589,8 @@
 //       }
 //     }
 
-//     // ─── SIGNATURE + FOOTER (last page) ───
 //     if (isLastPage) {
-//       // ✅ Footer pageHeight - 90 par (aur niche)
 //       const footerTop = pageHeight - 90;
-
-//       // Signature ke liye thoda upar
 //       const sigY = footerTop - 40;
 //       const sigWidth = 80;
 //       const gap = 20;
@@ -602,7 +609,6 @@
 //       doc.text('सतबरवा आजीविका महिला संकुल स्तरीय', rightX, sigY - 16, { width: 180, align: 'right' });
 //       doc.text('प्राथमिक स्वावलम्बी सहकारी समिति लिमिटेड', rightX, sigY - 4, { width: 180, align: 'right' });
 
-//       // Footer strip + text
 //       drawStrip(footerTop);
 //       let fy = footerTop + 12;
 //       doc.font('Devanagari').fontSize(7.5).fillColor('black');
@@ -630,15 +636,13 @@
 // };
 
 
-
-
 import PDFDocument from 'pdfkit';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import mongoose from 'mongoose';
 import { Advice } from './advice.model.js';
-import { CLF } from '../clfs/clf.model.js';
+import { CLF } from '../clfs/clf.model.js'; 
 import { ApiError } from '../../utils/ApiError.js';
 import { createAudit } from '../../middlewares/audit.middleware.js';
 import { getISTDateString } from '../../utils/security.js';
@@ -649,21 +653,16 @@ import { getISTDateString } from '../../utils/security.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ✅ Auto-Detect Function: Check karega ki font kahan pada hai
 const getFontPath = (fontName) => {
   const possiblePaths = [
-    path.join(process.cwd(), 'assets', 'fonts', fontName), // Aapke structure ke liye (assets src ke bahar)
-    path.join(process.cwd(), 'src', 'assets', 'fonts', fontName), // Agar assets src ke andar ho
-    path.join(__dirname, '..', '..', '..', 'assets', 'fonts', fontName), // Local testing ke liye
+    path.join(process.cwd(), 'assets', 'fonts', fontName), 
+    path.join(process.cwd(), 'src', 'assets', 'fonts', fontName), 
+    path.join(__dirname, '..', '..', '..', 'assets', 'fonts', fontName), 
   ];
 
   for (const p of possiblePaths) {
-    if (fs.existsSync(p)) {
-      console.log(`✅ FONT MIL GAYA: ${p}`); // Render logs mein check karna
-      return p;
-    }
+    if (fs.existsSync(p)) return p;
   }
-  console.log(`❌ FONT NAHI MILA: ${fontName}`);
   return null;
 };
 
@@ -679,7 +678,7 @@ const SYSTEM_FONTS = {
     '/System/Library/Fonts/Supplemental/Devanagari Sangam MN.ttc',
     '/Library/Fonts/Arial Unicode.ttf',
     '/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf',
-  ].filter(Boolean), // null values hata do
+  ].filter(Boolean),
   bold: [
     BUNDLED_FONT_BOLD,
     'C:\\Windows\\Fonts\\NirmalaB.ttf',
@@ -781,10 +780,28 @@ const fetchImageBuffer = async (url) => {
   }
 };
 
+// ✅ FIXED: Per-CLF Number Generation (Unique for each CLF)
 const generateAdviceNumber = async (clfId) => {
   const year = new Date().getFullYear();
-  const count = await Advice.countDocuments({ clfId, adviceNumber: { $regex: `/${year}/` } });
-  return `SAT/CLF/${year}/${String(count + 1).padStart(3, '0')}`;
+  
+  // Us CLF ke saal ke saare advices fetch karo
+  const existing = await Advice.find({ 
+    clfId, 
+    adviceNumber: { $regex: `/${year}/` } 
+  }).select('adviceNumber').lean();
+
+  // Sabse bada number nikaalo
+  let maxNum = 0;
+  existing.forEach((a) => {
+    const parts = a.adviceNumber.split('/');
+    const lastPart = parts[parts.length - 1];
+    const num = parseInt(lastPart, 10);
+    if (!isNaN(num) && num > maxNum) maxNum = num;
+  });
+
+  // Agla number return karo
+  const nextNum = maxNum + 1;
+  return `SAT/CLF/${year}/${String(nextNum).padStart(3, '0')}`;
 };
 
 const assertScope = async (user, clfId) => {
@@ -832,23 +849,41 @@ export const createAdvice = async (req, data) => {
   });
 
   const totalAmount = cleaned.reduce((s, e) => s + e.amount, 0);
-  const adviceNumber = await generateAdviceNumber(clfId);
+  
+  // ✅ Retry Logic for Duplicate Key (11000)
+  let advice;
+  let retries = 3;
+  let adviceNumber = await generateAdviceNumber(clfId);
 
-  const advice = await Advice.create({
-    adviceType: data.adviceType === 'EXPENSE' ? 'EXPENSE' : 'SALARY',
-    adviceNumber,
-    adviceDate: data.adviceDate || getISTDateString(),
-    createdByRole: user.role,
-    createdByUser: user._id,
-    createdByName: user.name || '',
-    clfId: clf._id,
-    blockId: clf.blockId,
-    bankName: data.bankName || '',
-    branch: data.branch || '',
-    employees: cleaned,
-    totalAmount,
-    totalRows: cleaned.length,
-  });
+  while (retries > 0) {
+    try {
+      advice = await Advice.create({
+        adviceType: data.adviceType === 'EXPENSE' ? 'EXPENSE' : 'SALARY',
+        adviceNumber,
+        adviceDate: data.adviceDate || getISTDateString(),
+        createdByRole: user.role,
+        createdByUser: user._id,
+        createdByName: user.name || '',
+        clfId: clf._id,
+        blockId: clf.blockId,
+        bankName: data.bankName || '',
+        branch: data.branch || '',
+        employees: cleaned,
+        totalAmount,
+        totalRows: cleaned.length,
+      });
+      break; // Success
+    } catch (err) {
+      if (err.code === 11000) { // Duplicate key error
+        retries--;
+        if (retries === 0) throw err;
+        // Naya number generate karo
+        adviceNumber = await generateAdviceNumber(clfId);
+      } else {
+        throw err;
+      }
+    }
+  }
 
   await createAudit({
     req,
@@ -931,6 +966,44 @@ export const deleteAdvice = async (req, id) => {
 
   return { deleted: true, adviceNumber: advice.adviceNumber };
 };
+
+/* ────────────────────────────────────────────
+   ✅ CLF Members for Advice
+   ──────────────────────────────────────────── */
+export const getClfMembersForAdvice = async (clfId) => {
+  const clf = await CLF.findById(clfId);
+  if (!clf) throw ApiError.notFound('CLF not found');
+
+  const members = [];
+
+  const addMember = (m, designation) => {
+    if (!m?.name) return;
+    members.push({
+      _id: m._id || `core-${designation.toLowerCase()}-${clf._id}`,
+      name: m.name,
+      designation: designation,
+      bankDetails: {
+        bankName: m.bankDetails?.bankName || '', // ✅ NAYA
+        accountNumber: m.bankDetails?.accountNumber || '',
+        branch: m.bankDetails?.branch || '',
+        ifsc: m.bankDetails?.ifscCode || '',
+      },
+    });
+  };
+
+  addMember(clf.coreMembers?.president, 'President (अध्यक्ष)');
+  addMember(clf.coreMembers?.secretary, 'Secretary (सचिव)');
+  addMember(clf.coreMembers?.treasurer, 'Treasurer (कोषाध्यक्ष)');
+
+  if (clf.bodMembers && clf.bodMembers.length > 0) {
+    clf.bodMembers.forEach((m) => {
+      if (m.status === 'ACTIVE') addMember(m, m.designation || 'BOD Member');
+    });
+  }
+
+  return members;
+};
+
 
 /* ────────────────────────────────────────────
    PDF GENERATE

@@ -9,39 +9,53 @@ export default function ResetPasswordModal({
   onClose,
   entityName = '',
   entityLabel = 'user',
-  onConfirm, // async (newPassword) => { username, ... }
+  currentUsername = '', 
+  onConfirm, 
 }) {
+  const [username, setUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  
+  // ✅ Eye Toggle States
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
 
-  // Reset state on open/close
   useEffect(() => {
     if (open) {
+      setUsername(currentUsername);
       setNewPassword('');
       setConfirmPassword('');
       setError('');
       setSuccess(false);
       setLoading(false);
+      setShowNewPassword(false);
+      setShowConfirmPassword(false);
     }
-  }, [open]);
+  }, [open, currentUsername]);
 
   const validate = () => {
-    if (!newPassword || newPassword.length < 8) {
-      return 'Password must be at least 8 characters';
+    if (!username || username.trim() === '') {
+      return 'Login ID (Username) cannot be empty';
     }
-    if (!/(?=.*[A-Za-z])(?=.*\d)/.test(newPassword)) {
-      return 'Password must contain letters and numbers';
-    }
-    if (newPassword !== confirmPassword) {
-      return 'Passwords do not match';
+    if (newPassword) {
+      if (newPassword.length < 8) {
+        return 'Password must be at least 8 characters';
+      }
+      if (!/(?=.*[A-Za-z])(?=.*\d)/.test(newPassword)) {
+        return 'Password must contain letters and numbers';
+      }
+      if (newPassword !== confirmPassword) {
+        return 'Passwords do not match';
+      }
     }
     return null;
   };
 
-  const handleReset = async () => {
+  const handleSubmit = async () => {
     const v = validate();
     if (v) {
       setError(v);
@@ -50,44 +64,110 @@ export default function ResetPasswordModal({
     setError('');
     setLoading(true);
     try {
-      await onConfirm(newPassword);
+      await onConfirm({ username, password: newPassword });
       setSuccess(true);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to reset password');
+      setError(err.response?.data?.message || 'Failed to update credentials');
     } finally {
       setLoading(false);
     }
   };
 
+  // ✅ Eye Icon SVG
+  const EyeIcon = ({ show }) => (
+    show ? (
+      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+        <line x1="1" y1="1" x2="23" y2="23"></line>
+      </svg>
+    ) : (
+      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+        <circle cx="12" cy="12" r="3"></circle>
+      </svg>
+    )
+  );
+
   return (
     <Modal
       open={open}
       onClose={onClose}
-      title={success ? 'Password Reset Successful' : `Reset Password — ${entityLabel}`}
+      title={success ? 'Credentials Updated' : `Manage Login — ${entityLabel}`}
     >
       {!success ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <p style={{ fontSize: 14, lineHeight: 1.6, margin: 0 }}>
-            Set new password for <b>{entityName}</b>:
+            Update login credentials for <b>{entityName}</b>:
           </p>
 
           <Input
-            label="New Password"
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            placeholder="Min 8 chars, letters + numbers"
+            label="Login ID (Username)"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Enter login ID"
             required
           />
 
-          <Input
-            label="Confirm Password"
-            type="password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            placeholder="Re-enter password"
-            required
-          />
+          {/* ✅ FIX: Input jaisa tha waisa hi hai, bas upar eye icon laga hai */}
+          <div style={{ position: 'relative' }}>
+            <Input
+              label="New Password (optional)"
+              type={showNewPassword ? 'text' : 'password'}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Leave blank to keep current password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowNewPassword(!showNewPassword)}
+              style={{
+                position: 'absolute',
+                right: '12px',
+                top: '38px', // Input field ke center me laane ke liye adjust
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: theme.colors.muted,
+                padding: 4,
+              }}
+            >
+              <EyeIcon show={showNewPassword} />
+            </button>
+          </div>
+
+          {newPassword && (
+            <div style={{ position: 'relative' }}>
+              <Input
+                label="Confirm New Password"
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-enter new password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '38px',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: theme.colors.muted,
+                  padding: 4,
+                }}
+              >
+                <EyeIcon show={showConfirmPassword} />
+              </button>
+            </div>
+          )}
 
           {error && (
             <div
@@ -107,8 +187,8 @@ export default function ResetPasswordModal({
             <Button variant="ghost" onClick={onClose} disabled={loading}>
               Cancel
             </Button>
-            <Button variant="danger" onClick={handleReset} loading={loading}>
-              Reset Password
+            <Button variant="primary" onClick={handleSubmit} loading={loading}>
+              Save Changes
             </Button>
           </div>
         </div>
@@ -124,10 +204,10 @@ export default function ResetPasswordModal({
               fontWeight: 600,
             }}
           >
-            ✅ Password reset successful!
+            ✅ Credentials updated successfully!
           </div>
           <p style={{ fontSize: 13, color: theme.colors.muted, margin: 0 }}>
-            {entityName} अब नए password से login कर सकता है। उसे अगली बार login करते समय password change करने का prompt मिलेगा।
+            {entityName} ab naye Login ID {newPassword ? 'aur Password' : ''} se login kar sakta hai.
           </p>
 
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 4 }}>
