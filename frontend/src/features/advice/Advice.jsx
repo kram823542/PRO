@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import PageHeader from '../../components/common/PageHeader.jsx';
 import SalaryAdvice from './SalaryAdvice.jsx';

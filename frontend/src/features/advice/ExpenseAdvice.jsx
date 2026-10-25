@@ -1,5 +1,3 @@
-
-
 import { useEffect, useState } from 'react';
 import Modal from '../../components/ui/Modal.jsx';
 import Button from '../../components/ui/Button.jsx';

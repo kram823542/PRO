@@ -1,5 +1,3 @@
-
-
 import { Outlet } from 'react-router-dom';
 import Sidebar from '../components/navigation/Sidebar.jsx';
 import BottomBar from '../components/navigation/BottomBar.jsx';

@@ -1,10 +1,3 @@
-// import apiClient from '../../services/apiClient.js';
-
-// export const listAttendance = (params) => apiClient.get('/attendance', { params });
-// export const exportAttendanceCSV = (params) =>
-//   apiClient.get('/attendance/export', { params, responseType: 'blob' });
-
-
 import apiClient from '../../services/apiClient.js';
 
 export const listAttendance = (params) =>

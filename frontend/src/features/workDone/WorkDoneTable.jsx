@@ -1,29 +1,3 @@
-// import Table from '../../components/ui/Table.jsx';
-// import Badge from '../../components/ui/Badge.jsx';
-
-// export default function WorkDoneTable({ items = [], loading = false }) {
-//   const columns = [
-//     { header: 'Employee', render: (r) => r.employeeId?.name || '—' },
-//     { header: 'Code', render: (r) => r.employeeId?.employeeCode || '—' },
-//     { header: 'Date', key: 'date' },
-//     { header: 'Description', render: (r) => <div style={{ maxWidth: 400 }}>{r.description}</div> },
-//     {
-//       header: 'Status',
-//       render: (r) => (
-//         <Badge
-//           variant={
-//             r.status === 'APPROVED' ? 'success' : r.status === 'REJECTED' ? 'danger' : 'warning'
-//           }
-//         >
-//           {r.status}
-//         </Badge>
-//       ),
-//     },
-//   ];
-//   return <Table columns={columns} data={items} loading={loading} />;
-// }
-
-
 import Table from '../../components/ui/Table.jsx';
 import Badge from '../../components/ui/Badge.jsx';
 import { theme } from '../../config/theme.js';
