@@ -4,7 +4,6 @@ import { env } from '../config/env.js';
 
 const KEY = CryptoJS.enc.Utf8.parse(env.ENCRYPTION_KEY);
 
-/** AES-256 Encrypt (Aadhaar, Bank Account) */
 export const encrypt = (text) => {
   if (!text) return null;
   const iv = CryptoJS.lib.WordArray.random(16);
@@ -16,7 +15,6 @@ export const encrypt = (text) => {
   return `${iv.toString()}:${encrypted.ciphertext.toString()}`;
 };
 
-/** AES-256 Decrypt */
 export const decrypt = (cipherText) => {
   if (!cipherText) return null;
   try {
@@ -34,20 +32,17 @@ export const decrypt = (cipherText) => {
   }
 };
 
-/** Mask Aadhaar: XXXX-XXXX-1234 */
 export const maskAadhaar = (aadhaar) => {
   if (!aadhaar) return null;
   const last4 = aadhaar.slice(-4);
   return `XXXX-XXXX-${last4}`;
 };
 
-/** Mask Account Number */
 export const maskAccount = (acc) => {
   if (!acc) return null;
   return `XXXX${acc.slice(-4)}`;
 };
 
-/** Generate secure random password */
 export const generatePassword = (length = 10) => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789@#$';
   let pwd = '';
@@ -58,7 +53,6 @@ export const generatePassword = (length = 10) => {
   return pwd;
 };
 
-/** Validate time window (Asia/Kolkata) */
 export const isWithinTimeWindow = (startHour, endHour) => {
   const now = new Date();
   const istTime = new Date(
@@ -68,10 +62,12 @@ export const isWithinTimeWindow = (startHour, endHour) => {
   return hour >= startHour && hour < endHour;
 };
 
-/** Get today's IST date (YYYY-MM-DD) */
+// ✅ FIX #22: Intl.DateTimeFormat (timezone safe, no locale parsing)
 export const getISTDateString = (date = new Date()) => {
-  const ist = new Date(
-    date.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' })
-  );
-  return ist.toISOString().slice(0, 10);
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
 };

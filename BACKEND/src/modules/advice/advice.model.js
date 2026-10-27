@@ -8,11 +8,13 @@ const adviceSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+    // ✅ CHANGED: adviceNumber ab OPTIONAL hai (CLF admin manually daal sakta hai)
     adviceNumber: {
       type: String,
-      required: true,
+      default: '',
+      trim: true,
       index: true,
-    }, 
+    },
     adviceDate: { type: String, required: true },
 
     createdByRole: {
@@ -66,8 +68,15 @@ const adviceSchema = new mongoose.Schema(
   { timestamps: true, versionKey: false }
 );
 
-// ✅ FIX: Per CLF unique advice number
-adviceSchema.index({ clfId: 1, adviceNumber: 1 }, { unique: true });
+// ✅ CHANGED: Unique index sirf non-empty adviceNumber pe lagega
+// Sparse + partial filter → empty strings duplicate allowed
+adviceSchema.index(
+  { clfId: 1, adviceNumber: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { adviceNumber: { $type: 'string', $ne: '' } },
+  }
+);
 
 adviceSchema.index({ clfId: 1, isDeleted: 1, createdAt: -1 });
 adviceSchema.index({ adviceType: 1, createdAt: -1 });

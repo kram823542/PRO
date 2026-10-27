@@ -4,11 +4,12 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { Leave } from './leave.model.js';
 import { Employee } from '../employees/employee.model.js';
-import { Attendance } from '../attendance/attendance.model.js'; 
+import { Attendance } from '../attendance/attendance.model.js';
 import { ApiError } from '../../utils/ApiError.js';
+import { logger } from '../../utils/logger.js';
 
 /* ────────────────────────────────────────────
-   Fonts — Auto Detect Path (PDF ke liye)
+   Fonts — ✅ FIX #23: System fallback add
    ──────────────────────────────────────────── */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,7 +29,42 @@ const getFontPath = (fontName) => {
 const BUNDLED_FONT_REGULAR = getFontPath('NotoSansDevanagari-Regular.ttf');
 const BUNDLED_FONT_BOLD = getFontPath('NotoSansDevanagari-Bold.ttf');
 
-// ✅ 1. Employee ke liye nayi Leave Apply karna
+const SYSTEM_FONTS = {
+  regular: [
+    BUNDLED_FONT_REGULAR,
+    'C:\\Windows\\Fonts\\Nirmala.ttf',
+    'C:\\Windows\\Fonts\\mangal.ttf',
+    'C:\\Windows\\Fonts\\arialuni.ttf',
+    '/System/Library/Fonts/Supplemental/Devanagari Sangam MN.ttc',
+    '/Library/Fonts/Arial Unicode.ttf',
+    '/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf',
+  ].filter(Boolean),
+  bold: [
+    BUNDLED_FONT_BOLD,
+    'C:\\Windows\\Fonts\\NirmalaB.ttf',
+    'C:\\Windows\\Fonts\\mangalb.ttf',
+    'C:\\Windows\\Fonts\\arialunib.ttf',
+    '/System/Library/Fonts/Supplemental/Devanagari Sangam MN Bold.ttc',
+    '/Library/Fonts/Arial Unicode Bold.ttf',
+    '/usr/share/fonts/truetype/noto/NotoSansDevanagari-Bold.ttf',
+  ].filter(Boolean),
+};
+
+const findFont = (candidates) => {
+  for (const p of candidates) {
+    try { if (fs.existsSync(p)) return p; } catch { /* ignore */ }
+  }
+  return null;
+};
+
+const registerFonts = (doc) => {
+  const regular = findFont(SYSTEM_FONTS.regular);
+  const bold = findFont(SYSTEM_FONTS.bold);
+  doc.registerFont('Devanagari', regular || 'Helvetica');
+  doc.registerFont('Devanagari-Bold', bold || regular || 'Helvetica-Bold');
+};
+
+// ✅ Apply Leave
 export const applyLeave = async (req, res, next) => {
   try {
     if (!req.user) {
@@ -50,11 +86,11 @@ export const applyLeave = async (req, res, next) => {
       throw ApiError.badRequest('Start Time and End Time are required for Half Day leave');
     }
 
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const diffTime = Math.abs(end - start);
-    let totalDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; 
-    
+    // ✅ FIX #22: UTC-based date diff (timezone safe)
+    const start = new Date(`${startDate}T00:00:00Z`);
+    const end = new Date(`${endDate}T00:00:00Z`);
+
+    let totalDays = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
     if (leaveType === 'Half Day') totalDays = 0.5;
 
     const leave = await Leave.create({
@@ -68,7 +104,7 @@ export const applyLeave = async (req, res, next) => {
       endTime: leaveType === 'Half Day' ? endTime : null,
       totalDays,
       reason,
-      appliedBy: targetUserId, 
+      appliedBy: targetUserId,
       status: 'PENDING',
     });
 
@@ -82,11 +118,11 @@ export const applyLeave = async (req, res, next) => {
   }
 };
 
-// ✅ 2. Employee apni saari leaves dekhe
+// ✅ Get My Leaves
 export const getMyLeaves = async (req, res, next) => {
   try {
     if (!req.user) {
-      return res.status(401).json({ success: false, message: 'Unauthorized - Please login again' });
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
     }
 
     const user = req.user;
@@ -97,20 +133,17 @@ export const getMyLeaves = async (req, res, next) => {
 
     const leaves = await Leave.find({ employeeId: emp._id }).sort({ createdAt: -1 });
 
-    res.status(200).json({
-      success: true,
-      data: leaves,
-    });
+    res.status(200).json({ success: true, data: leaves });
   } catch (error) {
     next(error);
   }
 };
 
-// ✅ 3. Leave Cancel karna
+// ✅ Cancel Leave
 export const cancelLeave = async (req, res, next) => {
   try {
     if (!req.user) {
-      return res.status(401).json({ success: false, message: 'Unauthorized - Please login again' });
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
     }
 
     const { id } = req.params;
@@ -142,7 +175,7 @@ export const cancelLeave = async (req, res, next) => {
   }
 };
 
-// ✅ 4. CLF/BPM ke liye saari leaves dekhna (Admin View)
+// ✅ Get All Leaves (Admin)
 export const getAllLeavesForAdmin = async (req, res, next) => {
   try {
     const user = req.user;
@@ -154,25 +187,23 @@ export const getAllLeavesForAdmin = async (req, res, next) => {
     } else if (user.role === 'BPM') {
       filter.blockId = user.blockId;
     }
+    // SUPER_ADMIN → no filter (all leaves)
 
     const leaves = await Leave.find(filter)
       .populate('employeeId', 'name employeeCode designation')
       .sort({ createdAt: -1 });
 
-    res.status(200).json({
-      success: true,
-      data: leaves,
-    });
+    res.status(200).json({ success: true, data: leaves });
   } catch (error) {
     next(error);
   }
 };
 
-// ✅ 5. CLF Admin dwara Leave Approve/Reject + Attendance Auto-Update
+// ✅ Update Leave Status — MAJOR FIX (#3, #9, #10)
 export const updateLeaveStatus = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { status, reviewRemarks } = req.body; 
+    const { status, reviewRemarks } = req.body;
     const user = req.user;
 
     if (!['APPROVED', 'REJECTED'].includes(status)) {
@@ -182,7 +213,11 @@ export const updateLeaveStatus = async (req, res, next) => {
     const leave = await Leave.findById(id);
     if (!leave) return res.status(404).json({ success: false, message: 'Leave not found' });
 
+    // ✅ FIX #3: BPM/CLF scope check
     if (user.role === 'CLF' && String(leave.clfId) !== String(user.clfId)) {
+      return res.status(403).json({ success: false, message: 'Not authorized to review this leave' });
+    }
+    if (user.role === 'BPM' && String(leave.blockId) !== String(user.blockId)) {
       return res.status(403).json({ success: false, message: 'Not authorized to review this leave' });
     }
 
@@ -191,23 +226,39 @@ export const updateLeaveStatus = async (req, res, next) => {
     leave.reviewedBy = user._id || user.userId;
     await leave.save();
 
-    // ✅ MAGIC: Agar Approve hua hai to Attendance update karo
+    // ✅ Attendance update on APPROVED
     if (status === 'APPROVED') {
-      const start = new Date(leave.startDate);
-      const end = new Date(leave.endDate);
-      
-      // Jitne din ki leave hai, utne din ka loop chala kar attendance mark karo
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        const dateStr = d.toISOString().split('T')[0]; 
-        
-        let existingAtt = await Attendance.findOne({ 
-          employeeId: leave.employeeId, 
-          date: dateStr 
+      // ✅ FIX #10: Half Day → HALF_DAY status, sirf startDate pe
+      const isHalfDay = leave.leaveType === 'Half Day';
+      const attendanceStatus = isHalfDay ? 'HALF_DAY' : 'LEAVE';
+
+      const start = new Date(`${leave.startDate}T00:00:00Z`);
+      const end = new Date(`${leave.endDate}T00:00:00Z`);
+
+      const dates = [];
+      if (isHalfDay) {
+        dates.push(leave.startDate);
+      } else {
+        for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+          dates.push(d.toISOString().split('T')[0]);
+        }
+      }
+
+      for (const dateStr of dates) {
+        const existingAtt = await Attendance.findOne({
+          employeeId: leave.employeeId,
+          date: dateStr,
         });
 
         if (existingAtt) {
-          existingAtt.status = 'LEAVE';
+          // ✅ FIX #9: WorkDone-approved PRESENT ko overwrite mat karo
+          if (existingAtt.source === 'WORK_DONE_APPROVAL' && existingAtt.status === 'PRESENT') {
+            logger.warn(`Attendance already PRESENT via WorkDone on ${dateStr} — skipping leave mark`);
+            continue;
+          }
+          existingAtt.status = attendanceStatus;
           existingAtt.remarks = `Leave Approved (${leave.leaveType})`;
+          existingAtt.source = 'LEAVE_APPROVAL';
           await existingAtt.save();
         } else {
           await Attendance.create({
@@ -215,9 +266,10 @@ export const updateLeaveStatus = async (req, res, next) => {
             clfId: leave.clfId,
             blockId: leave.blockId,
             date: dateStr,
-            status: 'LEAVE',
+            status: attendanceStatus,
+            source: 'LEAVE_APPROVAL',
             remarks: `Leave Approved (${leave.leaveType})`,
-            markedBy: user._id || user.userId
+            markedBy: user._id || user.userId,
           });
         }
       }
@@ -233,51 +285,42 @@ export const updateLeaveStatus = async (req, res, next) => {
   }
 };
 
-// ✅ 6. NAYA: Leave Application ki PDF Download karna
+// ✅ Download Leave PDF
 export const downloadLeavePDF = async (req, res, next) => {
   try {
     const { id } = req.params;
-    // Employee ki detail bhi laao taaki PDF mein naam aaye
     const leave = await Leave.findById(id).populate('employeeId', 'name employeeCode designation');
-    
+
     if (!leave) return res.status(404).json({ success: false, message: 'Leave not found' });
 
-    // Security Check
-    if (req.user.role === 'CLF' && String(leave.clfId) !== String(req.user.clfId)) {
-       return res.status(403).json({ success: false, message: 'Not authorized' });
+    const user = req.user;
+    if (user.role === 'CLF' && String(leave.clfId) !== String(user.clfId)) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
+    }
+    if (user.role === 'BPM' && String(leave.blockId) !== String(user.blockId)) {
+      return res.status(403).json({ success: false, message: 'Not authorized' });
     }
 
     const doc = new PDFDocument({ size: 'A4', margin: 50 });
-    
-    // Font Register karo (Hindi ke liye)
-    if (BUNDLED_FONT_REGULAR) doc.registerFont('Devanagari', BUNDLED_FONT_REGULAR);
-    else doc.registerFont('Devanagari', 'Helvetica');
-    
-    if (BUNDLED_FONT_BOLD) doc.registerFont('Devanagari-Bold', BUNDLED_FONT_BOLD);
-    else doc.registerFont('Devanagari-Bold', 'Helvetica-Bold');
+    registerFonts(doc);
 
-    // Headers set karo download ke liye
     const filename = `Leave-${leave.employeeId?.employeeCode || 'App'}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
     doc.pipe(res);
 
-    // ─── PDF Content Design ───
     const pageWidth = 595.28;
     const formatDate = (d) => new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 
-    // Header
     doc.font('Devanagari-Bold').fontSize(18).text('सतबरवा आजीविका महिला संकुल स्तरीय', { align: 'center' });
     doc.font('Devanagari-Bold').fontSize(14).text('प्राथमिक स्वावलम्बी सहकारी समिति लिमिटेड', { align: 'center' });
     doc.font('Devanagari').fontSize(10).text('ग्राम- सतबरवा, प्रखंड- सतबरवा, जिला- पलामू (झा0)', { align: 'center' });
     doc.moveDown(1);
 
-    // Line
     doc.moveTo(50, doc.y).lineTo(pageWidth - 50, doc.y).stroke();
     doc.moveDown(2);
 
-    // Date & To
     doc.font('Devanagari').fontSize(12);
     doc.text(`दिनांक: ${formatDate(leave.createdAt)}`, { align: 'right' });
     doc.moveDown(1);
@@ -286,16 +329,14 @@ export const downloadLeavePDF = async (req, res, next) => {
     doc.text('सतबरवा CLF');
     doc.moveDown(2);
 
-    // Subject
     doc.font('Devanagari-Bold').fontSize(14).text('विषय: अवकाश (Leave) हेतु आवेदन', { align: 'center', underline: true });
     doc.moveDown(2);
 
-    // Body
     doc.font('Devanagari').fontSize(12).text('महोदय/महोदया,', { align: 'left' });
     doc.moveDown(1);
 
     const bodyText = `सविनय निवेदन है कि मुझे ${leave.totalDays} दिनों का अवकाश चाहिए। मुझे दिनांक ${formatDate(leave.startDate)} से ${formatDate(leave.endDate)} तक अवकाश की आवश्यकता है${leave.leaveType === 'Half Day' ? ` (समय: ${leave.startTime} से ${leave.endTime} तक)` : ''}।`;
-    
+
     doc.text(bodyText, { align: 'justify', lineGap: 4 });
     doc.moveDown(1);
 
@@ -308,14 +349,12 @@ export const downloadLeavePDF = async (req, res, next) => {
     doc.text('अतः आपसे निवेदन है कि मेरे इस अवकाश आवेदन को स्वीकृत (Approve) करने की कृपा करें।', { align: 'justify' });
     doc.moveDown(4);
 
-    // Signature
     doc.text('धन्यवाद,', { align: 'left' });
     doc.moveDown(3);
     doc.font('Devanagari-Bold').text(leave.employeeId?.name || 'Employee Name', { align: 'right' });
     doc.font('Devanagari').text(leave.employeeId?.designation || 'Designation', { align: 'right' });
     doc.text(`Emp Code: ${leave.employeeId?.employeeCode || 'N/A'}`, { align: 'right' });
-    
-    // Status Box
+
     doc.moveDown(3);
     if (leave.status === 'APPROVED') {
       doc.fillColor('green').text('Status: APPROVED', { align: 'center' });

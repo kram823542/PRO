@@ -110,22 +110,26 @@ function HistoryTab() {
   }, [filter]);
 
   const handleDownload = async (id, adviceNumber) => {
-    try {
-      const { data } = await adviceApi.downloadAdvicePDF(id);
-      const blob = new Blob([data], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `Advice-${adviceNumber.replace(/\//g, '-')}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      toast.success('PDF downloaded');
-    } catch (err) {
-      toast.error('Failed to download PDF');
-    }
-  };
+  try {
+    const { data } = await adviceApi.downloadAdvicePDF(id);
+    const blob = new Blob([data], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    // ✅ CHANGED: blank adviceNumber handle
+    const safeNumber = adviceNumber && adviceNumber.trim()
+      ? adviceNumber.replace(/\//g, '-')
+      : `ADV-${id}`;
+    a.download = `Advice-${safeNumber}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('PDF downloaded');
+  } catch (err) {
+    toast.error('Failed to download PDF');
+  }
+};
 
   const handlePrint = async (id) => {
     try {

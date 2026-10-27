@@ -16,16 +16,12 @@ const userSchema = new mongoose.Schema(
       required: true,
       select: false,
     },
-      // ... baaki fields (username, password, role, etc.)
-  
-  profilePhoto: {
-    type: String,
-    default: '', // Base64 image string save hogi
-  },
-  
-  // ... baaki fields 
 
-  
+    profilePhoto: {
+      type: String,
+      default: '',
+    },
+
     role: {
       type: String,
       enum: ['SUPER_ADMIN', 'BPM', 'CLF', 'EMPLOYEE'],
@@ -33,10 +29,23 @@ const userSchema = new mongoose.Schema(
       index: true,
     },
     name: { type: String, required: true, trim: true },
-    email: { type: String, trim: true, lowercase: true },
-    mobile: { type: String, trim: true },
 
-    // References (based on role)
+    // ✅ FIX #24: email unique + sparse (optional but if present, unique)
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      unique: true,
+      sparse: true,
+    },
+    // ✅ FIX #24: mobile unique + sparse
+    mobile: {
+      type: String,
+      trim: true,
+      unique: true,
+      sparse: true,
+    },
+
     blockId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Block',
@@ -82,18 +91,15 @@ const userSchema = new mongoose.Schema(
 userSchema.index({ role: 1, status: 1 });
 userSchema.index({ blockId: 1, role: 1 });
 
-/** Hash password before save (Fixed: async function me `next` hata diya gaya hai) */
 userSchema.pre('save', async function () {
   if (!this.isModified('password')) return;
   this.password = await bcrypt.hash(this.password, 12);
 });
 
-/** Compare password */
 userSchema.methods.comparePassword = async function (candidate) {
   return bcrypt.compare(candidate, this.password);
 };
 
-/** Account lock check */
 userSchema.methods.isLocked = function () {
   return this.lockUntil && this.lockUntil > Date.now();
 };

@@ -19,7 +19,7 @@ const auditLogSchema = new mongoose.Schema(
 auditLogSchema.index({ createdAt: -1 });
 auditLogSchema.index({ userId: 1, createdAt: -1 });
 
-// Auto-expire logs after 1 year
-auditLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 365 });
+// ✅ FIX #14: TTL 1 year → 3 years (compliance friendly)
+auditLogSchema.index({ createdAt: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 365 * 3 });
 
 export const AuditLog = mongoose.model('AuditLog', auditLogSchema);

@@ -9,28 +9,25 @@ import { Attendance } from '../attendance/attendance.model.js';
 import { Employee } from '../employees/employee.model.js';
 import { CLF } from '../clfs/clf.model.js';
 import { ApiError } from '../../utils/ApiError.js';
+import { logger } from '../../utils/logger.js';
 
-/* ────────────────────────────────────────────
-   Fonts — Auto Detect Path
-   ──────────────────────────────────────────── */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ✅ Auto-Detect Function: Check karega ki font kahan pada hai
 const getFontPath = (fontName) => {
   const possiblePaths = [
-    path.join(process.cwd(), 'assets', 'fonts', fontName), // Aapke structure ke liye (assets src ke bahar)
-    path.join(process.cwd(), 'src', 'assets', 'fonts', fontName), // Agar assets src ke andar ho
-    path.join(__dirname, '..', '..', '..', 'assets', 'fonts', fontName), // Local testing ke liye
+    path.join(process.cwd(), 'assets', 'fonts', fontName),
+    path.join(process.cwd(), 'src', 'assets', 'fonts', fontName),
+    path.join(__dirname, '..', '..', '..', 'assets', 'fonts', fontName),
   ];
 
   for (const p of possiblePaths) {
     if (fs.existsSync(p)) {
-      console.log(`✅ FONT MIL GAYA: ${p}`); // Render logs mein check karna
+      logger.info(`✅ FONT MIL GAYA: ${p}`);
       return p;
     }
   }
-  console.log(`❌ FONT NAHI MILA: ${fontName}`);
+  logger.warn(`❌ FONT NAHI MILA: ${fontName}`);
   return null;
 };
 
@@ -62,9 +59,7 @@ const findFont = (candidates) => {
   for (const p of candidates) {
     try {
       if (fs.existsSync(p)) return p;
-    } catch {
-      // ignore
-    }
+    } catch { /* ignore */ }
   }
   return null;
 };
@@ -74,21 +69,15 @@ const registerFonts = (doc) => {
   const bold = findFont(SYSTEM_FONTS.bold);
 
   if (regular) {
-    try {
-      doc.registerFont('Devanagari', regular);
-    } catch (err) {
-      doc.registerFont('Devanagari', 'Helvetica');
-    }
+    try { doc.registerFont('Devanagari', regular); }
+    catch { doc.registerFont('Devanagari', 'Helvetica'); }
   } else {
     doc.registerFont('Devanagari', 'Helvetica');
   }
 
   if (bold) {
-    try {
-      doc.registerFont('Devanagari-Bold', bold);
-    } catch {
-      doc.registerFont('Devanagari-Bold', 'Helvetica-Bold');
-    }
+    try { doc.registerFont('Devanagari-Bold', bold); }
+    catch { doc.registerFont('Devanagari-Bold', 'Helvetica-Bold'); }
   } else {
     doc.registerFont('Devanagari-Bold', regular || 'Helvetica-Bold');
   }
@@ -117,9 +106,6 @@ const assertEmployeeScope = async (req, employeeId) => {
   throw ApiError.forbidden('Access denied');
 };
 
-/* ────────────────────────────────────────────
-   ACTION PLAN PDF
-   ──────────────────────────────────────────── */
 export const actionPlanPDF = async (req, { employeeId, year, month }) => {
   const emp = await assertEmployeeScope(req, employeeId);
   const clf = await CLF.findById(emp.clfId);
@@ -187,9 +173,6 @@ export const actionPlanPDF = async (req, { employeeId, year, month }) => {
   return doc;
 };
 
-/* ────────────────────────────────────────────
-   WORK DONE PDF
-   ──────────────────────────────────────────── */
 export const workDonePDF = async (req, { employeeId, year, month }) => {
   const emp = await assertEmployeeScope(req, employeeId);
   const clf = await CLF.findById(emp.clfId);
@@ -253,8 +236,8 @@ export const workDonePDF = async (req, { employeeId, year, month }) => {
 
       const statusColor =
         w.status === 'APPROVED' ? '#16A34A'
-        : w.status === 'REJECTED' ? '#DC2626'
-        : '#D97706';
+          : w.status === 'REJECTED' ? '#DC2626'
+            : '#D97706';
       doc.font('Devanagari').fontSize(10).fillColor(statusColor).text(w.status, colStatus, y, { width: 70 });
       doc.fillColor('black');
 
@@ -277,12 +260,6 @@ export const workDonePDF = async (req, { employeeId, year, month }) => {
   return doc;
 };
 
-/* ────────────────────────────────────────────
-   ATTENDANCE EXCEL — Matrix format
-   ──────────────────────────────────────────── */
-/* ────────────────────────────────────────────
-   ATTENDANCE EXCEL — Matrix format (With L Count)
-   ──────────────────────────────────────────── */
 export const attendanceExcel = async (req, { clfId, from, to }) => {
   const user = req.user;
 
@@ -305,7 +282,10 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
     if (to) attFilter.date.$lte = to;
   }
 
-  const records = await Attendance.find(attFilter).sort({ date: 1 });
+  // ✅ FIX #17: populate add kiya taaki employee details mile
+  const records = await Attendance.find(attFilter)
+    .populate('employeeId', 'name employeeCode designation')
+    .sort({ date: 1 });
 
   const refDate = from ? new Date(from) : new Date();
   const year = refDate.getFullYear();
@@ -314,7 +294,6 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
 
   const matrixMap = new Map();
 
-  // 1. Sabhi employees ko list me daalo
   employees.forEach((emp) => {
     matrixMap.set(String(emp._id), {
       name: emp.name || '—',
@@ -324,9 +303,8 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
     });
   });
 
-  // 2. Attendance data fill karo
   records.forEach((r) => {
-    const id = String(r.employeeId);
+    const id = String(r.employeeId?._id || r.employeeId);
     if (!matrixMap.has(id)) {
       matrixMap.set(id, {
         name: r.employeeId?.name || '—',
@@ -337,14 +315,13 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
     }
 
     const day = Number(r.date.split('-')[2]);
-    
-    // ✅ Status Label mapping (Including LEAVE as 'L')
+
     const statusLabel =
       r.status === 'PRESENT' ? 'P'
-      : r.status === 'ABSENT' ? 'A'
-      : r.status === 'HALF_DAY' ? 'H'
-      : r.status === 'LEAVE' ? 'L' 
-      : '';
+        : r.status === 'ABSENT' ? 'A'
+          : r.status === 'HALF_DAY' ? 'H'
+            : r.status === 'LEAVE' ? 'L'
+              : '';
 
     matrixMap.get(id).days[day] = statusLabel;
   });
@@ -361,7 +338,6 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
     views: [{ state: 'frozen', xSplit: 1, ySplit: 1 }],
   });
 
-  // ✅ Excel Columns setup
   ws.columns = [
     { header: 'Employee', key: 'employee', width: 30 },
     ...Array.from({ length: totalDays }, (_, i) => ({
@@ -371,10 +347,9 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
     })),
     { header: 'P', key: 'present', width: 5 },
     { header: 'A', key: 'absent', width: 5 },
-    { header: 'L', key: 'leave', width: 5 }, // ✅ L Column add kiya
+    { header: 'L', key: 'leave', width: 5 },
   ];
 
-  // ✅ Header Styling
   const headerRow = ws.getRow(1);
   headerRow.height = 22;
   headerRow.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -395,21 +370,18 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
       cell.font = { bold: true, color: { argb: 'FF334155' }, size: 11 };
       cell.alignment = { horizontal: 'left', vertical: 'middle' };
     } else if (colNumber === totalDays + 2) {
-      cell.font = { bold: true, color: { argb: 'FF15803D' }, size: 11 }; // P Header Green
+      cell.font = { bold: true, color: { argb: 'FF15803D' }, size: 11 };
     } else if (colNumber === totalDays + 3) {
-      cell.font = { bold: true, color: { argb: 'FFB91C1C' }, size: 11 }; // A Header Red
+      cell.font = { bold: true, color: { argb: 'FFB91C1C' }, size: 11 };
     } else if (colNumber === totalDays + 4) {
-      cell.font = { bold: true, color: { argb: 'FF1D4ED8' }, size: 11 }; // L Header Blue
+      cell.font = { bold: true, color: { argb: 'FF1D4ED8' }, size: 11 };
     } else {
       cell.font = { bold: true, color: { argb: 'FF334155' }, size: 10 };
     }
   });
 
-  // ✅ Rows fill karo aur Count nikalo
   rows.forEach((row) => {
-    let p = 0;
-    let a = 0;
-    let l = 0; // ✅ L count variable
+    let p = 0, a = 0, l = 0;
 
     const values = {
       employee: `${row.name}\n${row.code} • ${row.designation}`,
@@ -418,15 +390,15 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
     for (let d = 1; d <= totalDays; d++) {
       const status = row.days[d] || '';
       values[`d${d}`] = status;
-      
+
       if (status === 'P') p++;
       else if (status === 'A') a++;
-      else if (status === 'L') l++; // ✅ L count calculate kiya
+      else if (status === 'L') l++;
     }
-    
+
     values.present = p;
     values.absent = a;
-    values.leave = l; // ✅ Excel me save kiya
+    values.leave = l;
 
     const excelRow = ws.addRow(values);
     excelRow.height = 30;
@@ -457,7 +429,6 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
         return;
       }
 
-      // ✅ L column styling
       if (colNumber === totalDays + 4) {
         cell.alignment = { horizontal: 'center', vertical: 'middle' };
         cell.font = { bold: true, color: { argb: 'FF1D4ED8' }, size: 11 };
@@ -471,7 +442,7 @@ export const attendanceExcel = async (req, { clfId, from, to }) => {
       if (v === 'P') { bg = 'FFDCFCE7'; fg = 'FF15803D'; }
       else if (v === 'A') { bg = 'FFFEE2E2'; fg = 'FFB91C1C'; }
       else if (v === 'H') { bg = 'FFFEF3C7'; fg = 'FFB45309'; }
-      else if (v === 'L') { bg = 'FFDBEAFE'; fg = 'FF1D4ED8'; } // ✅ Leave cell Blue
+      else if (v === 'L') { bg = 'FFDBEAFE'; fg = 'FF1D4ED8'; }
 
       cell.fill = {
         type: 'pattern',

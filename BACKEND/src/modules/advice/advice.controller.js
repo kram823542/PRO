@@ -27,9 +27,7 @@ export const downloadPDF = asyncHandler(async (req, res) => {
   await service.generateAdvicePDF(req, req.params.id, res, { inline });
 });
 
-
-
-// ✅ NAYA: CLF Members fetch karne ka controller
+/** ✅ CLF Members fetch */
 export const getClfMembers = asyncHandler(async (req, res) => {
   const { clfId } = req.params;
   const members = await service.getClfMembersForAdvice(clfId);

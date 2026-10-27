@@ -11,5 +11,9 @@ export const downloadAdvicePDF = (id) =>
 export const getAdvicePDFForPrint = (id) =>
   apiClient.get(`/advice/${id}/pdf?mode=print`, { responseType: 'blob' });
 
-// ✅ NAYA: CLF Members fetch karne ke liye
 export const getClfMembers = (clfId) => apiClient.get(`/advice/members/${clfId}`);
+
+export const monthNames = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];

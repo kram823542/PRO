@@ -6,6 +6,15 @@ import { ApiError } from '../../utils/ApiError.js';
 import { encrypt, decrypt, generatePassword } from '../../utils/security.js';
 import { createAudit } from '../../middlewares/audit.middleware.js';
 
+// ✅ FIX #8: Cascade delete imports
+import { Attendance } from '../attendance/attendance.model.js';
+import { WorkDone } from '../workDone/workDone.model.js';
+import { Leave } from '../leaves/leave.model.js';
+import { ActionPlan } from '../actionPlans/actionPlan.model.js';
+import { MessageRecipient } from '../notifications/notification.model.js';
+import { deleteImage } from '../../services/cloudinary.service.js';
+import { logger } from '../../utils/logger.js';
+
 export const createEmployee = async (req, data) => {
   const user = req.user;
   const clfId = user.role === 'CLF' ? user.clfId : data.clfId;
@@ -22,7 +31,7 @@ export const createEmployee = async (req, data) => {
   }
 
   const empCode = data.employeeCode?.toUpperCase();
-  
+
   const exists = await Employee.findOne({ employeeCode: empCode, clfId: clf._id });
   if (exists) throw ApiError.conflict('Employee code already exists in this CLF');
 
@@ -194,16 +203,16 @@ export const updateEmployee = async (req, id, data) => {
 
   const updatable = ['name', 'mobile', 'designation', 'joiningDate', 'profilePhoto'];
   updatable.forEach((k) => { if (data[k] !== undefined) emp[k] = data[k]; });
-  
+
   if (data.workLocation?.panchayat) emp.workLocation.panchayat = data.workLocation.panchayat;
-  
+
   if (data.bankDetails) {
     if (data.bankDetails.bankName) emp.bankDetails.bankName = data.bankDetails.bankName;
     if (data.bankDetails.accountNumber) emp.bankDetails.accountNumber = encrypt(data.bankDetails.accountNumber);
     if (data.bankDetails.branch) emp.bankDetails.branch = data.bankDetails.branch;
     if (data.bankDetails.ifsc) emp.bankDetails.ifsc = data.bankDetails.ifsc.toUpperCase();
   }
-  
+
   if (data.aadhaarNumber) emp.aadhaarNumber = encrypt(data.aadhaarNumber);
 
   await emp.save();
@@ -214,11 +223,11 @@ export const updateEmployee = async (req, id, data) => {
 export const setEmployeeStatus = async (req, id, status) => {
   const emp = await Employee.findById(id);
   if (!emp) throw ApiError.notFound('Employee not found');
-  
+
   if (req.user.role !== 'CLF' || String(req.user.clfId) !== String(emp.clfId)) {
     if (req.user.role !== 'SUPER_ADMIN') throw ApiError.forbidden();
   }
-  
+
   emp.status = status;
   await emp.save();
   await User.findByIdAndUpdate(emp.userId, { status: status === 'ACTIVE' ? 'ACTIVE' : 'INACTIVE' });
@@ -226,7 +235,6 @@ export const setEmployeeStatus = async (req, id, status) => {
   return emp;
 };
 
-/** ✅ UPDATED: Reset Employee Login ID and/or Password */
 export const resetEmployeePassword = async (req, id, data) => {
   const { username, password } = data;
 
@@ -247,10 +255,9 @@ export const resetEmployeePassword = async (req, id, data) => {
   const empUser = await User.findById(emp.userId);
   if (!empUser) throw ApiError.notFound('Employee user account not found');
 
-  // ✅ Username update (sirf empCode)
   if (username && username.trim() !== '') {
     const newCode = username.trim().toUpperCase();
-    
+
     if (newCode !== emp.employeeCode) {
       const exists = await Employee.findOne({ employeeCode: newCode, clfId: emp.clfId, _id: { $ne: id } });
       if (exists) throw ApiError.conflict('Employee code already exists in this CLF');
@@ -258,16 +265,14 @@ export const resetEmployeePassword = async (req, id, data) => {
       emp.employeeCode = newCode;
       await emp.save();
 
-      // User model me username bhi wahi code rakh do (bina clf code ke)
       empUser.username = newCode.toLowerCase();
     }
   }
 
-  // ✅ Password update
   if (password && password.trim() !== '') {
     if (password.length < 8) throw ApiError.badRequest('Password must be at least 8 characters');
     if (!/(?=.*[A-Za-z])(?=.*\d)/.test(password)) throw ApiError.badRequest('Password must contain letters and numbers');
-    
+
     empUser.password = password;
     empUser.mustChangePassword = true;
   }
@@ -287,6 +292,7 @@ export const resetEmployeePassword = async (req, id, data) => {
   return { username: empUser.username, resetBy: user.role };
 };
 
+// ✅ FIX #8: Soft delete + orphan cleanup
 export const deleteEmployee = async (req, id) => {
   const emp = await Employee.findById(id);
   if (!emp) throw ApiError.notFound('Employee not found');
@@ -302,8 +308,32 @@ export const deleteEmployee = async (req, id) => {
     throw ApiError.forbidden('Only CLF or Super Admin can delete employee');
   }
 
-  if (emp.userId) await User.findByIdAndDelete(emp.userId);
-  await Employee.findByIdAndDelete(id);
+  try {
+    // Cascade cleanup — reports/related data preserve karne ke liye related records delete
+    await Promise.all([
+      Attendance.deleteMany({ employeeId: emp._id }),
+      WorkDone.deleteMany({ employeeId: emp._id }),
+      Leave.deleteMany({ employeeId: emp._id }),
+      ActionPlan.deleteMany({ employeeId: emp._id }),
+      MessageRecipient.deleteMany({ employeeId: emp._id }),
+    ]);
+
+    // Profile photo Cloudinary se delete
+    if (emp.profilePhoto && emp.profilePhoto.includes('cloudinary')) {
+      try {
+        const publicId = emp.profilePhoto.split('/').slice(-2).join('/').replace(/\.[^.]+$/, '');
+        await deleteImage(publicId);
+      } catch (e) {
+        logger.warn(`Profile photo delete failed: ${e.message}`);
+      }
+    }
+
+    if (emp.userId) await User.findByIdAndDelete(emp.userId);
+    await Employee.findByIdAndDelete(id);
+  } catch (err) {
+    logger.error(`Employee delete cascade failed: ${err.message}`);
+    throw ApiError.internal('Employee delete failed');
+  }
 
   await createAudit({
     req,

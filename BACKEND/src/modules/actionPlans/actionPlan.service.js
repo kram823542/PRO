@@ -3,8 +3,9 @@ import { Employee } from '../employees/employee.model.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { isWithinTimeWindow, getISTDateString } from '../../utils/security.js';
 
-const WINDOW_START = 10; // 10 AM
-const WINDOW_END = 20;   // 11 AM
+// ✅ time (8-11 AM IST)
+const WINDOW_START = 8;
+const WINDOW_END = 11;
 
 export const submitActionPlan = async (req, { plan }) => {
   if (req.user.role !== 'EMPLOYEE') throw ApiError.forbidden('Only employees submit');
@@ -64,7 +65,7 @@ export const listActionPlans = async (req, query) => {
   const [plans, total] = await Promise.all([
     ActionPlan.find(filter)
       .populate('employeeId', 'name employeeCode designation')
-      .populate('clfId', 'name code') // ✅ NAYA: CLF Name fetch
+      .populate('clfId', 'name code')
       .sort({ date: -1 })
       .skip((page - 1) * limit)
       .limit(limit),

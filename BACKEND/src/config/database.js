@@ -24,11 +24,7 @@ export const connectDB = async () => {
       logger.warn('MongoDB disconnected. Attempting reconnect...');
     });
 
-    process.on('SIGINT', async () => {
-      await mongoose.connection.close();
-      logger.info('MongoDB connection closed (SIGINT)');
-      process.exit(0);
-    });
+    // ✅ FIX #18: SIGINT handler HATAYA (server.js mein already hai)
   } catch (error) {
     logger.error(`❌ MongoDB connection failed: ${error.message}`);
     process.exit(1);

@@ -26,16 +26,16 @@ export const setStatus = asyncHandler(async (req, res) => {
   res.json({ success: true, data: emp });
 });
 
+// ✅ FIX #4: req.body direct bhejo (service { username, password } expect karta hai)
 export const resetPassword = asyncHandler(async (req, res) => {
   const result = await service.resetEmployeePassword(
     req,
     req.params.id,
-    req.body.newPassword
+    req.body
   );
   res.json({ success: true, data: result });
 });
 
-// ✅ NEW: Permanently delete employee
 export const remove = asyncHandler(async (req, res) => {
   const result = await service.deleteEmployee(req, req.params.id);
   res.json({ success: true, data: result });

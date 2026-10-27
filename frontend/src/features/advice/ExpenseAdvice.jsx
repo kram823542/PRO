@@ -24,6 +24,9 @@ export default function ExpenseAdvice() {
     new Date().toISOString().split('T')[0]
   );
 
+  // ✅ NEW: adviceNumber optional input
+  const [adviceNumber, setAdviceNumber] = useState('');
+
   const [advices, setAdvices] = useState([]);
   const [saving, setSaving] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -50,6 +53,8 @@ export default function ExpenseAdvice() {
 
   const handleOpenForm = () => {
     setEntries([{ ...EMPTY_ROW }]);
+    setAdviceNumber(''); // ✅ reset
+    setAdviceDate(new Date().toISOString().split('T')[0]);
     setShowForm(true);
   };
 
@@ -84,6 +89,8 @@ export default function ExpenseAdvice() {
     const payload = {
       adviceType: 'EXPENSE',
       adviceDate,
+      // ✅ NEW: adviceNumber optional — agar user ne diya to bhejo, warna nahi
+      ...(adviceNumber.trim() && { adviceNumber: adviceNumber.trim() }),
       bankName: first.bankName || '',
       branch: first.branch || '',
       employees: entries.map((e) => ({
@@ -101,10 +108,12 @@ export default function ExpenseAdvice() {
     try {
       const { data } = await adviceApi.createAdvice(payload);
       const saved = data.data;
-      toast.success(`✅ Advice saved — ${saved.adviceNumber}`);
+      const numberLabel = saved.adviceNumber || '(auto)';
+      toast.success(`✅ Advice saved — ${numberLabel}`);
       await downloadPDFFor(saved._id, saved.adviceNumber);
       setShowForm(false);
       setEntries([{ ...EMPTY_ROW }]);
+      setAdviceNumber('');
       loadAdvices();
     } catch (err) {
       console.error(err);
@@ -122,7 +131,11 @@ export default function ExpenseAdvice() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Advice-${adviceNumber.replace(/\//g, '-')}.pdf`;
+      // ✅ CHANGED: agar adviceNumber blank ho to ID use karo
+      const safeNumber = adviceNumber && adviceNumber.trim()
+        ? adviceNumber.replace(/\//g, '-')
+        : `ADV-${id}`;
+      a.download = `Advice-${safeNumber}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -249,7 +262,8 @@ export default function ExpenseAdvice() {
                       style={{ borderColor: theme.colors.border }}
                     >
                       <td className="px-4 py-2 font-mono font-semibold" style={{ color: theme.colors.text }}>
-                        {a.adviceNumber}
+                        {/* ✅ CHANGED: blank adviceNumber ko "-" show */}
+                        {a.adviceNumber && a.adviceNumber.trim() ? a.adviceNumber : '—'}
                       </td>
                       <td className="px-4 py-2" style={{ color: theme.colors.muted }}>
                         {new Date(a.adviceDate).toLocaleDateString('en-IN')}
@@ -319,27 +333,58 @@ export default function ExpenseAdvice() {
         size="xl"
       >
         <div className="space-y-5">
-          <div
-            className="border p-3"
-            style={{
-              backgroundColor: theme.colors.background,
-              borderColor: theme.colors.border,
-              borderRadius: theme.radius.sm,
-            }}
-          >
-            <label
-              className="block text-[10px] font-bold uppercase tracking-widest mb-1.5"
-              style={{ color: theme.colors.muted }}
+          {/* ✅ NEW: Advice Number + Date row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div
+              className="border p-3"
+              style={{
+                backgroundColor: theme.colors.background,
+                borderColor: theme.colors.border,
+                borderRadius: theme.radius.sm,
+              }}
             >
-              Advice Date
-            </label>
-            <input
-              type="date"
-              value={adviceDate}
-              onChange={(e) => setAdviceDate(e.target.value)}
-              style={inputStyle}
-              className="border px-3 py-2 text-xs"
-            />
+              <label
+                className="block text-[10px] font-bold uppercase tracking-widest mb-1.5"
+                style={{ color: theme.colors.muted }}
+              >
+                Advice Number <span className="opacity-60">(Optional)</span>
+              </label>
+              <input
+                type="text"
+                value={adviceNumber}
+                onChange={(e) => setAdviceNumber(e.target.value)}
+                placeholder="e.g. SAT/CLF/2026/001"
+                style={inputStyle}
+                className="w-full border px-3 py-2 text-xs font-mono"
+                maxLength={60}
+              />
+              <p className="text-[10px] mt-1" style={{ color: theme.colors.muted }}>
+                Khali chhodo to auto-blank rahega
+              </p>
+            </div>
+
+            <div
+              className="border p-3"
+              style={{
+                backgroundColor: theme.colors.background,
+                borderColor: theme.colors.border,
+                borderRadius: theme.radius.sm,
+              }}
+            >
+              <label
+                className="block text-[10px] font-bold uppercase tracking-widest mb-1.5"
+                style={{ color: theme.colors.muted }}
+              >
+                Advice Date
+              </label>
+              <input
+                type="date"
+                value={adviceDate}
+                onChange={(e) => setAdviceDate(e.target.value)}
+                style={inputStyle}
+                className="w-full border px-3 py-2 text-xs"
+              />
+            </div>
           </div>
 
           <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
@@ -517,7 +562,7 @@ export default function ExpenseAdvice() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
         title="Delete Advice?"
-        message={`Are you sure you want to delete "${deleteTarget?.adviceNumber}"?`}
+        message={`Are you sure you want to delete "${deleteTarget?.adviceNumber || 'this advice'}"?`}
         confirmText="Delete"
         loading={deleting}
         variant="danger"

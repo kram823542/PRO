@@ -12,7 +12,7 @@ import { theme } from '../../config/theme.js';
 export default function SalaryAdvice() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMembers, setLoadingMembers] = useState(false); // ✅ NAYA
+  const [loadingMembers, setLoadingMembers] = useState(false);
 
   const [bankFilter, setBankFilter] = useState('');
   const [designationFilter, setDesignationFilter] = useState('');
@@ -23,6 +23,9 @@ export default function SalaryAdvice() {
   const [adviceDate, setAdviceDate] = useState(
     new Date().toISOString().split('T')[0]
   );
+
+  // ✅ NEW: adviceNumber optional input
+  const [adviceNumber, setAdviceNumber] = useState('');
 
   const [advices, setAdvices] = useState([]);
   const [saving, setSaving] = useState(false);
@@ -63,18 +66,17 @@ export default function SalaryAdvice() {
     loadAdvices();
   }, []);
 
-  // ✅ NAYA: CLF Members load karne ka function
+  // ✅ CLF Members load
   const handleLoadClfMembers = async () => {
     try {
       setLoadingMembers(true);
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       const clfId = user.clfId;
-      
+
       if (!clfId) return toast.error('CLF ID not found. Only CLF admins can load members.');
 
       const { data } = await adviceApi.getClfMembers(clfId);
-      
-      // Add to existing employees
+
       setEmployees((prev) => [...prev, ...data.data]);
       toast.success('CLF Members loaded successfully!');
     } catch (error) {
@@ -102,7 +104,7 @@ export default function SalaryAdvice() {
   );
 
   const eligibleFiltered = filteredEmployees.filter(
-    (e) => e.bankDetails?.accountNumber // CLF members me sirf account number ho sakta hai
+    (e) => e.bankDetails?.accountNumber
   );
 
   const allSelected =
@@ -126,6 +128,7 @@ export default function SalaryAdvice() {
     }
     const selectedEmps = employees.filter((e) => selectedIds.includes(e._id));
     setSalaryEntries(selectedEmps.map((emp) => ({ employee: emp, month: '', amount: '' })));
+    setAdviceNumber(''); // ✅ reset on continue
     setShowEntryModal(true);
   };
 
@@ -148,6 +151,8 @@ export default function SalaryAdvice() {
     const payload = {
       adviceType: 'SALARY',
       adviceDate,
+      // ✅ NEW: adviceNumber optional — agar diya to bhejo, warna nahi
+      ...(adviceNumber.trim() && { adviceNumber: adviceNumber.trim() }),
       bankName: first.bankDetails?.bankName || '',
       branch: first.bankDetails?.branch || '',
       employees: salaryEntries.map((entry) => ({
@@ -166,12 +171,14 @@ export default function SalaryAdvice() {
       const { data } = await adviceApi.createAdvice(payload);
       const saved = data.data;
 
-      toast.success(`✅ Advice saved — ${saved.adviceNumber}`);
+      const numberLabel = saved.adviceNumber || '(auto)';
+      toast.success(`✅ Advice saved — ${numberLabel}`);
       await downloadPDFFor(saved._id, saved.adviceNumber);
 
       setShowEntryModal(false);
       setSalaryEntries([]);
       setSelectedIds([]);
+      setAdviceNumber('');
       loadAdvices();
     } catch (err) {
       console.error('Save advice error:', err);
@@ -181,6 +188,7 @@ export default function SalaryAdvice() {
     }
   };
 
+  // ✅ CHANGED: blank adviceNumber safe filename
   const downloadPDFFor = async (id, adviceNumber) => {
     try {
       const { data } = await adviceApi.downloadAdvicePDF(id);
@@ -188,7 +196,10 @@ export default function SalaryAdvice() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Advice-${adviceNumber.replace(/\//g, '-')}.pdf`;
+      const safeNumber = adviceNumber && adviceNumber.trim()
+        ? adviceNumber.replace(/\//g, '-')
+        : `ADV-${id}`;
+      a.download = `Advice-${safeNumber}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -249,7 +260,6 @@ export default function SalaryAdvice() {
           </p>
         </div>
         <div className="flex gap-2">
-          {/* ✅ NAYA: Load CLF Members Button */}
           <Button onClick={handleLoadClfMembers} loading={loadingMembers} style={{ padding: '8px 12px', fontSize: 11 }}>
             ⚡ Load CLF Members
           </Button>
@@ -271,8 +281,108 @@ export default function SalaryAdvice() {
         </div>
       </div>
 
-      {/* ... (History Section same rahega) */}
-      
+      {/* ═════ HISTORY SECTION (✅ FIXED: ye pehle missing tha) ═════ */}
+      {showHistory && (
+        <div
+          className="border overflow-hidden"
+          style={{
+            backgroundColor: theme.colors.surface,
+            borderColor: theme.colors.border,
+            borderRadius: theme.radius.md,
+          }}
+        >
+          <div
+            className="px-4 py-3 border-b"
+            style={{ borderColor: theme.colors.border }}
+          >
+            <h3
+              className="text-[10px] font-bold tracking-widest uppercase"
+              style={{ color: theme.colors.muted }}
+            >
+              Saved Salary Advices
+            </h3>
+          </div>
+
+          {loadingAdvices ? (
+            <div className="py-12 flex justify-center">
+              <Loader />
+            </div>
+          ) : advices.length === 0 ? (
+            <div className="py-10 text-center text-xs" style={{ color: theme.colors.muted }}>
+              No salary advices yet.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr
+                    className="text-[10px] font-bold uppercase tracking-widest border-b"
+                    style={{ borderColor: theme.colors.border, color: theme.colors.muted }}
+                  >
+                    <th className="px-4 py-2">Advice No.</th>
+                    <th className="px-4 py-2">Date</th>
+                    <th className="px-4 py-2">Bank</th>
+                    <th className="px-4 py-2 text-right">Rows</th>
+                    <th className="px-4 py-2 text-right">Total ₹</th>
+                    <th className="px-4 py-2 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {advices.map((a) => (
+                    <tr
+                      key={a._id}
+                      className="border-b text-xs"
+                      style={{ borderColor: theme.colors.border }}
+                    >
+                      <td className="px-4 py-2 font-mono font-semibold" style={{ color: theme.colors.text }}>
+                        {/* ✅ CHANGED: blank ko "—" show */}
+                        {a.adviceNumber && a.adviceNumber.trim() ? a.adviceNumber : '—'}
+                      </td>
+                      <td className="px-4 py-2" style={{ color: theme.colors.muted }}>
+                        {new Date(a.adviceDate).toLocaleDateString('en-IN')}
+                      </td>
+                      <td className="px-4 py-2" style={{ color: theme.colors.text }}>
+                        {a.bankName || '-'}
+                      </td>
+                      <td className="px-4 py-2 text-right font-mono" style={{ color: theme.colors.text }}>
+                        {a.totalRows}
+                      </td>
+                      <td className="px-4 py-2 text-right font-mono font-bold" style={{ color: theme.colors.secondary }}>
+                        ₹ {a.totalAmount.toLocaleString('en-IN')}
+                      </td>
+                      <td className="px-4 py-2 text-center">
+                        <div className="flex justify-center gap-2">
+                          <button
+                            onClick={() => downloadPDFFor(a._id, a.adviceNumber)}
+                            className="text-[10px] font-bold uppercase px-2 py-1 rounded"
+                            style={{
+                              border: `1px solid ${theme.colors.primary}55`,
+                              color: theme.colors.primary,
+                            }}
+                          >
+                            ⬇️ PDF
+                          </button>
+                          <button
+                            onClick={() => setDeleteTarget(a)}
+                            className="text-[10px] font-bold uppercase px-2 py-1 rounded"
+                            style={{
+                              border: `1px solid ${theme.colors.danger}55`,
+                              color: theme.colors.danger,
+                            }}
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ═════ STEP 1: FILTERS ═════ */}
       <div
         className="p-4 border"
@@ -461,8 +571,7 @@ export default function SalaryAdvice() {
               </thead>
               <tbody>
                 {filteredEmployees.map((emp) => {
-                  // ✅ CLF members me sirf accountNumber hota hai
-                  const eligible = emp.bankDetails?.accountNumber; 
+                  const eligible = emp.bankDetails?.accountNumber;
                   const checked = selectedIds.includes(emp._id);
                   const initial = emp.name ? emp.name.charAt(0).toUpperCase() : 'E';
 
@@ -552,13 +661,46 @@ export default function SalaryAdvice() {
         size="lg"
       >
         <div className="space-y-4">
-          <div
-            className="border rounded-lg p-3 flex justify-between items-center"
-            style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}
-          >
-            <div>
+          {/* ✅ NEW: Advice Number + Date row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div
+              className="border p-3"
+              style={{
+                backgroundColor: theme.colors.background,
+                borderColor: theme.colors.border,
+                borderRadius: theme.radius.sm,
+              }}
+            >
               <label
-                className="block text-[10px] font-bold uppercase tracking-widest mb-1"
+                className="block text-[10px] font-bold uppercase tracking-widest mb-1.5"
+                style={{ color: theme.colors.muted }}
+              >
+                Advice Number <span className="opacity-60">(Optional)</span>
+              </label>
+              <input
+                type="text"
+                value={adviceNumber}
+                onChange={(e) => setAdviceNumber(e.target.value)}
+                placeholder="e.g. SAT/CLF/2026/001"
+                style={inputStyle}
+                className="w-full border px-3 py-2 text-xs font-mono"
+                maxLength={60}
+              />
+              <p className="text-[10px] mt-1" style={{ color: theme.colors.muted }}>
+                Khali chhodo to auto-blank rahega
+              </p>
+            </div>
+
+            <div
+              className="border p-3"
+              style={{
+                backgroundColor: theme.colors.background,
+                borderColor: theme.colors.border,
+                borderRadius: theme.radius.sm,
+              }}
+            >
+              <label
+                className="block text-[10px] font-bold uppercase tracking-widest mb-1.5"
                 style={{ color: theme.colors.muted }}
               >
                 Advice Date
@@ -568,9 +710,16 @@ export default function SalaryAdvice() {
                 value={adviceDate}
                 onChange={(e) => setAdviceDate(e.target.value)}
                 style={inputStyle}
-                className="border px-3 py-1.5 text-xs"
+                className="w-full border px-3 py-2 text-xs"
               />
             </div>
+          </div>
+
+          {/* Total display */}
+          <div
+            className="border rounded-lg p-3 flex justify-end items-center"
+            style={{ backgroundColor: theme.colors.background, borderColor: theme.colors.border }}
+          >
             <div className="text-right">
               <span
                 className="block text-[10px] font-bold uppercase tracking-widest"
@@ -652,7 +801,7 @@ export default function SalaryAdvice() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
         title="Delete Advice?"
-        message={`Are you sure you want to delete "${deleteTarget?.adviceNumber}"? This cannot be undone.`}
+        message={`Are you sure you want to delete "${deleteTarget?.adviceNumber || 'this advice'}"? This cannot be undone.`}
         confirmText="Delete"
         loading={deleting}
         variant="danger"

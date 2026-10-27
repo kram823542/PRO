@@ -42,12 +42,18 @@ export const createBPM = async (req, data) => {
       role: user.role,
       blockId: user.blockId,
     },
-    tempPassword, // returned only once
+    tempPassword,
   };
 };
 
+// ✅ FIX #6: flat { password } accept karo (consistency)
+export const resetPassword = async (req, userId, data) => {
+  let newPassword = data?.password;
+  // Backward compatibility: agar { newPassword: "string" } bheja gaya
+  if (!newPassword && typeof data?.newPassword === 'string') {
+    newPassword = data.newPassword;
+  }
 
-export const resetPassword = async (req, userId, newPassword) => {
   if (!newPassword || newPassword.length < 8) {
     throw ApiError.badRequest('Password must be at least 8 characters');
   }

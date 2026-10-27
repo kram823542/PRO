@@ -2,11 +2,11 @@ import mongoose from 'mongoose';
 import { WorkDone } from './workDone.model.js';
 import { Employee } from '../employees/employee.model.js';
 import { Attendance } from '../attendance/attendance.model.js';
-import { MessageRecipient } from '../notifications/notification.model.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { isWithinTimeWindow, getISTDateString } from '../../utils/security.js';
-import { uploadBuffer } from '../../services/cloudinary.service.js';
+import { uploadBuffer, deleteImage } from '../../services/cloudinary.service.js';
 import { createAudit } from '../../middlewares/audit.middleware.js';
+import { logger } from '../../utils/logger.js';
 
 const WINDOW_START = 17; // 5 PM
 const WINDOW_END = 22;   // 10 PM
@@ -25,7 +25,6 @@ export const submitWorkDone = async (req, { description }, fileBuffer) => {
 
   const date = getISTDateString();
   let doc = await WorkDone.findOne({ employeeId: employee._id, date });
-  const upload = await uploadBuffer(fileBuffer, `clf-portal/workdone/${employee._id}`);
 
   if (doc && doc.status === 'PENDING') {
     throw ApiError.conflict('Work Done already submitted and awaiting approval');
@@ -34,7 +33,18 @@ export const submitWorkDone = async (req, { description }, fileBuffer) => {
     throw ApiError.conflict('Work Done already approved for today');
   }
 
+  const upload = await uploadBuffer(fileBuffer, `clf-portal/workdone/${employee._id}`);
+
   if (doc && doc.status === 'REJECTED') {
+    // ✅ FIX #7: Purana image Cloudinary se delete
+    if (doc.imagePublicId) {
+      try {
+        await deleteImage(doc.imagePublicId);
+      } catch (e) {
+        logger.warn(`Old image delete failed: ${e.message}`);
+      }
+    }
+
     doc.rejectionHistory.push({
       reason: doc.rejectionReason,
       rejectedBy: doc.rejectedBy,
@@ -42,6 +52,7 @@ export const submitWorkDone = async (req, { description }, fileBuffer) => {
     });
     doc.description = description;
     doc.imageUrl = upload.secure_url;
+    doc.imagePublicId = upload.public_id; // ✅ Naya publicId
     doc.submittedAt = new Date();
     doc.status = 'PENDING';
     doc.version += 1;
@@ -57,6 +68,7 @@ export const submitWorkDone = async (req, { description }, fileBuffer) => {
       date,
       description,
       imageUrl: upload.secure_url,
+      imagePublicId: upload.public_id,
     });
   }
 
@@ -93,7 +105,7 @@ export const listWorkDone = async (req, query) => {
   const [items, total] = await Promise.all([
     WorkDone.find(filter)
       .populate('employeeId', 'name employeeCode designation workLocation')
-      .populate('clfId', 'name code') // ✅ NAYA: CLF Name fetch
+      .populate('clfId', 'name code')
       .sort({ date: -1, createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit),
@@ -166,6 +178,6 @@ export const pendingApprovals = async (req) => {
   if (req.user.role !== 'CLF') throw ApiError.forbidden();
   return WorkDone.find({ clfId: req.user.clfId, status: 'PENDING' })
     .populate('employeeId', 'name employeeCode designation workLocation')
-    .populate('clfId', 'name code') // ✅ NAYA: CLF Name fetch
+    .populate('clfId', 'name code')
     .sort({ submittedAt: 1 });
 };

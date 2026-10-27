@@ -19,9 +19,13 @@ const workDoneSchema = new mongoose.Schema(
       ref: 'Block',
       required: true,
     },
-    date: { type: String, required: true, index: true }, // YYYY-MM-DD
+    date: { type: String, required: true, index: true },
     description: { type: String, required: true, trim: true, maxlength: 3000 },
     imageUrl: { type: String, required: true },
+
+    // ✅ FIX #7: Cloudinary publicId store karo delete ke liye
+    imagePublicId: { type: String, default: null },
+
     submittedAt: { type: Date, default: Date.now },
 
     status: {
@@ -36,7 +40,6 @@ const workDoneSchema = new mongoose.Schema(
     rejectedAt: { type: Date },
     rejectionReason: { type: String, trim: true, maxlength: 1000 },
 
-    // Version history for rejected → resubmitted
     version: { type: Number, default: 1 },
     rejectionHistory: [
       {

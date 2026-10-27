@@ -4,9 +4,28 @@ import { User } from '../users/user.model.js';
 import { Employee } from '../employees/employee.model.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { createAudit } from '../../middlewares/audit.middleware.js';
+import { logger } from '../../utils/logger.js';
 
 const MAX_ATTEMPTS = 5;
 const LOCK_TIME = 15 * 60 * 1000;
+
+// ✅ FIX #21: Failed login audit throttle (DOS prevention)
+const auditThrottle = new Map();
+const AUDIT_THROTTLE_MS = 60 * 1000; // 1 minute per username
+
+const shouldAuditFail = (username) => {
+  const now = Date.now();
+  const last = auditThrottle.get(username);
+  if (last && now - last < AUDIT_THROTTLE_MS) return false;
+  auditThrottle.set(username, now);
+  // Cleanup old entries every 1000 inserts
+  if (auditThrottle.size > 1000) {
+    for (const [k, v] of auditThrottle) {
+      if (now - v > AUDIT_THROTTLE_MS) auditThrottle.delete(k);
+    }
+  }
+  return true;
+};
 
 const signAccess = (user) =>
   jwt.sign(
@@ -53,25 +72,29 @@ const buildUserPayload = async (user) => {
     clfId: user.clfId ? String(user.clfId) : null,
     employeeId,
     mustChangePassword: user.mustChangePassword,
-    profilePhoto: user.profilePhoto || null, 
+    profilePhoto: user.profilePhoto || null,
   };
 };
 
 export const login = async (req, { username, password }) => {
   const user = await User.findOne({ username: username.toLowerCase() }).select('+password');
   if (!user) {
-    await createAudit({ req, action: 'LOGIN_FAILED', metadata: { username, reason: 'USER_NOT_FOUND' }, status: 'FAILED' });
+    if (shouldAuditFail(username)) {
+      await createAudit({ req, action: 'LOGIN_FAILED', metadata: { username, reason: 'USER_NOT_FOUND' }, status: 'FAILED' });
+    }
     throw ApiError.unauthorized('Invalid credentials');
   }
   if (user.isLocked()) throw ApiError.forbidden('Account locked. Try again later.');
   if (user.status !== 'ACTIVE') throw ApiError.forbidden(`Account is ${user.status.toLowerCase()}`);
-  
+
   const valid = await user.comparePassword(password);
   if (!valid) {
     user.loginAttempts = (user.loginAttempts || 0) + 1;
     if (user.loginAttempts >= MAX_ATTEMPTS) user.lockUntil = new Date(Date.now() + LOCK_TIME);
     await user.save();
-    await createAudit({ req, action: 'LOGIN_FAILED', metadata: { username, reason: 'INVALID_PASSWORD' }, status: 'FAILED' });
+    if (shouldAuditFail(username)) {
+      await createAudit({ req, action: 'LOGIN_FAILED', metadata: { username, reason: 'INVALID_PASSWORD' }, status: 'FAILED' });
+    }
     throw ApiError.unauthorized('Invalid credentials');
   }
 
@@ -119,9 +142,8 @@ export const updateProfile = async (req, userId, data) => {
   const user = await User.findById(userId);
   if (!user) throw ApiError.notFound('User not found');
 
-  // ✅ Cloudinary se aayi URL save hogi
   if (data.profilePhoto !== undefined) {
-    user.profilePhoto = data.profilePhoto; 
+    user.profilePhoto = data.profilePhoto;
   }
 
   const updatable = ['email', 'mobile'];
@@ -131,20 +153,19 @@ export const updateProfile = async (req, userId, data) => {
 
   await user.save();
 
-  // ✅ MAGIC: Employee model me bhi DP aur mobile sync karo
   if (user.role === 'EMPLOYEE') {
     try {
       const employeeId = user.employeeId ? user.employeeId : (await Employee.findOne({ userId: user._id }).select('_id'))?._id;
-      
+
       if (employeeId) {
         const updateData = {};
         if (data.mobile !== undefined) updateData.mobile = data.mobile;
-        if (data.profilePhoto !== undefined) updateData.profilePhoto = data.profilePhoto; // ✅ DP Sync
-        
+        if (data.profilePhoto !== undefined) updateData.profilePhoto = data.profilePhoto;
+
         await Employee.findByIdAndUpdate(employeeId, updateData);
       }
     } catch (e) {
-      console.warn('Employee sync failed:', e.message);
+      logger.warn('Employee sync failed:', e.message);
     }
   }
 

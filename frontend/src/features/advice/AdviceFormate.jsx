@@ -13,7 +13,6 @@ const AdviceFormate = ({ advicePreview }) => {
     return () => setMounted(false);
   }, []);
 
-  // ✅ Print handler — browser ka native "Save as PDF" use hoga
   const handlePrint = useReactToPrint({
     contentRef: printRef,
     documentTitle: `Bank-Advice-${new Date().toISOString().split('T')[0]}`,
@@ -61,10 +60,8 @@ const AdviceFormate = ({ advicePreview }) => {
     `,
   });
 
-  // ✅ Expose print function on window — "Download PDF" button isi ko call karega
   useEffect(() => {
     window.__adviceFormatePrint = handlePrint;
-    // ✅ Download = same as print (user browser me "Save as PDF" chunega)
     window.__adviceFormateDownload = handlePrint;
     return () => {
       delete window.__adviceFormatePrint;
@@ -80,6 +77,12 @@ const AdviceFormate = ({ advicePreview }) => {
     (sum, emp) => sum + Number(emp.amount || 0),
     0
   );
+
+  // ✅ NEW: adviceNumber blank ho to "—" show karo
+  const adviceNumberDisplay =
+    advicePreview.adviceNumber && advicePreview.adviceNumber.trim()
+      ? advicePreview.adviceNumber
+      : '—';
 
   const PAGE_1_MAX = 5;
   const PAGE_NEXT_MAX = 11;
@@ -104,7 +107,6 @@ const AdviceFormate = ({ advicePreview }) => {
     employeeChunks.push([]);
   }
 
-  // ============ SHARED PAGE RENDERER ============
   const renderPageCard = (chunk, pageIndex, isPrintMode) => {
     const isLastPage = pageIndex === employeeChunks.length - 1;
     const isSignatureOnlyPage = isLastPage && chunk.length === 0;
@@ -159,9 +161,9 @@ const AdviceFormate = ({ advicePreview }) => {
             <div className="w-[70%] bg-[#e05a10]"></div>
           </div>
 
-          {/* PATRANK AND DINANK */}
+          {/* PATRANK AND DINANK — ✅ CHANGED: dynamic adviceNumber */}
           <div className="flex justify-between text-[16px] font-semibold my-2 shrink-0">
-            <p className="m-0">पत्रांक - SAT/CLF/2026/</p>
+            <p className="m-0">पत्रांक - {adviceNumberDisplay}</p>
             <p className="m-0">
               दिनांक -{' '}
               {new Date(advicePreview.adviceDate).toLocaleDateString('en-IN', {
@@ -288,10 +290,8 @@ const AdviceFormate = ({ advicePreview }) => {
             </div>
           )}
 
-          {/* SPACER */}
           {isLastPage && <div className="flex-1 min-h-[10mm]"></div>}
 
-          {/* SIGNATURE + THANKING YOU */}
           {isLastPage && (
             <div className="pb-10 shrink-0">
               <div className="flex justify-between items-end">
@@ -347,7 +347,6 @@ const AdviceFormate = ({ advicePreview }) => {
 
   return (
     <>
-      {/* ===== PREVIEW ===== */}
       <div className="bg-gray-300 p-4 rounded overflow-auto w-full" style={{ maxHeight: '70vh' }}>
         <div className="flex flex-col items-center gap-8">
           {employeeChunks.map((chunk, pageIndex) => (
@@ -365,7 +364,6 @@ const AdviceFormate = ({ advicePreview }) => {
         </div>
       </div>
 
-      {/* ===== PRINT PORTAL (also used for Save-as-PDF) ===== */}
       {mounted &&
         createPortal(
           <div

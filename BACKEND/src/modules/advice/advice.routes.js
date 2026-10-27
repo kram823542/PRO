@@ -11,6 +11,13 @@ router.use(authenticate);
 const createValidation = [
   body('adviceType').optional().isIn(['SALARY', 'EXPENSE']),
   body('adviceDate').optional().isISO8601(),
+  // ✅ NEW: adviceNumber optional — agar diya to string, max 60 chars
+  body('adviceNumber')
+    .optional()
+    .isString()
+    .trim()
+    .isLength({ max: 60 })
+    .withMessage('adviceNumber max 60 chars'),
   body('employees').isArray({ min: 1 }).withMessage('At least one employee required'),
   body('employees.*.name').trim().notEmpty().withMessage('Name required'),
   body('employees.*.amount').isFloat({ gt: 0 }).withMessage('Amount must be > 0'),
@@ -21,13 +28,13 @@ const createValidation = [
   body('employees.*.ifscCode').optional().isString(),
 ];
 
+// ✅ FIX #15: /members/:clfId ko /:id ke UPAR
+router.get('/members/:clfId', authorize('CLF', 'BPM', 'SUPER_ADMIN'), ctrl.getClfMembers);
+
 router.post('/', authorize('CLF', 'BPM', 'SUPER_ADMIN'), createValidation, validate, ctrl.create);
 router.get('/', authorize('CLF', 'BPM', 'SUPER_ADMIN'), ctrl.list);
 router.get('/:id', authorize('CLF', 'BPM', 'SUPER_ADMIN'), ctrl.getOne);
 router.get('/:id/pdf', authorize('CLF', 'BPM', 'SUPER_ADMIN'), ctrl.downloadPDF);
 router.delete('/:id', authorize('CLF', 'BPM', 'SUPER_ADMIN'), ctrl.remove);
-
-// ✅ NAYA: Members fetch karne ka route
-router.get('/members/:clfId', authorize('CLF', 'BPM', 'SUPER_ADMIN'), ctrl.getClfMembers);
 
 export default router;

@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { env } from './config/env.js';
 import { connectDB } from './config/database.js';
 import app from './app.js';
@@ -10,10 +11,16 @@ const start = async () => {
     logger.info(`🚀 Server running on port ${env.PORT} [${env.NODE_ENV}]`);
   });
 
+  // ✅ FIX #18: Shutdown mein mongoose close bhi karo
   const shutdown = (signal) => async () => {
     logger.info(`${signal} received. Shutting down gracefully...`);
-    server.close(() => {
-      logger.info('HTTP server closed');
+    server.close(async () => {
+      try {
+        await mongoose.connection.close();
+        logger.info('HTTP server + MongoDB closed');
+      } catch (e) {
+        logger.warn(`MongoDB close failed: ${e.message}`);
+      }
       process.exit(0);
     });
     setTimeout(() => process.exit(1), 10000);

@@ -11,8 +11,8 @@ import attendanceRoutes from '../modules/attendance/attendance.routes.js';
 import notificationRoutes from '../modules/notifications/notification.routes.js';
 import reportRoutes from '../modules/reports/report.routes.js';
 import auditRoutes from '../modules/auditLogs/auditLog.routes.js';
-import adviceRoutes from '../modules/advice/advice.routes.js';   
-import leaveRoutes from '../modules/leaves/leave.routes.js'; // ✅ NAYA: Leave routes import kiya
+import adviceRoutes from '../modules/advice/advice.routes.js';
+import leaveRoutes from '../modules/leaves/leave.routes.js';
 
 const router = Router();
 
@@ -31,7 +31,7 @@ router.use('/attendance', attendanceRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/reports', reportRoutes);
 router.use('/audit-logs', auditRoutes);
-router.use('/advice', adviceRoutes);   
-router.use('/leaves', leaveRoutes); // ✅ NAYA: Leave route register kiya
+router.use('/advice', adviceRoutes);
+router.use('/leaves', leaveRoutes);
 
 export default router;

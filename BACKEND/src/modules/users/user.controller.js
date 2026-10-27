@@ -11,8 +11,9 @@ export const listUsers = asyncHandler(async (req, res) => {
   res.json({ success: true, data: result });
 });
 
+// ✅ FIX #6: req.body direct (flat { password } expect)
 export const resetPassword = asyncHandler(async (req, res) => {
-  const result = await service.resetPassword(req, req.params.id, req.body.newPassword);
+  const result = await service.resetPassword(req, req.params.id, req.body);
   res.json({ success: true, data: result });
 });
 

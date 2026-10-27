@@ -4,10 +4,11 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import mongoose from 'mongoose';
 import { Advice } from './advice.model.js';
-import { CLF } from '../clfs/clf.model.js'; 
+import { CLF } from '../clfs/clf.model.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { createAudit } from '../../middlewares/audit.middleware.js';
 import { getISTDateString } from '../../utils/security.js';
+import { logger } from '../../utils/logger.js';
 
 /* ────────────────────────────────────────────
    Fonts — Auto Detect Path
@@ -17,9 +18,9 @@ const __dirname = path.dirname(__filename);
 
 const getFontPath = (fontName) => {
   const possiblePaths = [
-    path.join(process.cwd(), 'assets', 'fonts', fontName), 
-    path.join(process.cwd(), 'src', 'assets', 'fonts', fontName), 
-    path.join(__dirname, '..', '..', '..', 'assets', 'fonts', fontName), 
+    path.join(process.cwd(), 'assets', 'fonts', fontName),
+    path.join(process.cwd(), 'src', 'assets', 'fonts', fontName),
+    path.join(__dirname, '..', '..', '..', 'assets', 'fonts', fontName),
   ];
 
   for (const p of possiblePaths) {
@@ -56,9 +57,7 @@ const findFont = (candidates) => {
   for (const p of candidates) {
     try {
       if (fs.existsSync(p)) return p;
-    } catch {
-      /* ignore */
-    }
+    } catch { /* ignore */ }
   }
   return null;
 };
@@ -68,21 +67,15 @@ const registerFonts = (doc) => {
   const bold = findFont(SYSTEM_FONTS.bold);
 
   if (regular) {
-    try {
-      doc.registerFont('Devanagari', regular);
-    } catch {
-      doc.registerFont('Devanagari', 'Helvetica');
-    }
+    try { doc.registerFont('Devanagari', regular); }
+    catch { doc.registerFont('Devanagari', 'Helvetica'); }
   } else {
     doc.registerFont('Devanagari', 'Helvetica');
   }
 
   if (bold) {
-    try {
-      doc.registerFont('Devanagari-Bold', bold);
-    } catch {
-      doc.registerFont('Devanagari-Bold', 'Helvetica-Bold');
-    }
+    try { doc.registerFont('Devanagari-Bold', bold); }
+    catch { doc.registerFont('Devanagari-Bold', 'Helvetica-Bold'); }
   } else {
     doc.registerFont('Devanagari-Bold', regular || 'Helvetica-Bold');
   }
@@ -137,33 +130,9 @@ const fetchImageBuffer = async (url) => {
     const arrayBuffer = await response.arrayBuffer();
     return Buffer.from(arrayBuffer);
   } catch (err) {
-    console.warn(`⚠️ Logo fetch failed (${url}):`, err.message);
+    logger.warn(`⚠️ Logo fetch failed (${url}): ${err.message}`);
     return null;
   }
-};
-
-// ✅ FIXED: Per-CLF Number Generation (Unique for each CLF)
-const generateAdviceNumber = async (clfId) => {
-  const year = new Date().getFullYear();
-  
-  // Us CLF ke saal ke saare advices fetch karo
-  const existing = await Advice.find({ 
-    clfId, 
-    adviceNumber: { $regex: `/${year}/` } 
-  }).select('adviceNumber').lean();
-
-  // Sabse bada number nikaalo
-  let maxNum = 0;
-  existing.forEach((a) => {
-    const parts = a.adviceNumber.split('/');
-    const lastPart = parts[parts.length - 1];
-    const num = parseInt(lastPart, 10);
-    if (!isNaN(num) && num > maxNum) maxNum = num;
-  });
-
-  // Agla number return karo
-  const nextNum = maxNum + 1;
-  return `SAT/CLF/${year}/${String(nextNum).padStart(3, '0')}`;
 };
 
 const assertScope = async (user, clfId) => {
@@ -177,7 +146,7 @@ const assertScope = async (user, clfId) => {
 };
 
 /* ────────────────────────────────────────────
-   CREATE
+   ✅ CREATE — adviceNumber OPTIONAL
    ──────────────────────────────────────────── */
 export const createAdvice = async (req, data) => {
   const user = req.user;
@@ -211,48 +180,61 @@ export const createAdvice = async (req, data) => {
   });
 
   const totalAmount = cleaned.reduce((s, e) => s + e.amount, 0);
-  
-  // ✅ Retry Logic for Duplicate Key (11000)
-  let advice;
-  let retries = 3;
-  let adviceNumber = await generateAdviceNumber(clfId);
 
-  while (retries > 0) {
-    try {
-      advice = await Advice.create({
-        adviceType: data.adviceType === 'EXPENSE' ? 'EXPENSE' : 'SALARY',
-        adviceNumber,
-        adviceDate: data.adviceDate || getISTDateString(),
-        createdByRole: user.role,
-        createdByUser: user._id,
-        createdByName: user.name || '',
-        clfId: clf._id,
-        blockId: clf.blockId,
-        bankName: data.bankName || '',
-        branch: data.branch || '',
-        employees: cleaned,
-        totalAmount,
-        totalRows: cleaned.length,
-      });
-      break; // Success
-    } catch (err) {
-      if (err.code === 11000) { // Duplicate key error
-        retries--;
-        if (retries === 0) throw err;
-        // Naya number generate karo
-        adviceNumber = await generateAdviceNumber(clfId);
-      } else {
-        throw err;
-      }
+  // ✅ CHANGED: agar user ne adviceNumber diya to wahi, warna blank
+  // ✅ CHANGED: Auto-format adviceNumber with SAT/CLF/YEAR/
+  let adviceNumber = data.adviceNumber ? String(data.adviceNumber).trim() : '';
+  const currentYear = new Date().getFullYear();
+  const prefix = `SAT/CLF/${currentYear}/`;
+
+  if (adviceNumber && !adviceNumber.startsWith('SAT/')) {
+    // Agar user ne sirf "299" daala hai, to usko clean karke pura format banao
+    let cleanNum = adviceNumber;
+    if (cleanNum.includes('/')) {
+      cleanNum = cleanNum.split('/').pop(); // e.g. "CLF/2026/299" -> "299"
+    }
+    adviceNumber = prefix + cleanNum;
+  }
+
+  // ✅ Agar user ne diya hai, to duplicate check karo (us CLF ke andar)
+  if (adviceNumber) {
+    const existing = await Advice.findOne({
+      clfId: clf._id,
+      adviceNumber,
+      isDeleted: false,
+    });
+    if (existing) {
+      throw ApiError.conflict(`Advice number "${adviceNumber}" already exists for this CLF`);
     }
   }
+
+  const advice = await Advice.create({
+    adviceType: data.adviceType === 'EXPENSE' ? 'EXPENSE' : 'SALARY',
+    adviceNumber, // ✅ empty allowed
+    adviceDate: data.adviceDate || getISTDateString(),
+    createdByRole: user.role,
+    createdByUser: user._id,
+    createdByName: user.name || '',
+    clfId: clf._id,
+    blockId: clf.blockId,
+    bankName: data.bankName || '',
+    branch: data.branch || '',
+    employees: cleaned,
+    totalAmount,
+    totalRows: cleaned.length,
+  });
 
   await createAudit({
     req,
     action: 'ADVICE_CREATED',
     targetType: 'Advice',
     targetId: advice._id,
-    metadata: { adviceNumber, totalAmount, rows: cleaned.length, adviceType: advice.adviceType },
+    metadata: {
+      adviceNumber: adviceNumber || '(empty)',
+      totalAmount,
+      rows: cleaned.length,
+      adviceType: advice.adviceType,
+    },
   });
 
   return advice;
@@ -323,7 +305,7 @@ export const deleteAdvice = async (req, id) => {
     action: 'ADVICE_DELETED',
     targetType: 'Advice',
     targetId: advice._id,
-    metadata: { adviceNumber: advice.adviceNumber },
+    metadata: { adviceNumber: advice.adviceNumber || '(empty)' },
   });
 
   return { deleted: true, adviceNumber: advice.adviceNumber };
@@ -345,7 +327,7 @@ export const getClfMembersForAdvice = async (clfId) => {
       name: m.name,
       designation: designation,
       bankDetails: {
-        bankName: m.bankDetails?.bankName || '', // ✅ NAYA
+        bankName: m.bankDetails?.bankName || '',
         accountNumber: m.bankDetails?.accountNumber || '',
         branch: m.bankDetails?.branch || '',
         ifsc: m.bankDetails?.ifscCode || '',
@@ -366,9 +348,8 @@ export const getClfMembersForAdvice = async (clfId) => {
   return members;
 };
 
-
 /* ────────────────────────────────────────────
-   PDF GENERATE
+   PDF GENERATE — adviceNumber blank ho to "-" ya skip
    ──────────────────────────────────────────── */
 export const generateAdvicePDF = async (req, id, res, { inline = false } = {}) => {
   const advice = await Advice.findById(id);
@@ -448,7 +429,7 @@ export const generateAdvicePDF = async (req, id, res, { inline = false } = {}) =
     if (leftLogoBuf) {
       try {
         doc.image(leftLogoBuf, marginLeft, logoY, { fit: [logoSize, logoSize] });
-      } catch (e) { }
+      } catch (e) { /* ignore */ }
     }
 
     if (rightLogoBuf) {
@@ -456,7 +437,7 @@ export const generateAdvicePDF = async (req, id, res, { inline = false } = {}) =
         doc.image(rightLogoBuf, pageWidth - marginRight - logoSize, logoY, {
           fit: [logoSize, logoSize],
         });
-      } catch (e) { }
+      } catch (e) { /* ignore */ }
     }
 
     let ty = logoY + 10;
@@ -497,7 +478,12 @@ export const generateAdvicePDF = async (req, id, res, { inline = false } = {}) =
       month: '2-digit',
       year: 'numeric',
     });
-    doc.text(`पत्रांक - ${advice.adviceNumber}`, marginLeft, y);
+
+    // ✅ CHANGED: adviceNumber blank ho to "-" show karo
+    const adviceNumberText = advice.adviceNumber && advice.adviceNumber.trim()
+      ? advice.adviceNumber
+      : '-';
+    doc.text(`पत्रांक_  ${adviceNumberText}`, marginLeft, y);
     doc.text(`दिनांक - ${dateStr}`, marginLeft, y, {
       width: contentWidth,
       align: 'right',
@@ -694,7 +680,11 @@ export const generateAdvicePDF = async (req, id, res, { inline = false } = {}) =
     }
   });
 
-  const filename = `Advice-${advice.adviceNumber.replace(/\//g, '-')}.pdf`;
+  // ✅ CHANGED: Filename — agar adviceNumber blank ho to ID use karo
+  const safeNumber = (advice.adviceNumber && advice.adviceNumber.trim())
+    ? advice.adviceNumber.replace(/\//g, '-')
+    : `ADV-${advice._id}`;
+  const filename = `Advice-${safeNumber}.pdf`;
   const disposition = inline ? 'inline' : 'attachment';
 
   res.setHeader('Content-Type', 'application/pdf');
