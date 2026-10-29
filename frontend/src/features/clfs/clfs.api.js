@@ -5,9 +5,9 @@ export const getClf = (id) => apiClient.get(`/clfs/${id}`);
 export const createClf = (payload) => apiClient.post('/clfs', payload);
 export const bpmDashboard = () => apiClient.get('/clfs/dashboard/bpm');
 
-export const resetClfPassword = (id, newPassword) =>
-  apiClient.post(`/clfs/${id}/reset-password`, { newPassword });
+// ✅ FIXED: Flattened data payload for reset
+export const resetClfPassword = (id, data) =>
+  apiClient.post(`/clfs/${id}/reset-password`, data);
 
-// ✅ NAYA: BOD aur Core Members update karne ke liye
 export const updateClfBod = (id, payload) => 
   apiClient.put(`/clfs/${id}/bod`, payload);

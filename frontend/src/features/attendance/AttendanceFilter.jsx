@@ -1,106 +1,26 @@
 import { theme } from '../../config/theme.js';
+import Select from '../../components/ui/Select.jsx';
+import Input from '../../components/ui/Input.jsx';
 
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-export default function AttendanceFilter({
-  filters,
-  onChange,
-  showEmployeeFilter = false,
-  employees = [],
-}) {
+export default function AttendanceFilter({ filters, onChange, showEmployeeFilter = false, employees = [] }) {
   const handle = (e) => {
     const { name, value } = e.target;
     onChange({ ...filters, [name]: value });
   };
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        gap: 12,
-        marginBottom: 16,
-        flexWrap: 'wrap',
-        background: theme.colors.surface,
-        padding: 14,
-        borderRadius: theme.radius.md,
-        boxShadow: theme.shadow.sm,
-        alignItems: 'flex-end',
-      }}
-    >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 140 }}>
-        <label style={{ fontSize: 12, color: theme.colors.muted, fontWeight: 600 }}>
-          Month
-        </label>
-        <select
-          name="month"
-          value={String(filters.month)}
-          onChange={handle}
-          style={{
-            padding: '8px 12px',
-            borderRadius: 8,
-            border: `1px solid ${theme.colors.border}`,
-            fontSize: 14,
-            outline: 'none',
-            background: theme.colors.surface,
-          }}
-        >
-          {MONTHS.map((m, i) => (
-            <option key={i + 1} value={String(i + 1)}>
-              {m}
-            </option>
-          ))}
-        </select>
+    <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', background: theme.colors.surface, padding: 14, borderRadius: theme.radius.md, boxShadow: theme.shadow.sm, alignItems: 'flex-end' }}>
+      <div style={{ minWidth: 140 }}>
+        <Select label="Month" name="month" value={String(filters.month)} onChange={handle} options={MONTHS.map((m, i) => ({ value: String(i + 1), label: m }))} />
       </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 100 }}>
-        <label style={{ fontSize: 12, color: theme.colors.muted, fontWeight: 600 }}>
-          Year
-        </label>
-        <input
-          type="number"
-          name="year"
-          value={filters.year}
-          onChange={handle}
-          min="2020"
-          max="2100"
-          style={{
-            padding: '8px 12px',
-            borderRadius: 8,
-            border: `1px solid ${theme.colors.border}`,
-            fontSize: 14,
-            outline: 'none',
-          }}
-        />
+      <div style={{ minWidth: 100 }}>
+        <Input label="Year" type="number" name="year" value={filters.year} onChange={handle} min="2020" max="2100" />
       </div>
-
       {showEmployeeFilter && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 200 }}>
-          <label style={{ fontSize: 12, color: theme.colors.muted, fontWeight: 600 }}>
-            Employee
-          </label>
-          <select
-            name="employeeId"
-            value={filters.employeeId || ''}
-            onChange={handle}
-            style={{
-              padding: '8px 12px',
-              borderRadius: 8,
-              border: `1px solid ${theme.colors.border}`,
-              fontSize: 14,
-              outline: 'none',
-              background: theme.colors.surface,
-            }}
-          >
-            <option value="">All Employees</option>
-            {employees.map((e) => (
-              <option key={e._id} value={e._id}>
-                {e.employeeCode} — {e.name}
-              </option>
-            ))}
-          </select>
+        <div style={{ minWidth: 200 }}>
+          <Select label="Employee" name="employeeId" value={filters.employeeId || ''} onChange={handle} options={employees.map(e => ({ value: e._id, label: `${e.employeeCode} — ${e.name}` }))} placeholder="All Employees" />
         </div>
       )}
     </div>

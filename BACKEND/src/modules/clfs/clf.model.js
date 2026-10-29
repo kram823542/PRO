@@ -10,35 +10,24 @@ const bankDetailsSchema = {
 const clfSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
-    code: {
-      type: String,
-      required: true,
-      unique: true,
-      uppercase: true,
-      trim: true,
-      index: true,
-    },
-    // ✅ NAYA: Login ID save karne ke liye
-    loginId: { 
-      type: String, 
-      trim: true, 
-      lowercase: true 
-    },
-    blockId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Block',
-      required: true,
-      index: true,
-    },
-    bpmId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: true,
-      index: true,
-    },
+    code: { type: String, required: true, unique: true, uppercase: true, trim: true, index: true },
+    loginId: { type: String, trim: true, lowercase: true },
+    blockId: { type: mongoose.Schema.Types.ObjectId, ref: 'Block', required: true, index: true },
+    bpmId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     village: { type: String, trim: true },
     location: { type: String, trim: true },
     
+    // ✅ NAYA: CLF ke khud ke multiple bank accounts
+    bankAccounts: [
+      {
+        accountName: { type: String, trim: true, required: true }, // e.g. "Main Account"
+        bankName: { type: String, trim: true, required: true },
+        accountNumber: { type: String, trim: true, required: true },
+        ifscCode: { type: String, trim: true, uppercase: true },
+        branch: { type: String, trim: true },
+      }
+    ],
+
     coreMembers: {
       president: {
         name: { type: String, trim: true },
@@ -63,19 +52,11 @@ const clfSchema = new mongoose.Schema(
     bodMembers: [
       {
         name: { type: String, required: true, trim: true },
-        designation: { 
-          type: String, 
-          enum: ['BOD Manager', 'CLF Manager', 'Accountant', 'MIS', 'Other'], 
-          trim: true 
-        },
+        designation: { type: String, enum: ['BOD Manager', 'CLF Manager', 'Accountant', 'MIS', 'Other'], trim: true },
         mobile: { type: String, trim: true },
         address: { type: String, trim: true },
         bankDetails: bankDetailsSchema,
-        status: {
-          type: String,
-          enum: ['ACTIVE', 'INACTIVE'],
-          default: 'ACTIVE',
-        },
+        status: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'ACTIVE' },
         addedAt: { type: Date, default: Date.now },
       },
     ],
@@ -83,12 +64,7 @@ const clfSchema = new mongoose.Schema(
     contact: { type: String, trim: true },
     email: { type: String, trim: true, lowercase: true },
     address: { type: String, trim: true },
-    status: {
-      type: String,
-      enum: ['ACTIVE', 'INACTIVE'],
-      default: 'ACTIVE',
-      index: true,
-    },
+    status: { type: String, enum: ['ACTIVE', 'INACTIVE'], default: 'ACTIVE', index: true },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true, versionKey: false }

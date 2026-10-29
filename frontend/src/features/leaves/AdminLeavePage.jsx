@@ -3,6 +3,7 @@ import { toast } from 'react-hot-toast';
 import PageHeader from '../../components/common/PageHeader';
 import Loader from '../../components/ui/Loader';
 import Badge from '../../components/ui/Badge';
+import Button from '../../components/ui/Button';
 import LeaveLetterModal from './LeaveLetterModal';
 import { getAllLeavesApi, updateLeaveStatusApi } from './leaves.api';
 import { theme } from '../../config/theme.js';
@@ -39,9 +40,7 @@ export default function AdminLeavePage() {
     }
   };
 
-  const handleRejectClick = (id) => {
-    setRejectModal({ open: true, leaveId: id, reason: '' });
-  };
+  const handleRejectClick = (id) => setRejectModal({ open: true, leaveId: id, reason: '' });
 
   const submitReject = async () => {
     if (!rejectModal.reason.trim()) return toast.error('Please enter a reason');
@@ -79,30 +78,17 @@ export default function AdminLeavePage() {
                 </thead>
                 <tbody style={{ color: theme.colors.text }} className="text-sm">
                   {leaves.map((leave) => (
-                    <tr key={leave._id} style={{ borderBottom: `1px solid ${theme.colors.border}` }} className="hover:bg-gray-50">
+                    <tr key={leave._id} style={{ borderBottom: `1px solid ${theme.colors.border}` }} className="hover:bg-black/5">
                       <td className="p-4">
                         <div className="font-medium">{leave.employeeId?.name || 'Unknown'}</div>
                         <div style={{ color: theme.colors.muted }} className="text-xs">{leave.employeeId?.employeeCode}</div>
                       </td>
                       <td style={{ color: theme.colors.muted }} className="p-4">
                         <div style={{ color: theme.colors.text }} className="font-medium">{leave.leaveType}</div>
-                        {new Date(leave.startDate).toLocaleDateString('en-IN')} 
-                        {leave.startDate !== leave.endDate && ` - ${new Date(leave.endDate).toLocaleDateString('en-IN')}`}
+                        {new Date(leave.startDate).toLocaleDateString('en-IN')} {leave.startDate !== leave.endDate && ` - ${new Date(leave.endDate).toLocaleDateString('en-IN')}`}
                       </td>
-                      <td className="p-4">
-                        <Badge variant={leave.status === 'APPROVED' ? 'success' : leave.status === 'REJECTED' ? 'danger' : 'warning'}>
-                          {leave.status}
-                        </Badge>
-                      </td>
-                      <td className="p-4">
-                        <button 
-                          onClick={() => setSelectedLeave(leave)}
-                          style={{ color: theme.colors.info, background: `${theme.colors.info}10`, borderColor: `${theme.colors.info}30` }}
-                          className="border px-3 py-1.5 rounded text-xs font-medium transition"
-                        >
-                          View Letter
-                        </button>
-                      </td>
+                      <td className="p-4"><Badge variant={leave.status === 'APPROVED' ? 'success' : leave.status === 'REJECTED' ? 'danger' : 'warning'}>{leave.status}</Badge></td>
+                      <td className="p-4"><Button size="sm" variant="outline" onClick={() => setSelectedLeave(leave)}>View Letter</Button></td>
                     </tr>
                   ))}
                 </tbody>
@@ -112,26 +98,11 @@ export default function AdminLeavePage() {
         </div>
 
         {selectedLeave && (
-          <LeaveLetterModal 
-            leave={selectedLeave} 
-            onClose={() => setSelectedLeave(null)}
-          >
+          <LeaveLetterModal leave={selectedLeave} onClose={() => setSelectedLeave(null)}>
             {selectedLeave.status === 'PENDING' && (
               <div className="flex gap-4 mt-6 pt-4 border-t w-full max-w-3xl mx-auto" style={{ borderColor: theme.colors.border }}>
-                <button 
-                  onClick={() => handleApprove(selectedLeave._id)}
-                  style={{ background: theme.colors.success, color: '#fff', padding: '12px', borderRadius: theme.radius.sm }}
-                  className="flex-1 font-bold transition hover:opacity-90"
-                >
-                  ✅ Approve Leave
-                </button>
-                <button 
-                  onClick={() => handleRejectClick(selectedLeave._id)}
-                  style={{ background: theme.colors.danger, color: '#fff', padding: '12px', borderRadius: theme.radius.sm }}
-                  className="flex-1 font-bold transition hover:opacity-90"
-                >
-                  ❌ Reject Leave
-                </button>
+                <Button onClick={() => handleApprove(selectedLeave._id)} variant="success" style={{ flex: 1 }}>✅ Approve Leave</Button>
+                <Button onClick={() => handleRejectClick(selectedLeave._id)} variant="danger" style={{ flex: 1 }}>❌ Reject Leave</Button>
               </div>
             )}
           </LeaveLetterModal>
@@ -141,28 +112,12 @@ export default function AdminLeavePage() {
           <div className="fixed inset-0 flex items-center justify-center z-[60] p-4" style={{ background: 'rgba(0,0,0,0.6)' }}>
             <div style={{ background: theme.colors.surface, borderRadius: theme.radius.md, boxShadow: theme.shadow.lg }} className="p-6 max-w-md w-full">
               <h3 style={{ color: theme.colors.text }} className="text-lg font-bold mb-4">Reject Leave Application</h3>
-              <textarea
-                value={rejectModal.reason}
-                onChange={(e) => setRejectModal(prev => ({ ...prev, reason: e.target.value }))}
-                style={{ width: '100%', border: `1px solid ${theme.colors.border}`, borderRadius: theme.radius.sm, padding: '12px', color: theme.colors.text, outline: 'none' }}
-                rows="3"
-                placeholder="Enter rejection reason..."
+              <textarea value={rejectModal.reason} onChange={(e) => setRejectModal(prev => ({ ...prev, reason: e.target.value }))}
+                style={{ width: '100%', border: `1px solid ${theme.colors.border}`, borderRadius: theme.radius.sm, padding: '12px', color: theme.colors.text, outline: 'none' }} rows="3" placeholder="Enter rejection reason..."
               ></textarea>
               <div className="flex justify-end gap-3 mt-6">
-                <button 
-                  onClick={() => setRejectModal({ open: false, leaveId: null, reason: '' })} 
-                  style={{ color: theme.colors.muted, borderColor: theme.colors.border }}
-                  className="px-4 py-2 border rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
-                <button 
-                  onClick={submitReject} 
-                  style={{ background: theme.colors.danger, color: '#fff' }}
-                  className="px-4 py-2 rounded-lg hover:opacity-90"
-                >
-                  Confirm Reject
-                </button>
+                <Button variant="ghost" onClick={() => setRejectModal({ open: false, leaveId: null, reason: '' })}>Cancel</Button>
+                <Button variant="danger" onClick={submitReject}>Confirm Reject</Button>
               </div>
             </div>
           </div>

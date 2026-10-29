@@ -3,6 +3,7 @@ import { toast } from 'react-hot-toast';
 import PageHeader from '../../components/common/PageHeader';
 import Loader from '../../components/ui/Loader';
 import Badge from '../../components/ui/Badge';
+import Button from '../../components/ui/Button';
 import LeaveForm from './LeaveForm';
 import LeaveLetterModal from './LeaveLetterModal';
 import { applyLeaveApi, getMyLeavesApi, cancelLeaveApi } from './leaves.api';
@@ -64,16 +65,12 @@ export default function LeavePage() {
           </div>
 
           <div style={{ background: theme.colors.surface, padding: '24px', borderRadius: theme.radius.md, boxShadow: theme.shadow.sm, border: `1px solid ${theme.colors.border}` }} className="lg:col-span-2">
-            <h2 style={{ color: theme.colors.text, borderBottom: `1px solid ${theme.colors.border}`, paddingBottom: '12px', marginBottom: '16px' }} className="text-lg font-semibold">
-              My Leave History
-            </h2>
+            <h2 style={{ color: theme.colors.text, borderBottom: `1px solid ${theme.colors.border}`, paddingBottom: '12px', marginBottom: '16px' }} className="text-lg font-semibold">My Leave History</h2>
             
             {fetching ? (
               <div className="py-10 flex justify-center"><Loader /></div>
             ) : leaves.length === 0 ? (
-              <div style={{ color: theme.colors.muted, borderColor: theme.colors.border }} className="text-center py-10 rounded-lg border border-dashed">
-                You have not applied for any leaves yet.
-              </div>
+              <div style={{ color: theme.colors.muted, borderColor: theme.colors.border }} className="text-center py-10 rounded-lg border border-dashed">You have not applied for any leaves yet.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left border-collapse">
@@ -88,36 +85,16 @@ export default function LeavePage() {
                   </thead>
                   <tbody style={{ color: theme.colors.text }} className="text-sm">
                     {leaves.map((leave) => (
-                      <tr key={leave._id} style={{ borderBottom: `1px solid ${theme.colors.border}` }} className="hover:bg-gray-50 transition">
+                      <tr key={leave._id} style={{ borderBottom: `1px solid ${theme.colors.border}` }} className="hover:bg-black/5 transition">
                         <td className="p-3 font-medium">{leave.leaveType}</td>
                         <td style={{ color: theme.colors.muted }} className="p-3">
-                          {new Date(leave.startDate).toLocaleDateString('en-IN')} 
-                          {leave.startDate !== leave.endDate && ` - ${new Date(leave.endDate).toLocaleDateString('en-IN')}`}
+                          {new Date(leave.startDate).toLocaleDateString('en-IN')} {leave.startDate !== leave.endDate && ` - ${new Date(leave.endDate).toLocaleDateString('en-IN')}`}
                         </td>
                         <td style={{ color: theme.colors.muted }} className="p-3">{leave.totalDays}</td>
-                        <td className="p-3">
-                          <Badge variant={leave.status === 'APPROVED' ? 'success' : leave.status === 'REJECTED' ? 'danger' : 'warning'}>
-                            {leave.status}
-                          </Badge>
-                        </td>
+                        <td className="p-3"><Badge variant={leave.status === 'APPROVED' ? 'success' : leave.status === 'REJECTED' ? 'danger' : 'warning'}>{leave.status}</Badge></td>
                         <td className="p-3 flex gap-2">
-                          <button
-                            onClick={() => setSelectedLeave(leave)}
-                            style={{ color: theme.colors.info, borderColor: theme.colors.info }}
-                            className="text-xs font-medium border px-2 py-1 rounded hover:opacity-80 transition"
-                          >
-                            View Letter
-                          </button>
-
-                          {leave.status === 'PENDING' && (
-                            <button
-                              onClick={() => handleCancelLeave(leave._id)}
-                              style={{ color: theme.colors.danger, borderColor: theme.colors.danger }}
-                              className="text-xs font-medium border px-2 py-1 rounded hover:opacity-80 transition"
-                            >
-                              Cancel
-                            </button>
-                          )}
+                          <Button size="sm" variant="outline" onClick={() => setSelectedLeave(leave)}>View Letter</Button>
+                          {leave.status === 'PENDING' && <Button size="sm" variant="danger" onClick={() => handleCancelLeave(leave._id)}>Cancel</Button>}
                         </td>
                       </tr>
                     ))}
@@ -127,10 +104,7 @@ export default function LeavePage() {
             )}
           </div>
         </div>
-
-        {selectedLeave && (
-          <LeaveLetterModal leave={selectedLeave} onClose={() => setSelectedLeave(null)} />
-        )}
+        {selectedLeave && <LeaveLetterModal leave={selectedLeave} onClose={() => setSelectedLeave(null)} />}
       </div>
     </div>
   );

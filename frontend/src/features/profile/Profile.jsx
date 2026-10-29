@@ -42,25 +42,13 @@ export default function Profile() {
       const { data } = await api.getMyProfile();
       const me = data.data;
       setProfile(me);
-
       let empDetail = null;
       if (me.role === 'EMPLOYEE' && me.employeeId) {
-        try {
-          const empRes = await getEmployee(me.employeeId);
-          empDetail = empRes.data.data;
-          setExtra(empDetail);
-        } catch (e) {}
+        try { const empRes = await getEmployee(me.employeeId); empDetail = empRes.data.data; setExtra(empDetail); } catch (e) {}
       } else if (me.role === 'CLF' && me.clfId) {
-        try {
-          const clfRes = await getClf(me.clfId);
-          setExtra(clfRes.data.data);
-        } catch (e) {}
+        try { const clfRes = await getClf(me.clfId); setExtra(clfRes.data.data); } catch (e) {}
       }
-
-      setForm({
-        email: me.email || '',
-        mobile: me.mobile || empDetail?.mobile || '',
-      });
+      setForm({ email: me.email || '', mobile: me.mobile || empDetail?.mobile || '' });
       setEmailEdit(!me.email);
     } catch (err) {
       toast.error('Failed to load profile');
@@ -74,11 +62,7 @@ export default function Profile() {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      return toast.error('Image must be less than 5MB');
-    }
-
+    if (file.size > 5 * 1024 * 1024) return toast.error('Image must be less than 5MB');
     setSelectedFile(file);
     setPreviewImage(URL.createObjectURL(file));
   };
@@ -89,17 +73,15 @@ export default function Profile() {
       const formData = new FormData();
       formData.append('email', form.email);
       formData.append('mobile', form.mobile);
-      
-      if (selectedFile) {
-        formData.append('profilePhoto', selectedFile);
-      }
-
+      if (selectedFile) formData.append('profilePhoto', selectedFile);
       const { data } = await api.updateMyProfile(formData);
       const updated = data.data;
       setProfile(updated);
 
       const stored = JSON.parse(localStorage.getItem('user') || '{}');
       localStorage.setItem('user', JSON.stringify({ ...stored, ...updated }));
+      
+      window.dispatchEvent(new Event('storage'));
 
       toast.success('Profile updated ✅');
       setEmailEdit(false);
@@ -126,11 +108,7 @@ export default function Profile() {
   if (!profile) return <p>Profile not found</p>;
 
   const initial = (profile.name || profile.username || '?').charAt(0).toUpperCase();
-
-  const tabs = [
-    { key: 'profile', label: '👤 Profile' },
-    { key: 'reports', label: '📄 Reports' },
-  ];
+  const tabs = [{ key: 'profile', label: '👤 Profile' }, { key: 'reports', label: '📄 Reports' }];
 
   return (
     <>
@@ -139,52 +117,23 @@ export default function Profile() {
       <div style={{ display: 'inline-flex', gap: 4, padding: 4, background: theme.colors.background, border: `1px solid ${theme.colors.border}`, borderRadius: theme.radius.md, marginBottom: 16 }}>
         {tabs.map((t) => {
           const isActive = tab === t.key;
-          return (
-            <button key={t.key} onClick={() => setTab(t.key)} style={{ padding: '8px 16px', borderRadius: theme.radius.sm, border: 'none', background: isActive ? theme.colors.primary : 'transparent', color: isActive ? '#FFFFFF' : theme.colors.muted, fontWeight: 700, fontSize: 11, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer', transition: 'all 0.25s ease' }}>
-              {t.label}
-            </button>
-          );
+          return <Button key={t.key} variant={isActive ? 'primary' : 'ghost'} size="sm" onClick={() => setTab(t.key)}>{t.label}</Button>;
         })}
       </div>
 
       {tab === 'profile' && (
         <>
-          <div style={cardStyle}>
+          <div style={{ background: theme.colors.surface, borderRadius: theme.radius.md, border: `1px solid ${theme.colors.border}`, boxShadow: theme.shadow.sm, padding: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
-              
               <div className="relative group" style={{ flexShrink: 0 }}>
-                <div 
-                  style={{ 
-                    width: 72, height: 72, borderRadius: '50%', 
-                    background: `${theme.colors.primary}15`, 
-                    border: `2px solid ${theme.colors.primary}44`, 
-                    color: theme.colors.primary, 
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                    fontSize: 28, fontWeight: 800, overflow: 'hidden', position: 'relative'
-                  }}
-                >
-                  {previewImage || profile.profilePhoto ? (
-                    <img src={previewImage || profile.profilePhoto} alt="DP" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    initial
-                  )}
-
-                  <div 
-                    onClick={() => fileInputRef.current?.click()}
-                    style={{
-                      position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', 
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      opacity: 0, cursor: 'pointer', transition: 'opacity 0.2s', color: '#fff'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.opacity = 1}
-                    onMouseLeave={(e) => e.currentTarget.style.opacity = 0}
-                  >
+                <div style={{ width: 72, height: 72, borderRadius: '50%', background: `${theme.colors.primary}15`, border: `2px solid ${theme.colors.primary}44`, color: theme.colors.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 800, overflow: 'hidden', position: 'relative' }}>
+                  {previewImage || profile.profilePhoto ? (<img src={previewImage || profile.profilePhoto} alt="DP" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />) : (initial)}
+                  <div onClick={() => fileInputRef.current?.click()} style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, cursor: 'pointer', transition: 'opacity 0.2s', color: '#fff' }} onMouseEnter={(e) => e.currentTarget.style.opacity = 1} onMouseLeave={(e) => e.currentTarget.style.opacity = 0}>
                     <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                   </div>
                 </div>
                 <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" style={{ display: 'none' }} />
               </div>
-
               <div style={{ minWidth: 0 }}>
                 <h3 style={{ margin: 0, fontSize: 17, color: theme.colors.text }}>{profile.name}</h3>
                 <p style={{ margin: '2px 0 6px', fontSize: 12, color: theme.colors.muted, fontFamily: 'monospace' }}>@{profile.username}</p>
@@ -194,7 +143,6 @@ export default function Profile() {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 14 }}>
               <Input label="Mobile" value={form.mobile} onChange={(e) => setForm((f) => ({ ...f, mobile: e.target.value }))} placeholder="9876543210" />
-
               {!emailEdit && form.email ? (
                 <div>
                   <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: theme.colors.text, marginBottom: 6 }}>Email</label>
@@ -203,17 +151,14 @@ export default function Profile() {
                     <button type="button" onClick={() => setEmailEdit(true)} style={{ background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 12, color: theme.colors.primary, fontWeight: 700, padding: 0 }}>✏️ Edit</button>
                   </div>
                 </div>
-              ) : (
-                <Input label="Email" type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="you@example.com" />
-              )}
+              ) : (<Input label="Email" type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="you@example.com" />)}
             </div>
-
             <Button onClick={handleSave} loading={saving}>💾 Save Changes</Button>
           </div>
 
           {role === 'EMPLOYEE' && extra && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginTop: 20 }}>
-              <div style={cardStyle}>
+              <div style={{ background: theme.colors.surface, borderRadius: theme.radius.md, border: `1px solid ${theme.colors.border}`, boxShadow: theme.shadow.sm, padding: 20 }}>
                 <SectionTitle>👤 Personal & Work Info</SectionTitle>
                 <InfoRow label="Employee Code" value={extra.employeeCode} mono />
                 <InfoRow label="Designation" value={extra.designation} />
@@ -223,8 +168,7 @@ export default function Profile() {
                 <InfoRow label="Mobile" value={extra.mobile} mono />
                 <InfoRow label="Status" value={<Badge variant={extra.status === 'ACTIVE' ? 'success' : 'danger'}>{extra.status}</Badge>} />
               </div>
-
-              <div style={cardStyle}>
+              <div style={{ background: theme.colors.surface, borderRadius: theme.radius.md, border: `1px solid ${theme.colors.border}`, boxShadow: theme.shadow.sm, padding: 20 }}>
                 <SectionTitle>🏦 Bank Details</SectionTitle>
                 <InfoRow label="Bank Name" value={extra.bankDetails?.bankName} />
                 <InfoRow label="Account Number" value={extra.bankDetails?.accountNumber} mono />
@@ -237,8 +181,7 @@ export default function Profile() {
           {role === 'CLF' && extra && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginTop: 20 }}>
               
-              {/* CLF Basic Info */}
-              <div style={cardStyle}>
+              <div style={{ background: theme.colors.surface, borderRadius: theme.radius.md, border: `1px solid ${theme.colors.border}`, boxShadow: theme.shadow.sm, padding: 20 }}>
                 <SectionTitle>🏛️ CLF Information</SectionTitle>
                 <InfoRow label="CLF Name" value={extra.name} />
                 <InfoRow label="CLF Code" value={extra.code} mono />
@@ -248,49 +191,50 @@ export default function Profile() {
                 <InfoRow label="Status" value={<Badge variant={extra.status === 'ACTIVE' ? 'success' : 'danger'}>{extra.status}</Badge>} />
               </div>
 
-              {/* ✅ NAYA: Core Members & BOD List */}
-              <div style={cardStyle}>
+              {/* ✅ NAYA: CLF Bank Accounts Section */}
+              <div style={{ background: theme.colors.surface, borderRadius: theme.radius.md, border: `1px solid ${theme.colors.border}`, boxShadow: theme.shadow.sm, padding: 20 }}>
+                <SectionTitle>🏦 CLF Bank Accounts</SectionTitle>
+                {!extra.bankAccounts || extra.bankAccounts.length === 0 ? (
+                  <p style={{ fontSize: 13, color: theme.colors.muted, margin: 0 }}>No bank accounts added. Click "Edit Members" below to add.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {extra.bankAccounts.map((bank, i) => (
+                      <div key={i} style={{ padding: '10px 12px', background: theme.colors.background, borderRadius: 8, border: `1px solid ${theme.colors.border}` }}>
+                        <div style={{ fontWeight: 600, color: theme.colors.text, fontSize: 13 }}>{bank.accountName}</div>
+                        <div style={{ fontSize: 12, color: theme.colors.muted, marginTop: 2 }}>
+                          <strong>{bank.bankName}</strong> | A/c: <span style={{ fontFamily: 'monospace' }}>{bank.accountNumber}</span>
+                        </div>
+                        <div style={{ fontSize: 11, color: theme.colors.muted, marginTop: 2 }}>
+                          Branch: {bank.branch || '—'} | IFSC: {bank.ifscCode || '—'}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ background: theme.colors.surface, borderRadius: theme.radius.md, border: `1px solid ${theme.colors.border}`, boxShadow: theme.shadow.sm, padding: 20 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, borderBottom: `1px solid ${theme.colors.border}`, paddingBottom: 8 }}>
                   <SectionTitle style={{ margin: 0, border: 'none', padding: 0 }}>👥 Members Info</SectionTitle>
-                  
-                  {/* ✅ Edit Button */}
-                  <Button onClick={() => setOpenBodModal(true)} style={{ padding: '6px 12px', fontSize: 12 }}>✏️ Edit Members</Button>
+                  <Button size="sm" onClick={() => setOpenBodModal(true)}>✏️ Edit Members</Button>
                 </div>
 
                 <h4 style={{ margin: '0 0 10px', fontSize: 13, color: theme.colors.muted, textTransform: 'uppercase' }}>Core Members</h4>
-                
-                {/* President */}
-                <div style={{ marginBottom: 12, background: theme.colors.background, padding: 12, borderRadius: 8 }}>
-                  <p style={{ margin: '0 0 4px', fontWeight: 600, color: theme.colors.text }}>अध्यक्ष (President)</p>
-                  <p style={{ margin: '0 0 2px', fontSize: 13, color: theme.colors.muted }}>Name: {extra.coreMembers?.president?.name || extra.president || '—'}</p>
-                  <p style={{ margin: '0 0 2px', fontSize: 13, color: theme.colors.muted }}>Mobile: {extra.coreMembers?.president?.mobile || '—'}</p>
-                  {/* ✅ NAYA: Bank Name add kiya */}
-                  <p style={{ margin: '0 0 2px', fontSize: 13, color: theme.colors.muted }}>Bank: {extra.coreMembers?.president?.bankDetails?.bankName || '—'} (A/c: {extra.coreMembers?.president?.bankDetails?.accountNumber || '—'})</p>
-                </div>
+                {['president', 'secretary', 'treasurer'].map(key => {
+                  const labels = { president: 'अध्यक्ष (President)', secretary: 'सचिव (Secretary)', treasurer: 'कोषाध्यक्ष (Treasurer)' };
+                  const member = extra.coreMembers?.[key] || {};
+                  return (
+                    <div key={key} style={{ marginBottom: 12, background: theme.colors.background, padding: 12, borderRadius: 8 }}>
+                      <p style={{ margin: '0 0 4px', fontWeight: 600, color: theme.colors.text }}>{labels[key]}</p>
+                      <p style={{ margin: '0 0 2px', fontSize: 13, color: theme.colors.muted }}>Name: {member.name || extra[key] || '—'}</p>
+                      <p style={{ margin: '0 0 2px', fontSize: 13, color: theme.colors.muted }}>Mobile: {member.mobile || '—'}</p>
+                      <p style={{ margin: '0 0 2px', fontSize: 13, color: theme.colors.muted }}>Bank: {member.bankDetails?.bankName || '—'} (A/c: {member.bankDetails?.accountNumber || '—'})</p>
+                    </div>
+                  );
+                })}
 
-                {/* Secretary */}
-                <div style={{ marginBottom: 12, background: theme.colors.background, padding: 12, borderRadius: 8 }}>
-                  <p style={{ margin: '0 0 4px', fontWeight: 600, color: theme.colors.text }}>सचिव (Secretary)</p>
-                  <p style={{ margin: '0 0 2px', fontSize: 13, color: theme.colors.muted }}>Name: {extra.coreMembers?.secretary?.name || extra.secretary || '—'}</p>
-                  <p style={{ margin: '0 0 2px', fontSize: 13, color: theme.colors.muted }}>Mobile: {extra.coreMembers?.secretary?.mobile || '—'}</p>
-                  {/* ✅ NAYA: Bank Name add kiya */}
-                  <p style={{ margin: '0 0 2px', fontSize: 13, color: theme.colors.muted }}>Bank: {extra.coreMembers?.secretary?.bankDetails?.bankName || '—'} (A/c: {extra.coreMembers?.secretary?.bankDetails?.accountNumber || '—'})</p>
-                </div>
-
-                {/* Treasurer */}
-                <div style={{ marginBottom: 12, background: theme.colors.background, padding: 12, borderRadius: 8 }}>
-                  <p style={{ margin: '0 0 4px', fontWeight: 600, color: theme.colors.text }}>कोषाध्यक्ष (Treasurer)</p>
-                  <p style={{ margin: '0 0 2px', fontSize: 13, color: theme.colors.muted }}>Name: {extra.coreMembers?.treasurer?.name || extra.treasurer || '—'}</p>
-                  <p style={{ margin: '0 0 2px', fontSize: 13, color: theme.colors.muted }}>Mobile: {extra.coreMembers?.treasurer?.mobile || '—'}</p>
-                  {/* ✅ NAYA: Bank Name add kiya */}
-                  <p style={{ margin: '0 0 2px', fontSize: 13, color: theme.colors.muted }}>Bank: {extra.coreMembers?.treasurer?.bankDetails?.bankName || '—'} (A/c: {extra.coreMembers?.treasurer?.bankDetails?.accountNumber || '—'})</p>
-                </div>
-
-                {/* BOD Members List */}
                 <h4 style={{ margin: '20px 0 10px', fontSize: 13, color: theme.colors.muted, textTransform: 'uppercase' }}>Board of Directors (BOD)</h4>
-                {!extra.bodMembers || extra.bodMembers.length === 0 ? (
-                  <p style={{ fontSize: 13, color: theme.colors.muted, margin: 0 }}>No BOD members added.</p>
-                ) : (
+                {!extra.bodMembers || extra.bodMembers.length === 0 ? (<p style={{ fontSize: 13, color: theme.colors.muted, margin: 0 }}>No BOD members added.</p>) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {extra.bodMembers.map((member, i) => (
                       <div key={i} style={{ display: 'flex', flexDirection: 'column', padding: '10px 12px', background: theme.colors.background, borderRadius: 8, border: `1px solid ${theme.colors.border}` }}>
@@ -300,58 +244,32 @@ export default function Profile() {
                             <div style={{ fontSize: 11, color: theme.colors.muted }}>{member.designation}</div>
                           </div>
                           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                            <span style={{ fontSize: 13, color: theme.colors.text, fontWeight: 500 }}>
-                              {member.mobile || '—'}
-                            </span>
-                            {/* ✅ NAYA: View Detail Button */}
-                            <button 
-                              onClick={() => setSelectedMember(member)} 
-                              style={{ background: `${theme.colors.primary}15`, color: theme.colors.primary, border: 'none', padding: '4px 8px', borderRadius: 4, fontSize: 11, cursor: 'pointer', fontWeight: 600 }}
-                            >
-                              View Details
-                            </button>
+                            <span style={{ fontSize: 13, color: theme.colors.text, fontWeight: 500 }}>{member.mobile || '—'}</span>
+                            <Button size="sm" variant="ghost" onClick={() => setSelectedMember(member)}>View Details</Button>
                           </div>
                         </div>
-                        {member.address && (
-                          <div style={{ fontSize: 11, color: theme.colors.muted, marginTop: 4 }}>
-                            Address: {member.address}
-                          </div>
-                        )}
+                        {member.address && <div style={{ fontSize: 11, color: theme.colors.muted, marginTop: 4 }}>Address: {member.address}</div>}
                       </div>
                     ))}
                   </div>
                 )}
               </div>
-
             </div>
           )}
 
           <div style={{ marginTop: 24, background: theme.colors.surface, borderRadius: theme.radius.md, border: `1px solid ${theme.colors.border}`, boxShadow: theme.shadow.sm, padding: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-            <div>
-              <h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: theme.colors.text }}>🚪 Logout</h3>
-              <p style={{ margin: '4px 0 0', fontSize: 12, color: theme.colors.muted }}>Sign out of your account on this device</p>
-            </div>
+            <div><h3 style={{ margin: 0, fontSize: 14, fontWeight: 800, color: theme.colors.text }}>🚪 Logout</h3><p style={{ margin: '4px 0 0', fontSize: 12, color: theme.colors.muted }}>Sign out of your account on this device</p></div>
             <Button variant="danger" onClick={handleLogout} loading={loggingOut}>Logout</Button>
           </div>
         </>
       )}
 
-      {tab === 'reports' && (
-        <div style={{ marginTop: 8 }}>
-          <ReportsPage />
-        </div>
-      )}
+      {tab === 'reports' && (<div style={{ marginTop: 8 }}><ReportsPage /></div>)}
 
-      {/* ✅ NAYA: BOD Modal */}
       <Modal open={openBodModal} onClose={() => setOpenBodModal(false)} title="Manage Core & BOD Members">
-        <ClfBodModal 
-          clf={extra} 
-          onClose={() => setOpenBodModal(false)} 
-          onUpdated={load} 
-        />
+        <ClfBodModal clf={extra} onClose={() => setOpenBodModal(false)} onUpdated={load} />
       </Modal>
 
-      {/* ✅ NAYA: Member Details Modal */}
       <Modal open={!!selectedMember} onClose={() => setSelectedMember(null)} title="Member Details">
         {selectedMember && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -359,13 +277,10 @@ export default function Profile() {
             <InfoRow label="Designation" value={selectedMember.designation} />
             <InfoRow label="Mobile" value={selectedMember.mobile} />
             <InfoRow label="Address" value={selectedMember.address} />
-            
-            {/* ✅ NAYA: Bank Name Add kiya */}
             <InfoRow label="Bank Name" value={selectedMember.bankDetails?.bankName} />
             <InfoRow label="Bank A/c No" value={selectedMember.bankDetails?.accountNumber} />
             <InfoRow label="IFSC Code" value={selectedMember.bankDetails?.ifscCode} />
             <InfoRow label="Branch" value={selectedMember.bankDetails?.branch} />
-            
             <InfoRow label="Status" value={<Badge variant={selectedMember.status === 'ACTIVE' ? 'success' : 'danger'}>{selectedMember.status}</Badge>} />
           </div>
         )}
@@ -374,34 +289,13 @@ export default function Profile() {
   );
 }
 
-const cardStyle = {
-  background: theme.colors.surface,
-  borderRadius: theme.radius.md,
-  border: `1px solid ${theme.colors.border}`,
-  boxShadow: theme.shadow.sm,
-  padding: 20,
-};
-
 function SectionTitle({ children, style }) {
-  return (
-    <h3 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 800, color: theme.colors.primary, textTransform: 'uppercase', letterSpacing: 0.5, paddingBottom: 8, borderBottom: `1px solid ${theme.colors.border}`, ...style }}>
-      {children}
-    </h3>
-  );
+  return <h3 style={{ margin: '0 0 14px', fontSize: 14, fontWeight: 800, color: theme.colors.primary, textTransform: 'uppercase', letterSpacing: 0.5, paddingBottom: 8, borderBottom: `1px solid ${theme.colors.border}`, ...style }}>{children}</h3>;
 }
 
-// ✅ UPDATED: InfoRow ab responsive hai (Mobile pe label upar, value neeche)
 function InfoRow({ label, value, mono }) {
   return (
-    <div style={{ 
-      display: 'flex', 
-      flexWrap: 'wrap', 
-      gap: 8, 
-      padding: '10px 0', 
-      borderBottom: `1px solid ${theme.colors.border}`, 
-      fontSize: 13, 
-      alignItems: 'center' 
-    }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, padding: '10px 0', borderBottom: `1px solid ${theme.colors.border}`, fontSize: 13, alignItems: 'center' }}>
       <span style={{ color: theme.colors.muted, fontWeight: 600, fontSize: 12, minWidth: 110 }}>{label}</span>
       <span style={{ color: theme.colors.text, fontFamily: mono ? 'monospace' : 'inherit', fontWeight: 600, wordBreak: 'break-all', flex: 1 }}>{value || '—'}</span>
     </div>

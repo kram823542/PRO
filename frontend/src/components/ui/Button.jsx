@@ -39,7 +39,7 @@ export default function Button({
           background: v.bg,
           color: v.color,
           border: v.border,
-          borderRadius: '9999px', // Perfect Pill Shape
+          borderRadius: '9999px',
           fontWeight: 600,
           cursor: disabled || loading ? 'not-allowed' : 'pointer',
           opacity: disabled || loading ? 0.7 : 1,
@@ -57,10 +57,7 @@ export default function Button({
           ...style,
         }}
       >
-        {/* Left-to-Right Hover Overlay Background */}
         <span className="hover-slide-overlay" />
-
-        {/* Content Container */}
         <span style={{ position: 'relative', zIndex: 2, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
           {loading ? (
             <>
@@ -73,7 +70,6 @@ export default function Button({
         </span>
       </button>
 
-      {/* Slide & Click Animations CSS */}
       <style>{`
         .pill-slide-btn {
           border-radius: 9999px !important;
@@ -81,8 +77,6 @@ export default function Button({
                       box-shadow 0.25s ease,
                       color 0.25s ease;
         }
-
-        /* Hover Effect: Left-to-Right Slide Overlay */
         .hover-slide-overlay {
           position: absolute;
           top: 0;
@@ -90,40 +84,26 @@ export default function Button({
           width: 100%;
           height: 100%;
           border-radius: 9999px;
-          background: linear-gradient(
-            90deg,
-            rgba(255, 255, 255, 0) 0%,
-            rgba(255, 255, 255, 0.25) 50%,
-            rgba(255, 255, 255, 0) 100%
-          );
+          background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.25) 50%, rgba(255, 255, 255, 0) 100%);
           transition: left 0.45s cubic-bezier(0.4, 0, 0.2, 1);
           z-index: 1;
           pointer-events: none;
         }
-
         .pill-slide-btn:not(:disabled):hover .hover-slide-overlay {
-          left: 100%; /* Left to Right Sweep Animation */
+          left: 100%;
         }
-
-        /* Hover Lift Effect */
         .pill-slide-btn:not(:disabled):hover {
           transform: translateY(-2px);
-          box-shadow: 0 8px 22px -4px ${theme.colors.primary || '#0f172a'}50;
+          box-shadow: 0 8px 22px -4px ${theme.colors.primary}50;
         }
-
-        /* Click / Active Effect: Right-to-Left Push & Compression */
         .pill-slide-btn:not(:disabled):active {
-          transform: translateX(-4px) scale(0.97); /* Right-to-Left Shift Effect */
+          transform: translateX(-4px) scale(0.97);
           box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
           transition: transform 0.1s ease-out;
         }
-
-        /* Outline Variant Hover Color */
         .btn-variant-outline .hover-slide-overlay {
           background: ${theme.colors.primary}20;
         }
-
-        /* Animated Spinner Icon */
         .btn-spinner {
           width: 16px;
           height: 16px;
@@ -132,17 +112,13 @@ export default function Button({
           border-radius: 50%;
           animation: btnSpin 0.7s linear infinite;
         }
-
         .btn-variant-outline .btn-spinner,
         .btn-variant-ghost .btn-spinner {
           border-color: ${theme.colors.primary}35;
           border-top-color: ${theme.colors.primary};
         }
-
         @keyframes btnSpin {
-          to {
-            transform: rotate(360deg);
-          }
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </>

@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { theme } from '../../config/theme.js';
+import Input from '../../components/ui/Input.jsx';
+import Select from '../../components/ui/Select.jsx';
+import Button from '../../components/ui/Button.jsx';
 
 const LEAVE_TYPES = [
   { value: 'Casual Leave', label: 'Casual Leave' },
@@ -43,141 +46,36 @@ export default function LeaveForm({ onSubmit, loading }) {
     }
 
     onSubmit(payload, () => {
-      setFormData({
-        leaveType: 'Casual Leave',
-        startDate: '',
-        endDate: '',
-        startTime: '',
-        endTime: '',
-        reason: '',
-      });
+      setFormData({ leaveType: 'Casual Leave', startDate: '', endDate: '', startTime: '', endTime: '', reason: '' });
     });
   };
 
-  const inputStyle = {
-    width: '100%',
-    padding: '10px 12px',
-    border: `1px solid ${theme.colors.border}`,
-    borderRadius: theme.radius.sm,
-    fontSize: '14px',
-    color: theme.colors.text,
-    outline: 'none',
-    background: theme.colors.surface,
-  };
-
   return (
-    <form 
-      onSubmit={handleSubmit} 
-      style={{ 
-        background: theme.colors.surface, 
-        padding: '24px', 
-        borderRadius: theme.radius.md, 
-        boxShadow: theme.shadow.sm,
-        border: `1px solid ${theme.colors.border}`
-      }}
-      className="space-y-4"
-    >
-      <h2 style={{ color: theme.colors.text, borderBottom: `1px solid ${theme.colors.border}`, paddingBottom: '12px', marginBottom: '16px' }} className="text-lg font-semibold">
-        Apply for Leave
-      </h2>
+    <form onSubmit={handleSubmit} style={{ background: theme.colors.surface, padding: '24px', borderRadius: theme.radius.md, boxShadow: theme.shadow.sm, border: `1px solid ${theme.colors.border}` }} className="space-y-4">
+      <h2 style={{ color: theme.colors.text, borderBottom: `1px solid ${theme.colors.border}`, paddingBottom: '12px', marginBottom: '16px' }} className="text-lg font-semibold">Apply for Leave</h2>
       
-      <div>
-        <label style={{ color: theme.colors.muted }} className="block text-sm font-medium mb-1">Leave Type</label>
-        <select
-          name="leaveType"
-          value={formData.leaveType}
-          onChange={handleChange}
-          style={inputStyle}
-          required
-        >
-          {LEAVE_TYPES.map((type) => (
-            <option key={type.value} value={type.value}>{type.label}</option>
-          ))}
-        </select>
-      </div>
-
+      <Select label="Leave Type" name="leaveType" value={formData.leaveType} onChange={handleChange} options={LEAVE_TYPES} required />
+      
       <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label style={{ color: theme.colors.muted }} className="block text-sm font-medium mb-1">Start Date</label>
-          <input
-            type="date"
-            name="startDate"
-            value={formData.startDate}
-            onChange={handleChange}
-            style={inputStyle}
-            required
-          />
-        </div>
-        <div>
-          <label style={{ color: theme.colors.muted }} className="block text-sm font-medium mb-1">End Date</label>
-          <input
-            type="date"
-            name="endDate"
-            value={formData.endDate}
-            onChange={handleChange}
-            min={formData.startDate}
-            disabled={formData.leaveType === 'Half Day'}
-            style={{ ...inputStyle, opacity: formData.leaveType === 'Half Day' ? 0.6 : 1 }}
-            required
-          />
-        </div>
+        <Input label="Start Date" type="date" name="startDate" value={formData.startDate} onChange={handleChange} required />
+        <Input label="End Date" type="date" name="endDate" value={formData.endDate} onChange={handleChange} min={formData.startDate} disabled={formData.leaveType === 'Half Day'} required />
       </div>
 
       {formData.leaveType === 'Half Day' && (
         <div style={{ background: `${theme.colors.info}10`, padding: '12px', borderRadius: theme.radius.sm, border: `1px solid ${theme.colors.info}30` }} className="grid grid-cols-2 gap-4">
-          <div>
-            <label style={{ color: theme.colors.muted }} className="block text-xs font-medium mb-1">Start Time</label>
-            <input
-              type="time"
-              name="startTime"
-              value={formData.startTime}
-              onChange={handleChange}
-              style={inputStyle}
-              required
-            />
-          </div>
-          <div>
-            <label style={{ color: theme.colors.muted }} className="block text-xs font-medium mb-1">End Time</label>
-            <input
-              type="time"
-              name="endTime"
-              value={formData.endTime}
-              onChange={handleChange}
-              style={inputStyle}
-              required
-            />
-          </div>
+          <Input label="Start Time" type="time" name="startTime" value={formData.startTime} onChange={handleChange} required />
+          <Input label="End Time" type="time" name="endTime" value={formData.endTime} onChange={handleChange} required />
         </div>
       )}
 
       <div>
-        <label style={{ color: theme.colors.muted }} className="block text-sm font-medium mb-1">Reason</label>
-        <textarea
-          name="reason"
-          value={formData.reason}
-          onChange={handleChange}
-          rows="3"
-          style={inputStyle}
-          placeholder="Briefly explain why you need this leave..."
-          required
+        <label style={{ color: theme.colors.text, fontSize: 13, fontWeight: 600, paddingLeft: 14, display: 'block', marginBottom: 6 }}>Reason</label>
+        <textarea name="reason" value={formData.reason} onChange={handleChange} rows="3" placeholder="Briefly explain why you need this leave..." required
+          style={{ width: '100%', padding: '13px 20px', border: `1.5px solid ${theme.colors.border}`, borderRadius: '9999px', fontSize: '14px', color: theme.colors.text, outline: 'none', background: theme.colors.surface, resize: 'vertical' }}
         ></textarea>
       </div>
 
-      <button
-        type="submit"
-        disabled={loading}
-        style={{ 
-          background: theme.colors.primary, 
-          color: '#fff', 
-          padding: '10px', 
-          borderRadius: theme.radius.sm,
-          opacity: loading ? 0.7 : 1,
-          transition: 'all 0.2s'
-        }}
-        className="w-full font-medium"
-      >
-        {loading ? 'Applying...' : 'Apply Leave'}
-      </button>
+      <Button type="submit" loading={loading} style={{ width: '100%' }}>Apply Leave</Button>
     </form>
   );
 }

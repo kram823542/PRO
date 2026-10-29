@@ -146,7 +146,7 @@ const assertScope = async (user, clfId) => {
 };
 
 /* ────────────────────────────────────────────
-   ✅ CREATE — adviceNumber OPTIONAL
+   ✅ CREATE — adviceNumber OPTIONAL + CLF Bank Details
    ──────────────────────────────────────────── */
 export const createAdvice = async (req, data) => {
   const user = req.user;
@@ -157,6 +157,11 @@ export const createAdvice = async (req, data) => {
 
   if (!data.employees || !data.employees.length) {
     throw ApiError.badRequest('At least one employee required');
+  }
+
+  // ✅ NAYA: Bank Account validation
+  if (!data.clfBankDetails || !data.clfBankDetails.accountNumber) {
+    throw ApiError.badRequest('CLF Bank Account details are required');
   }
 
   const cleaned = data.employees.map((e, i) => {
@@ -180,45 +185,45 @@ export const createAdvice = async (req, data) => {
   });
 
   const totalAmount = cleaned.reduce((s, e) => s + e.amount, 0);
-
-  // ✅ CHANGED: agar user ne adviceNumber diya to wahi, warna blank
-  // ✅ CHANGED: Auto-format adviceNumber with SAT/CLF/YEAR/
   let adviceNumber = data.adviceNumber ? String(data.adviceNumber).trim() : '';
   const currentYear = new Date().getFullYear();
   const prefix = `SAT/CLF/${currentYear}/`;
 
   if (adviceNumber && !adviceNumber.startsWith('SAT/')) {
-    // Agar user ne sirf "299" daala hai, to usko clean karke pura format banao
     let cleanNum = adviceNumber;
     if (cleanNum.includes('/')) {
-      cleanNum = cleanNum.split('/').pop(); // e.g. "CLF/2026/299" -> "299"
+      cleanNum = cleanNum.split('/').pop();
     }
     adviceNumber = prefix + cleanNum;
   }
 
-  // ✅ Agar user ne diya hai, to duplicate check karo (us CLF ke andar)
+  // ✅ FIXED: Sirf tab duplicate check karo jab adviceNumber daala gaya ho
   if (adviceNumber) {
     const existing = await Advice.findOne({
       clfId: clf._id,
-      adviceNumber,
+      adviceNumber: adviceNumber, // Exact match
       isDeleted: false,
     });
     if (existing) {
       throw ApiError.conflict(`Advice number "${adviceNumber}" already exists for this CLF`);
     }
   }
+  // Agar adviceNumber blank hai, toh ye check skip ho jayega, aur direct save hoga
+
+
 
   const advice = await Advice.create({
     adviceType: data.adviceType === 'EXPENSE' ? 'EXPENSE' : 'SALARY',
-    adviceNumber, // ✅ empty allowed
+    adviceNumber,
     adviceDate: data.adviceDate || getISTDateString(),
+    clfBankDetails: data.clfBankDetails, // ✅ Save selected bank details
     createdByRole: user.role,
     createdByUser: user._id,
     createdByName: user.name || '',
     clfId: clf._id,
     blockId: clf.blockId,
-    bankName: data.bankName || '',
-    branch: data.branch || '',
+    bankName: data.clfBankDetails.bankName || '', // top-level backup
+    branch: data.clfBankDetails.branch || '',
     employees: cleaned,
     totalAmount,
     totalRows: cleaned.length,
@@ -241,7 +246,7 @@ export const createAdvice = async (req, data) => {
 };
 
 /* ────────────────────────────────────────────
-   LIST
+   LIST (Optimized Query)
    ──────────────────────────────────────────── */
 export const listAdvices = async (req, query) => {
   const user = req.user;
@@ -257,7 +262,12 @@ export const listAdvices = async (req, query) => {
   const limit = Math.min(100, parseInt(query.limit) || 20);
 
   const [items, total] = await Promise.all([
-    Advice.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+    Advice.find(filter)
+      .select('adviceNumber adviceType adviceDate bankName totalRows totalAmount createdAt clfBankDetails')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean(),
     Advice.countDocuments(filter),
   ]);
 
@@ -349,7 +359,7 @@ export const getClfMembersForAdvice = async (clfId) => {
 };
 
 /* ────────────────────────────────────────────
-   PDF GENERATE — adviceNumber blank ho to "-" ya skip
+   ✅ PDF GENERATE — Exact Image Format
    ──────────────────────────────────────────── */
 export const generateAdvicePDF = async (req, id, res, { inline = false } = {}) => {
   const advice = await Advice.findById(id);
@@ -382,6 +392,13 @@ export const generateAdvicePDF = async (req, id, res, { inline = false } = {}) =
 
   const employees = advice.employees;
   const totalAmount = advice.totalAmount;
+
+  // ✅ NAYA: Selected Bank Data
+  const clfBank = advice.clfBankDetails || {
+    bankName: advice.bankName || '-',
+    accountNumber: '-',
+    branch: advice.branch || '-'
+  };
 
   const PAGE_1_MAX = 5;
   const PAGE_NEXT_MAX = 11;
@@ -427,48 +444,29 @@ export const generateAdvicePDF = async (req, id, res, { inline = false } = {}) =
     const titleX = marginLeft + logoSize + 10;
 
     if (leftLogoBuf) {
-      try {
-        doc.image(leftLogoBuf, marginLeft, logoY, { fit: [logoSize, logoSize] });
-      } catch (e) { /* ignore */ }
+      try { doc.image(leftLogoBuf, marginLeft, logoY, { fit: [logoSize, logoSize] }); } catch (e) {}
     }
 
     if (rightLogoBuf) {
-      try {
-        doc.image(rightLogoBuf, pageWidth - marginRight - logoSize, logoY, {
-          fit: [logoSize, logoSize],
-        });
-      } catch (e) { /* ignore */ }
+      try { doc.image(rightLogoBuf, pageWidth - marginRight - logoSize, logoY, { fit: [logoSize, logoSize] }); } catch (e) {}
     }
 
     let ty = logoY + 10;
     doc.font('Devanagari-Bold').fontSize(18).fillColor('black');
-    doc.text('सतबरवा आजीविका महिला संकुल स्तरीय', titleX, ty, {
-      width: titleWidth,
-      align: 'center',
-    });
+    doc.text('सतबरवा आजीविका महिला संकुल स्तरीय', titleX, ty, { width: titleWidth, align: 'center' });
     ty += 22;
 
     doc.font('Devanagari-Bold').fontSize(13);
-    doc.text('प्राथमिक स्वावलम्बी सहकारी समिति लिमिटेड', titleX, ty, {
-      width: titleWidth,
-      align: 'center',
-    });
+    doc.text('प्राथमिक स्वावलम्बी सहकारी समिति लिमिटेड', titleX, ty, { width: titleWidth, align: 'center' });
     ty += 18;
 
     doc.font('Devanagari').fontSize(8.5);
-    doc.text('ग्राम- सतबरवा, कलस्टर- सतबरवा, प्रखंड- सतबरवा, जिला- पलामू (झा0)', titleX, ty, {
-      width: titleWidth,
-      align: 'center',
-    });
+    doc.text('ग्राम- सतबरवा, कलस्टर- सतबरवा, प्रखंड- सतबरवा, जिला- पलामू (झा0)', titleX, ty, { width: titleWidth, align: 'center' });
     ty += 11;
 
-    doc.text('निबंधन संख्या :- 02-JKD-01-04-01-0TH-001-2023', titleX, ty, {
-      width: titleWidth,
-      align: 'center',
-    });
+    doc.text('निबंधन संख्या :- 02-JKD-01-04-01-0TH-001-2023', titleX, ty, { width: titleWidth, align: 'center' });
 
     y = Math.max(logoY + logoSize, ty + 10) + 6;
-
     drawStrip(y);
     y += 18;
 
@@ -479,76 +477,63 @@ export const generateAdvicePDF = async (req, id, res, { inline = false } = {}) =
       year: 'numeric',
     });
 
-    // ✅ CHANGED: adviceNumber blank ho to "-" show karo
-    const adviceNumberText = advice.adviceNumber && advice.adviceNumber.trim()
-      ? advice.adviceNumber
-      : '-';
-    doc.text(`पत्रांक_  ${adviceNumberText}`, marginLeft, y);
-    doc.text(`दिनांक - ${dateStr}`, marginLeft, y, {
-      width: contentWidth,
-      align: 'right',
-    });
+  // ✅ CHANGED: Blank space agar number nahi hai
+const adviceNumberText = advice.adviceNumber && advice.adviceNumber.trim() ? advice.adviceNumber : '';
+doc.text(`पत्रांक_  ${adviceNumberText}`, marginLeft, y);
+    doc.text(`दिनांक - ${dateStr}`, marginLeft, y, { width: contentWidth, align: 'right' });
     y += 18;
 
     if (pageIndex === 0) {
+      // ✅ DYNAMIC BANK NAME
       doc.font('Devanagari-Bold').fontSize(10).text('To', marginLeft, y);
       y += 12;
       doc.font('Devanagari').fontSize(10).text('The Branch Manager', marginLeft, y);
       y += 12;
-      doc.text(advice.bankName || '-', marginLeft, y);
+      doc.text(clfBank.bankName, marginLeft, y);
       y += 12;
-      if (advice.branch) {
-        doc.text(`Branch: ${advice.branch}`, marginLeft, y);
+      if (clfBank.branch) {
+        doc.text(`Branch: ${clfBank.branch}`, marginLeft, y);
         y += 12;
       }
       y += 4;
-      doc
-        .font('Devanagari-Bold')
-        .fontSize(11)
-        .text('Subject: Bank Advice for transfer', marginLeft, y, { underline: true });
+      
+      doc.font('Devanagari-Bold').fontSize(11).text('Subject: Bank Advice for transfer', marginLeft, y, { underline: true });
       y += 18;
+      
       doc.font('Devanagari').fontSize(10);
+      
+      // ✅ DYNAMIC REF ACCOUNT NUMBER
       doc.text(
-        'Ref: SB Account number : सतबरवा आजीविका महिला संकुल स्तरीय प्राथमिक स्वावलम्बी सहकारी समिति लिमिटेड, SB A/c No. 265200010080538',
-        marginLeft,
-        y,
-        { width: contentWidth }
+        `Ref: SB Account number : Satbarwa Aajeevika Mahila Sankul Astariva Prathmik Swalambi Sahkari Samitil , SB A/c No. ${clfBank.accountNumber}`,
+        marginLeft, y, { width: contentWidth }
       );
       y += 24;
+      
       doc.text('Dear Sir,', marginLeft, y);
       y += 14;
+      
+      // ✅ EXACT IMAGE FORMAT (No Ch. No.)
+            doc.text(
+        `Please debit a sum of Rs. ${totalAmount.toLocaleString('en-IN')}/- (${formatAmountInWords(totalAmount)})`,
+        marginLeft, y, { width: contentWidth, align: 'justify' }
+      );
+      y = doc.y + 6;
+      
+      // ✅ FIXED: Cheque Number ki jagah (Pen se likhne ke liye)
       doc.text(
-        `Please debit a sum of Rs. ${totalAmount.toLocaleString('en-IN')}/- (${formatAmountInWords(
-          totalAmount
-        )}) From our saving bank account of सतबरवा आजीविका महिला संकुल स्तरीय प्राथमिक स्वावलम्बी सहकारी समिति लिमिटेड, SB A/c No. 265200010080538 by the fastest mode of remittance as per the details given below:`,
-        marginLeft,
-        y,
-        { width: contentWidth, align: 'justify' }
+        `From our saving bank account of Satbarwa Aajeevika Mahila Sankul Sangh , SB A/c No. ${clfBank.accountNumber}, vide Ch. No. ________________ by the fastest mode of remittance as per the details given below:`,
+        marginLeft, y, { width: contentWidth, align: 'justify' }
       );
       y = doc.y + 12;
     } else {
       doc.font('Devanagari').fontSize(10);
-      doc.text(`(Page ${pageIndex + 1} of ${chunks.length})`, 0, y, {
-        width: pageWidth,
-        align: 'center',
-      });
+      doc.text(`(Page ${pageIndex + 1} of ${chunks.length})`, 0, y, { width: pageWidth, align: 'center' });
       y += 18;
     }
 
     if (!isSignatureOnlyPage) {
-      const colWidths = {
-        sl: 22,
-        name: 90,
-        month: 70,
-        bankAccountNumber: 95,
-        bank: 55,
-        branch: 60,
-        ifsc: 75,
-        amount: 68,
-      };
-      const totalTableWidth =
-        colWidths.sl + colWidths.name + colWidths.month + colWidths.bankAccountNumber +
-        colWidths.bank + colWidths.branch + colWidths.ifsc + colWidths.amount;
+      const colWidths = { sl: 22, name: 90, month: 70, bankAccountNumber: 95, bank: 55, branch: 60, ifsc: 75, amount: 68 };
+      const totalTableWidth = colWidths.sl + colWidths.name + colWidths.month + colWidths.bankAccountNumber + colWidths.bank + colWidths.branch + colWidths.ifsc + colWidths.amount;
 
       const startX = marginLeft + (contentWidth - totalTableWidth) / 2;
       const rowHeight = 20;
@@ -571,10 +556,7 @@ export const generateAdvicePDF = async (req, id, res, { inline = false } = {}) =
 
       headers.forEach((h) => {
         doc.rect(x, y, h.w, rowHeight).stroke();
-        doc.text(h.label, x + 3, y + 6, {
-          width: h.w - 6,
-          align: h.label === 'Amount' ? 'right' : 'left',
-        });
+        doc.text(h.label, x + 3, y + 6, { width: h.w - 6, align: h.label === 'Amount' ? 'right' : 'left' });
         x += h.w;
       });
       y += rowHeight;
@@ -594,12 +576,7 @@ export const generateAdvicePDF = async (req, id, res, { inline = false } = {}) =
         ];
         rowValues.forEach((v) => {
           doc.rect(x, y, v.w, rowHeight).stroke();
-          doc.text(v.value, x + 3, y + 6, {
-            width: v.w - 6,
-            align: v.align,
-            lineBreak: false,
-            ellipsis: true,
-          });
+          doc.text(v.value, x + 3, y + 6, { width: v.w - 6, align: v.align, lineBreak: false, ellipsis: true });
           x += v.w;
         });
         y += rowHeight;
@@ -608,19 +585,8 @@ export const generateAdvicePDF = async (req, id, res, { inline = false } = {}) =
       if (isLastPage && chunk.length > 0) {
         x = startX;
         const totalRowValues = [
-          {
-            w: colWidths.sl + colWidths.name + colWidths.month + colWidths.bankAccountNumber +
-               colWidths.bank + colWidths.branch + colWidths.ifsc,
-            value: 'TOTAL',
-            align: 'right',
-            bold: true,
-          },
-          {
-            w: colWidths.amount,
-            value: `${totalAmount.toLocaleString('en-IN')}.00`,
-            align: 'right',
-            bold: true,
-          },
+          { w: colWidths.sl + colWidths.name + colWidths.month + colWidths.bankAccountNumber + colWidths.bank + colWidths.branch + colWidths.ifsc, value: 'TOTAL', align: 'right', bold: true },
+          { w: colWidths.amount, value: `${totalAmount.toLocaleString('en-IN')}.00`, align: 'right', bold: true },
         ];
         totalRowValues.forEach((v) => {
           doc.rect(x, y, v.w, rowHeight).fillAndStroke('#F9FAFB', 'black');
@@ -632,16 +598,9 @@ export const generateAdvicePDF = async (req, id, res, { inline = false } = {}) =
         y += rowHeight + 10;
 
         doc.font('Devanagari').fontSize(10);
-        doc.text(
-          `Rs. ${totalAmount.toLocaleString('en-IN')}/- (${formatAmountInWords(totalAmount)})`,
-          marginLeft,
-          y,
-          { width: contentWidth }
-        );
+        doc.text(`Rs. ${totalAmount.toLocaleString('en-IN')}/- (${formatAmountInWords(totalAmount)})`, marginLeft, y, { width: contentWidth });
         y = doc.y + 10;
-      } else {
-        y += 6;
-      }
+      } else { y += 6; }
     }
 
     if (isLastPage) {
@@ -680,10 +639,7 @@ export const generateAdvicePDF = async (req, id, res, { inline = false } = {}) =
     }
   });
 
-  // ✅ CHANGED: Filename — agar adviceNumber blank ho to ID use karo
-  const safeNumber = (advice.adviceNumber && advice.adviceNumber.trim())
-    ? advice.adviceNumber.replace(/\//g, '-')
-    : `ADV-${advice._id}`;
+  const safeNumber = (advice.adviceNumber && advice.adviceNumber.trim()) ? advice.adviceNumber.replace(/\//g, '-') : `ADV-${advice._id}`;
   const filename = `Advice-${safeNumber}.pdf`;
   const disposition = inline ? 'inline' : 'attachment';
 

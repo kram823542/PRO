@@ -78,11 +78,17 @@ const AdviceFormate = ({ advicePreview }) => {
     0
   );
 
-  // ✅ NEW: adviceNumber blank ho to "—" show karo
   const adviceNumberDisplay =
     advicePreview.adviceNumber && advicePreview.adviceNumber.trim()
       ? advicePreview.adviceNumber
       : '—';
+
+  // ✅ NAYA: Dynamic Bank Details
+  const clfBank = advicePreview.clfBankDetails || {
+    bankName: advicePreview.bankName || '-',
+    accountNumber: '-',
+    branch: advicePreview.branch || '-'
+  };
 
   const PAGE_1_MAX = 5;
   const PAGE_NEXT_MAX = 11;
@@ -161,7 +167,6 @@ const AdviceFormate = ({ advicePreview }) => {
             <div className="w-[70%] bg-[#e05a10]"></div>
           </div>
 
-          {/* PATRANK AND DINANK — ✅ CHANGED: dynamic adviceNumber */}
           <div className="flex justify-between text-[16px] font-semibold my-2 shrink-0">
             <p className="m-0">पत्रांक - {adviceNumberDisplay}</p>
             <p className="m-0">
@@ -180,8 +185,8 @@ const AdviceFormate = ({ advicePreview }) => {
               <div className="text-[16px] mb-2 font-medium shrink-0">
                 <p className="font-bold m-0">To</p>
                 <p className="m-0">The Branch Manager</p>
-                <p className="m-0">{advicePreview.bankName}</p>
-                {advicePreview.branch && <p className="m-0">Branch: {advicePreview.branch}</p>}
+                <p className="m-0">{clfBank.bankName}</p>
+                {clfBank.branch && <p className="m-0">Branch: {clfBank.branch}</p>}
               </div>
 
               <div className="text-[16px] mb-2 shrink-0">
@@ -192,7 +197,7 @@ const AdviceFormate = ({ advicePreview }) => {
                 <p className="m-0">
                   <strong>Ref:</strong> SB Account number : सतबरवा आजीविका महिला संकुल स्तरीय
                   प्राथमिक स्वावलम्बी सहकारी समिति लिमिटेड, SB A/c No.
-                  <strong> 265200010080538</strong>
+                  <strong> {clfBank.accountNumber}</strong>
                 </p>
               </div>
 
@@ -203,7 +208,7 @@ const AdviceFormate = ({ advicePreview }) => {
                 <strong>{totalAmount.toLocaleString('en-IN')}/-</strong> (
                 {formatAmountInWords(totalAmount)}) From our saving bank account of सतबरवा
                 आजीविका महिला संकुल स्तरीय प्राथमिक स्वावलम्बी सहकारी समिति लिमिटेड, SB A/c No.{' '}
-                <strong>265200010080538</strong> by the fastest mode of remittance as per the
+                <strong>{clfBank.accountNumber}</strong> by the fastest mode of remittance as per the
                 details given below:
               </p>
             </>

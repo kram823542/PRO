@@ -2,20 +2,10 @@ import { useState } from 'react';
 import Input from '../../components/ui/Input.jsx';
 import Button from '../../components/ui/Button.jsx';
 import * as api from './clfs.api.js';
+import { theme } from '../../config/theme.js';
 
 export default function ClfForm({ onCreated }) {
-  const [form, setForm] = useState({
-    name: '',
-    code: '',
-    village: '',
-    location: '',
-    president: '',
-    secretary: '',
-    treasurer: '', // ✅ NAYA
-    contact: '',
-    email: '',
-    address: '',
-  });
+  const [form, setForm] = useState({ name: '', code: '', village: '', location: '', president: '', secretary: '', treasurer: '', contact: '', email: '', address: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -43,14 +33,12 @@ export default function ClfForm({ onCreated }) {
       <Input label="Location" name="location" value={form.location} onChange={handleChange} />
       <Input label="President" name="president" value={form.president} onChange={handleChange} />
       <Input label="Secretary" name="secretary" value={form.secretary} onChange={handleChange} />
-      <Input label="Treasurer (कोषाध्यक्ष)" name="treasurer" value={form.treasurer} onChange={handleChange} /> {/* ✅ NAYA */}
+      <Input label="Treasurer (कोषाध्यक्ष)" name="treasurer" value={form.treasurer} onChange={handleChange} />
       <Input label="Contact" name="contact" value={form.contact} onChange={handleChange} />
       <Input label="Email" name="email" type="email" value={form.email} onChange={handleChange} />
       <Input label="Address" name="address" value={form.address} onChange={handleChange} />
-      {error && <p style={{ color: 'red', fontSize: 13, margin: 0 }}>{error}</p>}
-      <Button type="submit" loading={loading}>
-        Create CLF
-      </Button>
+      {error && <p style={{ color: theme.colors.danger, fontSize: 13, margin: 0 }}>{error}</p>}
+      <Button type="submit" loading={loading}>Create CLF</Button>
     </form>
   );
 }

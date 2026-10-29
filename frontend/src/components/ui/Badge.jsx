@@ -27,7 +27,7 @@ export default function Badge({ children, variant = 'default', showDot = true })
         background: c.bg,
         color: c.color,
         border: `1px solid ${c.border}`,
-        whiteSpace: 'nowrap', // ✅ Text overlap nahi hoga
+        whiteSpace: 'nowrap',
         lineHeight: 1,
       }}
     >
@@ -38,7 +38,7 @@ export default function Badge({ children, variant = 'default', showDot = true })
             height: 6,
             borderRadius: '50%',
             background: c.dot,
-            flexShrink: 0, // ✅ Dot shrink nahi hoga
+            flexShrink: 0,
           }}
         />
       )}

@@ -140,6 +140,7 @@ export const getBPMDashboard = async (req) => {
 };
 
 /** ✅ CLF apne BOD members aur Core members update kare */
+/** ✅ CLF apne BOD members, Core members aur Bank Accounts update kare */
 export const updateBodDetails = async (req, id, data) => {
   const clf = await CLF.findById(id);
   if (!clf) throw ApiError.notFound('CLF not found');
@@ -173,6 +174,11 @@ export const updateBodDetails = async (req, id, data) => {
 
   if (data.bodMembers !== undefined) {
     clf.bodMembers = data.bodMembers;
+  }
+
+  // ✅ NAYA: CLF ke khud ke bank accounts save karo
+  if (data.bankAccounts !== undefined) {
+    clf.bankAccounts = data.bankAccounts;
   }
 
   await clf.save();

@@ -3,6 +3,8 @@ import PageHeader from '../../components/common/PageHeader.jsx';
 import Button from '../../components/ui/Button.jsx';
 import Modal from '../../components/ui/Modal.jsx';
 import ConfirmDialog from '../../components/ui/ConfirmDialog.jsx';
+import Loader from '../../components/ui/Loader.jsx';
+import Input from '../../components/ui/Input.jsx';
 import EmployeeForm from './EmployeeForm.jsx';
 import EmployeeRow from './EmployeeRow.jsx';
 import ResetPasswordModal from '../../components/common/ResetPasswordModal.jsx';
@@ -13,10 +15,10 @@ function ResponsiveTable({ children, minWidth = 800 }) {
   return (
     <div style={{ background: theme.colors.surface, borderRadius: theme.radius.md, boxShadow: theme.shadow.sm, width: '100%', maxWidth: '100%', overflowX: 'auto', overflowY: 'hidden', WebkitOverflowScrolling: 'touch' }} className="clf-table-wrap">
       <style>{`
-        .clf-table-wrap { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+        .clf-table-wrap { scrollbar-width: thin; scrollbar-color: ${theme.colors.muted} transparent; }
         .clf-table-wrap::-webkit-scrollbar { height: 6px; }
         .clf-table-wrap::-webkit-scrollbar-track { background: transparent; }
-        .clf-table-wrap::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .clf-table-wrap::-webkit-scrollbar-thumb { background: ${theme.colors.muted}40; border-radius: 3px; }
         .clf-table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: ${minWidth}px; }
         .clf-table th, .clf-table td { white-space: nowrap; }
       `}</style>
@@ -97,17 +99,16 @@ export default function EmployeesPage() {
         actions={canCreate && <Button onClick={() => setOpenForm(true)}>+ Add Employee</Button>}
       />
 
-      <div style={{ marginBottom: 14 }}>
-        <input
+      <div style={{ marginBottom: 14, maxWidth: 320 }}>
+        <Input
           placeholder="Search by name, code, mobile..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{ padding: '10px 14px', borderRadius: 8, border: `1px solid ${theme.colors.border}`, fontSize: 14, width: '100%', maxWidth: 320, outline: 'none', boxSizing: 'border-box' }}
         />
       </div>
 
       {loading ? (
-        <div style={{ padding: 40, textAlign: 'center', color: theme.colors.muted }}>Loading...</div>
+        <Loader />
       ) : employees.length === 0 ? (
         <div style={{ padding: 40, background: theme.colors.surface, borderRadius: theme.radius.md, textAlign: 'center', color: theme.colors.muted }}>No employees found</div>
       ) : (
@@ -131,7 +132,7 @@ export default function EmployeesPage() {
                 canReset={canReset}
                 canDelete={canDelete}
                 onReset={(employee) => setResetTarget(employee)}
-                onEditCode={(employee) => setResetTarget(employee)} // ✅ NAYA: Edit code bhi modal me hi khulega
+                onEditCode={(employee) => setResetTarget(employee)}
                 onDelete={(employee) => setDeleteTarget(employee)}
                 onToggleStatus={(employee) => setStatusTarget(employee)}
               />
@@ -146,7 +147,7 @@ export default function EmployeesPage() {
 
       <Modal open={!!tempCred} onClose={() => setTempCred(null)} title="Employee Credentials">
         <p style={{ fontSize: 14 }}>सिर्फ एक बार दिखेंगे:</p>
-        <div style={{ background: '#F1F5F9', padding: 12, borderRadius: 8, fontSize: 14 }}>
+        <div style={{ background: theme.colors.background, padding: 12, borderRadius: 8, fontSize: 14 }}>
           <div><b>Username:</b> {tempCred?.username}</div>
           <div><b>Password:</b> {tempCred?.tempPassword}</div>
         </div>
@@ -157,7 +158,7 @@ export default function EmployeesPage() {
         onClose={() => setResetTarget(null)}
         entityName={resetTarget?.name}
         entityLabel="Employee"
-        currentUsername={resetTarget?.employeeCode || ''} // ✅ NAYA: Current code pass karo
+        currentUsername={resetTarget?.employeeCode || ''} 
         onConfirm={handleResetConfirm}
       />
 

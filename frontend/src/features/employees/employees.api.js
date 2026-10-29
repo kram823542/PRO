@@ -7,9 +7,8 @@ export const updateEmployee = (id, payload) => apiClient.patch(`/employees/${id}
 export const setEmployeeStatus = (id, status) =>
   apiClient.patch(`/employees/${id}/status`, { status });
 
-// ✅ Reset password
-export const resetEmployeePassword = (id, newPassword) =>
-  apiClient.post(`/employees/${id}/reset-password`, { newPassword });
+// ✅ FIXED: Flattened data payload for reset
+export const resetEmployeePassword = (id, data) =>
+  apiClient.post(`/employees/${id}/reset-password`, data);
 
-// ✅ NEW: Permanently delete
 export const deleteEmployee = (id) => apiClient.delete(`/employees/${id}`);

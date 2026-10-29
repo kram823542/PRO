@@ -4,6 +4,7 @@ import Table from '../../components/ui/Table.jsx';
 import Badge from '../../components/ui/Badge.jsx';
 import Button from '../../components/ui/Button.jsx';
 import Modal from '../../components/ui/Modal.jsx';
+import Loader from '../../components/ui/Loader.jsx';
 import BlockForm from './BlockForm.jsx';
 import * as api from './blocks.api.js';
 
@@ -22,9 +23,7 @@ export default function BlocksPage() {
     }
   };
 
-  useEffect(() => {
-    load();
-  }, []);
+  useEffect(() => { load(); }, []);
 
   const columns = [
     { header: 'Name', key: 'name' },
@@ -36,11 +35,8 @@ export default function BlocksPage() {
 
   return (
     <>
-      <PageHeader
-        title="Blocks"
-        actions={<Button onClick={() => setOpenForm(true)}>+ Create Block</Button>}
-      />
-      <Table columns={columns} data={blocks} loading={loading} />
+      <PageHeader title="Blocks" actions={<Button onClick={() => setOpenForm(true)}>+ Create Block</Button>} />
+      {loading ? <Loader /> : <Table columns={columns} data={blocks} />}
       <Modal open={openForm} onClose={() => setOpenForm(false)} title="Create Block">
         <BlockForm onCreated={() => { setOpenForm(false); load(); }} />
       </Modal>

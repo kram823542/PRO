@@ -3,6 +3,7 @@ import PageHeader from '../../components/common/PageHeader.jsx';
 import Badge from '../../components/ui/Badge.jsx';
 import Button from '../../components/ui/Button.jsx';
 import Modal from '../../components/ui/Modal.jsx';
+import Loader from '../../components/ui/Loader.jsx'; // ✅ NEW: Loader import kiya
 import ClfForm from './ClfForm.jsx';
 import ResetPasswordModal from '../../components/common/ResetPasswordModal.jsx';
 import { theme } from '../../config/theme.js';
@@ -12,10 +13,11 @@ function ResponsiveTable({ children, minWidth = 720 }) {
   return (
     <div style={{ background: theme.colors.surface, borderRadius: theme.radius.md, boxShadow: theme.shadow.sm, width: '100%', maxWidth: '100%', overflowX: 'auto', overflowY: 'hidden', WebkitOverflowScrolling: 'touch' }} className="clf-table-wrap">
       <style>{`
-        .clf-table-wrap { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+        /* ✅ FIXED: Dynamic colors for scrollbar */
+        .clf-table-wrap { scrollbar-width: thin; scrollbar-color: ${theme.colors.muted}40 transparent; }
         .clf-table-wrap::-webkit-scrollbar { height: 6px; }
         .clf-table-wrap::-webkit-scrollbar-track { background: transparent; }
-        .clf-table-wrap::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        .clf-table-wrap::-webkit-scrollbar-thumb { background: ${theme.colors.muted}40; border-radius: 3px; }
         .clf-table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: ${minWidth}px; }
         .clf-table th, .clf-table td { white-space: nowrap; }
       `}</style>
@@ -50,9 +52,9 @@ function ClfRow({ clf, canReset, onReset, onViewDetails }) {
 
   return (
     <tr style={{ borderBottom: `1px solid ${theme.colors.border}` }}>
-      <td style={{ padding: '12px 14px', fontWeight: 600 }}>{clf.name}</td>
+      <td style={{ padding: '12px 14px', fontWeight: 600, color: theme.colors.text }}>{clf.name}</td>
       
-      {/* ✅ NAYA: Login ID Column */}
+      {/* Login ID Column */}
       <td style={{ padding: '12px 14px' }}>
         <span style={{ 
           fontSize: 12, fontWeight: 700, color: theme.colors.primary, 
@@ -63,8 +65,8 @@ function ClfRow({ clf, canReset, onReset, onViewDetails }) {
       </td>
 
       <td style={{ padding: '12px 14px', color: theme.colors.muted }}>{clf.blockId?.name || '—'}</td>
-      <td style={{ padding: '12px 14px' }}>{clf.village || '—'}</td>
-      <td style={{ padding: '12px 14px' }}>{clf.coreMembers?.president?.name || clf.president || '—'}</td>
+      <td style={{ padding: '12px 14px', color: theme.colors.text }}>{clf.village || '—'}</td>
+      <td style={{ padding: '12px 14px', color: theme.colors.text }}>{clf.coreMembers?.president?.name || clf.president || '—'}</td>
       <td style={{ padding: '12px 14px' }}>
         <Badge variant={clf.status === 'ACTIVE' ? 'success' : 'danger'}>{clf.status}</Badge>
       </td>
@@ -75,7 +77,7 @@ function ClfRow({ clf, canReset, onReset, onViewDetails }) {
           </button>
 
           {openMenu && (
-            <div ref={menuRef} style={{ position: 'fixed', top: menuPos.top, left: menuPos.left, background: theme.colors.surface, border: `1px solid ${theme.colors.border}`, borderRadius: '12px', boxShadow: '0 10px 30px rgba(0,0,0,0.15)', minWidth: 180, zIndex: 9999, overflow: 'hidden', padding: '6px' }}>
+            <div ref={menuRef} style={{ position: 'fixed', top: menuPos.top, left: menuPos.left, background: theme.colors.surface, border: `1px solid ${theme.colors.border}`, borderRadius: '12px', boxShadow: theme.shadow.lg, minWidth: 180, zIndex: 9999, overflow: 'hidden', padding: '6px' }}>
               <MenuItem icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>} label="View Details" color={theme.colors.text} onClick={() => { setOpenMenu(false); onViewDetails?.(clf); }} />
 
               {canReset && (
@@ -132,7 +134,8 @@ export default function ClfsPage() {
       <PageHeader title="CLFs" subtitle="Community Level Federations" actions={<Button onClick={() => setOpenForm(true)}>+ Create CLF</Button>} />
 
       {loading ? (
-        <div style={{ padding: 40, textAlign: 'center', color: theme.colors.muted }}>Loading...</div>
+        // ✅ FIXED: Raw text hatakar Loader component lagaya
+        <Loader />
       ) : clfs.length === 0 ? (
         <div style={{ padding: 40, background: theme.colors.surface, borderRadius: theme.radius.md, textAlign: 'center', color: theme.colors.muted }}>No CLFs found</div>
       ) : (
@@ -140,7 +143,6 @@ export default function ClfsPage() {
           <thead>
             <tr style={{ background: theme.colors.background }}>
               <th style={{ padding: '12px 14px', textAlign: 'left', fontWeight: 700, fontSize: 12, color: theme.colors.muted, textTransform: 'uppercase' }}>Name</th>
-              {/* ✅ NAYA: Header name change kiya Code se Login ID */}
               <th style={{ padding: '12px 14px', textAlign: 'left', fontWeight: 700, fontSize: 12, color: theme.colors.muted, textTransform: 'uppercase' }}>Login ID</th>
               <th style={{ padding: '12px 14px', textAlign: 'left', fontWeight: 700, fontSize: 12, color: theme.colors.muted, textTransform: 'uppercase' }}>Block</th>
               <th style={{ padding: '12px 14px', textAlign: 'left', fontWeight: 700, fontSize: 12, color: theme.colors.muted, textTransform: 'uppercase' }}>Village</th>
@@ -162,8 +164,9 @@ export default function ClfsPage() {
       </Modal>
 
       <Modal open={!!tempCred} onClose={() => setTempCred(null)} title="CLF Login Credentials">
-        <p style={{ fontSize: 14 }}>ये credentials सिर्फ एक बार दिखेंगे:</p>
-        <div style={{ background: '#F1F5F9', padding: 12, borderRadius: 8, fontSize: 14 }}>
+        <p style={{ fontSize: 14, color: theme.colors.text }}>ये credentials सिर्फ एक बार दिखेंगे:</p>
+        {/* ✅ FIXED: Hardcoded background color ko dynamic kiya */}
+        <div style={{ background: theme.colors.background, padding: 12, borderRadius: 8, fontSize: 14, color: theme.colors.text }}>
           <div><b>Username:</b> {tempCred?.username}</div>
           <div><b>Password:</b> {tempCred?.tempPassword}</div>
         </div>
@@ -193,17 +196,17 @@ export default function ClfsPage() {
             <div>
               <h4 style={{ margin: '0 0 10px', color: theme.colors.primary }}>Core Members</h4>
               <div style={{ background: theme.colors.background, padding: 10, borderRadius: 6, marginBottom: 8 }}>
-                <p style={{ margin: '0 0 4px', fontWeight: 600 }}>अध्यक्ष (President)</p>
+                <p style={{ margin: '0 0 4px', fontWeight: 600, color: theme.colors.text }}>अध्यक्ष (President)</p>
                 <p style={{ margin: 0, fontSize: 13, color: theme.colors.muted }}>Name: {viewTarget.coreMembers?.president?.name || viewTarget.president || '—'}</p>
                 <p style={{ margin: 0, fontSize: 13, color: theme.colors.muted }}>Mobile: {viewTarget.coreMembers?.president?.mobile || '—'}</p>
               </div>
               <div style={{ background: theme.colors.background, padding: 10, borderRadius: 6, marginBottom: 8 }}>
-                <p style={{ margin: '0 0 4px', fontWeight: 600 }}>सचिव (Secretary)</p>
+                <p style={{ margin: '0 0 4px', fontWeight: 600, color: theme.colors.text }}>सचिव (Secretary)</p>
                 <p style={{ margin: 0, fontSize: 13, color: theme.colors.muted }}>Name: {viewTarget.coreMembers?.secretary?.name || viewTarget.secretary || '—'}</p>
                 <p style={{ margin: 0, fontSize: 13, color: theme.colors.muted }}>Mobile: {viewTarget.coreMembers?.secretary?.mobile || '—'}</p>
               </div>
               <div style={{ background: theme.colors.background, padding: 10, borderRadius: 6, marginBottom: 8 }}>
-                <p style={{ margin: '0 0 4px', fontWeight: 600 }}>कोषाध्यक्ष (Treasurer)</p>
+                <p style={{ margin: '0 0 4px', fontWeight: 600, color: theme.colors.text }}>कोषाध्यक्ष (Treasurer)</p>
                 <p style={{ margin: 0, fontSize: 13, color: theme.colors.muted }}>Name: {viewTarget.coreMembers?.treasurer?.name || viewTarget.treasurer || '—'}</p>
                 <p style={{ margin: 0, fontSize: 13, color: theme.colors.muted }}>Mobile: {viewTarget.coreMembers?.treasurer?.mobile || '—'}</p>
               </div>
@@ -218,7 +221,7 @@ export default function ClfsPage() {
                   {viewTarget.bodMembers.map((m, i) => (
                     <div key={i} style={{ padding: 10, background: theme.colors.background, borderRadius: 6, border: `1px solid ${theme.colors.border}` }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span style={{ fontWeight: 600 }}>{m.name}</span>
+                        <span style={{ fontWeight: 600, color: theme.colors.text }}>{m.name}</span>
                         <span style={{ fontSize: 11, color: theme.colors.primary, fontWeight: 600 }}>{m.designation}</span>
                       </div>
                       <div style={{ fontSize: 12, color: theme.colors.muted }}>Mobile: {m.mobile || '—'}</div>

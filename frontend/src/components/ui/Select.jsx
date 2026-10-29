@@ -26,13 +26,14 @@ export default function Select({
         disabled={disabled}
         required={required}
         style={{
-          padding: '10px 12px',
+          padding: '12px 14px',
           borderRadius: theme.radius.md,
-          border: `1px solid ${error ? theme.colors.danger : theme.colors.border}`,
+          border: `1.5px solid ${error ? theme.colors.danger : theme.colors.border}`,
           fontSize: 14,
           outline: 'none',
-          background: disabled ? '#F1F5F9' : theme.colors.surface,
+          background: disabled ? theme.colors.background : theme.colors.surface,
           color: theme.colors.text,
+          cursor: disabled ? 'not-allowed' : 'pointer',
         }}
       >
         <option value="">{placeholder}</option>
